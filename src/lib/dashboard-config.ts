@@ -27,7 +27,7 @@ export const defaultDashboardConfig: DashboardConfig = {
     safetyMode: "balanced",
   },
   runtime: {
-    publicAppUrl: "http://localhost:3000",
+    publicAppUrl: "",
     workerSecret: "dashboard-worker-secret-change-me",
   },
   aiProvider: {

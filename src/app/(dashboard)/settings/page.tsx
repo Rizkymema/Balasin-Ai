@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
+import { resolveDashboardPublicAppUrl } from "@/lib/runtime-url";
 import type { TeamMember } from "@/types/dashboard-config";
 import { Tabs } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ export default function SettingsPage() {
 
   const [activeTab, setActiveTab] = useState("workspace");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [origin, setOrigin] = useState("");
 
   const [workspaceName, setWorkspaceName] = useState(config.workspace.name);
   const [industry, setIndustry] = useState(config.workspace.industry);
@@ -58,6 +60,10 @@ export default function SettingsPage() {
   const [isSavedNotify, setIsSavedNotify] = useState(false);
 
   useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
+  useEffect(() => {
     setWorkspaceName(config.workspace.name);
     setIndustry(config.workspace.industry);
     setDescription(config.workspace.description);
@@ -66,13 +72,13 @@ export default function SettingsPage() {
     setTimezone(config.workspace.timezone);
     setLang(config.workspace.language);
     setSupportEmail(config.workspace.supportEmail);
-    setPublicAppUrl(config.runtime.publicAppUrl);
+    setPublicAppUrl(resolveDashboardPublicAppUrl(config.runtime.publicAppUrl, origin));
     setDashboardWorkerSecret(config.runtime.workerSecret);
     setMembers(config.team.members);
     setNotifyEmail(config.team.notifications.emailDigest);
     setNotifyHandoff(config.team.notifications.instantHandoff);
     setNotifyWeekly(config.team.notifications.weeklyReport);
-  }, [config]);
+  }, [config, origin]);
 
   const handleSaveWorkspace = (event: FormEvent) => {
     event.preventDefault();
@@ -102,7 +108,7 @@ export default function SettingsPage() {
     patchConfig((current) => ({
       ...current,
       runtime: {
-        publicAppUrl,
+        publicAppUrl: publicAppUrl.trim(),
         workerSecret: dashboardWorkerSecret,
       },
     }));

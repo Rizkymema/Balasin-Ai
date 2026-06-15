@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
+import { resolveDashboardPublicAppUrl } from "@/lib/runtime-url";
 import type { ChannelKind } from "@/types/operations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,14 +117,10 @@ export default function ChannelsPage() {
   }, [config]);
 
   const baseUrl = useMemo(() => origin || "http://localhost:3000", [origin]);
-  const configuredBaseUrl = useMemo(() => {
-    const candidate = config.runtime.publicAppUrl.trim();
-    if (!candidate) {
-      return baseUrl;
-    }
-
-    return candidate.replace(/\/$/, "");
-  }, [baseUrl, config.runtime.publicAppUrl]);
+  const configuredBaseUrl = useMemo(
+    () => resolveDashboardPublicAppUrl(config.runtime.publicAppUrl, baseUrl),
+    [baseUrl, config.runtime.publicAppUrl],
+  );
 
   const whatsappWebhookUrl = `${configuredBaseUrl}/api/webhooks/whatsapp`;
   const instagramWebhookUrl = `${configuredBaseUrl}/api/webhooks/instagram`;
