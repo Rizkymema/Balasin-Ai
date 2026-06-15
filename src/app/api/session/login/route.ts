@@ -39,7 +39,8 @@ export async function POST(request: Request) {
     });
 
     return response;
-  } catch {
+  } catch (error) {
+    console.error("Failed to create login session", error);
     return jsonError("Gagal membuat session login.", 500);
   }
 }

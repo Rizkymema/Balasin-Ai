@@ -1,11 +1,15 @@
 import { mkdirSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { defaultDashboardConfig } from "@/lib/dashboard-config";
 import { defaultDashboardOperations } from "@/lib/dashboard-operations";
 
-const DATA_DIR = join(process.cwd(), "data");
+const IS_EPHEMERAL_RUNTIME = process.env.VERCEL === "1";
+const DATA_DIR =
+  process.env.BALESIN_STORAGE_DIR ??
+  (IS_EPHEMERAL_RUNTIME ? join(tmpdir(), "balesin-data") : join(process.cwd(), "data"));
 const UPLOAD_DIR = join(DATA_DIR, "knowledge");
 const DB_PATH = join(DATA_DIR, "balesin.sqlite");
 
@@ -36,7 +40,7 @@ function ensureDataDir() {
 
 function initializeSchema(database: DatabaseSync) {
   database.exec(`
-    PRAGMA journal_mode = WAL;
+    PRAGMA journal_mode = ${IS_EPHEMERAL_RUNTIME ? "MEMORY" : "WAL"};
     PRAGMA foreign_keys = ON;
 
     CREATE TABLE IF NOT EXISTS app_config (

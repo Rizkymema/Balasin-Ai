@@ -2,6 +2,9 @@
   "name": "balesin-ai",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('.next', { recursive: true, force: true })\"",
     "prebuild": "npm run clean",

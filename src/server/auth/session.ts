@@ -1,3 +1,5 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
+
 import { cookies } from "next/headers";
 
 import { serverEnv } from "@/server/env";
@@ -32,22 +34,8 @@ function fromBase64Url(value: string) {
   return Buffer.from(`${normalized}${padding}`, "base64");
 }
 
-async function signValue(value: string) {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(serverEnv.sessionSecret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(value),
-  );
-
-  return toBase64Url(signature);
+function signValue(value: string) {
+  return createHmac("sha256", serverEnv.sessionSecret).update(value).digest("base64url");
 }
 
 export async function createSessionToken(input: Omit<SessionPayload, "exp">) {
@@ -57,7 +45,7 @@ export async function createSessionToken(input: Omit<SessionPayload, "exp">) {
   };
 
   const encodedPayload = toBase64Url(JSON.stringify(payload));
-  const signature = await signValue(encodedPayload);
+  const signature = signValue(encodedPayload);
   return `${encodedPayload}.${signature}`;
 }
 
@@ -71,8 +59,14 @@ export async function verifySessionToken(token?: string | null) {
     return null;
   }
 
-  const expectedSignature = await signValue(encodedPayload);
-  if (expectedSignature !== encodedSignature) {
+  const expectedSignature = signValue(encodedPayload);
+  if (expectedSignature.length !== encodedSignature.length) {
+    return null;
+  }
+
+  if (
+    !timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(encodedSignature))
+  ) {
     return null;
   }
 

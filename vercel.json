@@ -1,15 +1,6 @@
 {
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "env": {
-    "NEXT_PUBLIC_APP_NAME": "Balesin Desk",
-    "NEXT_PUBLIC_APP_URL": "@NEXT_PUBLIC_APP_URL",
-    "SESSION_COOKIE_NAME": "balesin_session",
-    "SESSION_SECRET": "@SESSION_SECRET",
-    "WORKER_SECRET": "@WORKER_SECRET",
-    "WHATSAPP_BASE_URL": "https://graph.facebook.com",
-    "WHATSAPP_API_VERSION": "v21.0"
-  },
   "regions": ["sin1"],
   "functions": {
     "src/app/api/**": {

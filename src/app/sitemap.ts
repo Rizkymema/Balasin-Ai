@@ -1,21 +1,25 @@
 import type { MetadataRoute } from "next";
 
+import { resolveAppUrl } from "@/lib/app-url";
+
 export default function sitemap(): MetadataRoute.Sitemap {
+  const baseUrl = resolveAppUrl();
+
   return [
     {
-      url: "http://localhost:3000",
+      url: baseUrl,
       lastModified: new Date(),
       changeFrequency: "yearly",
       priority: 1,
     },
     {
-      url: "http://localhost:3000/login",
+      url: `${baseUrl}/login`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
-      url: "http://localhost:3000/register",
+      url: `${baseUrl}/register`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.8,

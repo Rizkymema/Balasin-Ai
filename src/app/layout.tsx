@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 
 import { RootShell } from "@/components/layout/root-shell";
 import { siteConfig } from "@/constants/site";
+import { resolveAppUrl } from "@/lib/app-url";
 
 import "./globals.css";
 
@@ -15,7 +16,7 @@ const rootFontVariables: CSSProperties = {
 } as CSSProperties;
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url),
+  metadataBase: new URL(resolveAppUrl()),
   title: {
     default: siteConfig.name,
     template: `%s | ${siteConfig.name}`,
