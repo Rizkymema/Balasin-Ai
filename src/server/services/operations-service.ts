@@ -1,0 +1,298 @@
+import { randomUUID } from "node:crypto";
+
+import { getDashboardConfigRecord, getDashboardOperationsRecord, saveDashboardOperationsRecord } from "@/server/repositories/dashboard-repository";
+import { sendChannelMessage } from "@/server/services/channel-adapters";
+import type {
+  ConversationMessage,
+  ConversationRecord,
+  ConversationStatus,
+  CustomerRecord,
+  DashboardOperationsData,
+  LeadStatus,
+  TicketPriority,
+  TicketRecord,
+} from "@/types/operations";
+
+const AI_REPLY_STATUSES: ConversationStatus[] = ["ai_active", "waiting_customer"];
+
+function formatMessageTimestamp() {
+  return new Date().toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function mapConversationStatusToLeadStatus(status: ConversationStatus): LeadStatus {
+  switch (status) {
+    case "assigned_to_admin":
+    case "blocked":
+      return "Complaint";
+    case "waiting_customer":
+      return "Asked Price";
+    case "resolved":
+      return "Paid";
+    case "spam":
+      return "Spam";
+    case "ai_paused":
+      return "Booking";
+    case "ai_active":
+    default:
+      return "Interested";
+  }
+}
+
+function buildTicketForConversation(
+  conversation: ConversationRecord,
+  fallbackAssignee: string,
+) {
+  const priority: TicketPriority =
+    conversation.riskLevel === "high"
+      ? "high"
+      : conversation.riskLevel === "medium"
+        ? "medium"
+        : "low";
+
+  return {
+    id: conversation.ticketId ?? `ticket-${conversation.id}`,
+    conversationId: conversation.id,
+    customerId: conversation.customerId,
+    customerName: conversation.name,
+    channel: conversation.channel,
+    issueType: conversation.lastIntent,
+    priority,
+    status: conversation.status === "resolved" ? "resolved" : "open",
+    assignedTo: conversation.assignedTo || fallbackAssignee,
+    summary: conversation.summary || conversation.lastMessage,
+    createdAt: "Sekarang",
+    updatedAt: "Sekarang",
+    resolutionNote: "",
+  } satisfies TicketRecord;
+}
+
+function syncCustomerSnapshots(
+  current: DashboardOperationsData,
+  nextConversation: ConversationRecord,
+) {
+  return current.customers.map((customer) => {
+    if (customer.id !== nextConversation.customerId) {
+      return customer;
+    }
+
+    const activeTicketCount = current.tickets.filter(
+      (ticket) =>
+        ticket.customerId === customer.id && ticket.status !== "resolved",
+    ).length;
+
+    return {
+      ...customer,
+      note: nextConversation.notes,
+      assignedTo: nextConversation.assignedTo,
+      leadStatus: mapConversationStatusToLeadStatus(nextConversation.status),
+      lastContact: nextConversation.timestamp,
+      activeTicketCount,
+    } satisfies CustomerRecord;
+  });
+}
+
+function updateConversationState(
+  current: DashboardOperationsData,
+  nextConversation: ConversationRecord,
+) {
+  let nextTickets = current.tickets.slice();
+
+  if (
+    nextConversation.status === "assigned_to_admin" ||
+    nextConversation.status === "blocked"
+  ) {
+    const existingTicketIndex = nextTickets.findIndex(
+      (ticket) => ticket.conversationId === nextConversation.id,
+    );
+    const nextTicket = buildTicketForConversation(nextConversation, "Admin Desk");
+
+    if (existingTicketIndex >= 0) {
+      nextTickets[existingTicketIndex] = {
+        ...nextTickets[existingTicketIndex],
+        ...nextTicket,
+        status:
+          nextConversation.status === "blocked" ? "complaint" : "in_progress",
+        updatedAt: "Sekarang",
+      };
+    } else {
+      nextTickets = [
+        {
+          ...nextTicket,
+          status:
+            nextConversation.status === "blocked" ? "complaint" : "open",
+        },
+        ...nextTickets,
+      ];
+    }
+
+    nextConversation = {
+      ...nextConversation,
+      ticketId:
+        nextTickets.find((ticket) => ticket.conversationId === nextConversation.id)?.id ??
+        nextConversation.ticketId,
+    };
+  }
+
+  if (nextConversation.status === "resolved" && nextConversation.ticketId) {
+    nextTickets = nextTickets.map((ticket) =>
+      ticket.id === nextConversation.ticketId
+        ? {
+            ...ticket,
+            status: "resolved",
+            updatedAt: "Sekarang",
+            resolutionNote: "Diselesaikan dari inbox dashboard.",
+          }
+        : ticket,
+    );
+  }
+
+  const nextState = {
+    ...current,
+    conversations: current.conversations.map((item) =>
+      item.id === nextConversation.id ? nextConversation : item,
+    ),
+    tickets: nextTickets,
+    lastUpdatedAt: new Date().toISOString(),
+  };
+
+  return {
+    ...nextState,
+    customers: syncCustomerSnapshots(nextState, nextConversation),
+  };
+}
+
+function getConversationOrThrow(current: DashboardOperationsData, id: string) {
+  const conversation = current.conversations.find((item) => item.id === id);
+  if (!conversation) {
+    throw new Error("Conversation not found.");
+  }
+
+  return conversation;
+}
+
+export async function sendInboxReply(input: {
+  conversationId: string;
+  message: string;
+}) {
+  const config = getDashboardConfigRecord();
+  const current = getDashboardOperationsRecord();
+  const conversation = getConversationOrThrow(current, input.conversationId);
+  const isAiReply = AI_REPLY_STATUSES.includes(conversation.status);
+  const sender: ConversationMessage["sender"] = isAiReply ? "ai" : "admin";
+  const recipientId =
+    conversation.phone ?? conversation.username ?? conversation.customerId;
+
+  const delivery = await sendChannelMessage({
+    channel: conversation.channel,
+    recipientId,
+    message: input.message,
+  });
+
+  const outgoingMessage: ConversationMessage = {
+    id: randomUUID(),
+    sender,
+    text: input.message,
+    timestamp: formatMessageTimestamp(),
+    status: delivery.ok ? "delivered" : "sent",
+    type: "text",
+  };
+
+  const nextConversation = {
+    ...conversation,
+    lastMessage: input.message,
+    timestamp: "Sekarang",
+    status: isAiReply ? conversation.status : "assigned_to_admin",
+    assignedTo: isAiReply ? config.aiAgent.name : "Admin Desk",
+    messages: [...conversation.messages, outgoingMessage],
+    summary: isAiReply
+      ? conversation.summary
+      : "Admin sudah mengambil alih percakapan dan mengirim balasan manual.",
+  } satisfies ConversationRecord;
+
+  const nextState = updateConversationState(current, nextConversation);
+  saveDashboardOperationsRecord(nextState);
+
+  return {
+    conversation: nextState.conversations.find((item) => item.id === conversation.id) ?? nextConversation,
+    delivery,
+  };
+}
+
+export function updateInboxConversationStatus(input: {
+  conversationId: string;
+  status: ConversationStatus;
+}) {
+  const config = getDashboardConfigRecord();
+  const current = getDashboardOperationsRecord();
+  const conversation = getConversationOrThrow(current, input.conversationId);
+
+  const assignedTo =
+    input.status === "ai_active" || input.status === "waiting_customer"
+      ? config.aiAgent.name
+      : input.status === "spam"
+        ? "Moderation Engine"
+        : "Admin Desk";
+
+  const nextConversation = {
+    ...conversation,
+    status: input.status,
+    assignedTo,
+    timestamp: "Sekarang",
+    summary:
+      input.status === "assigned_to_admin"
+        ? "AI menghentikan balasan otomatis dan meneruskan kasus ke admin."
+        : input.status === "ai_paused"
+          ? "AI dipause sementara dan percakapan menunggu tindak lanjut admin."
+          : input.status === "resolved"
+            ? "Percakapan ditandai selesai dari dashboard inbox."
+            : conversation.summary,
+  } satisfies ConversationRecord;
+
+  const nextState = updateConversationState(current, nextConversation);
+  saveDashboardOperationsRecord(nextState);
+
+  return nextState.conversations.find((item) => item.id === conversation.id) ?? nextConversation;
+}
+
+export function updateInboxConversationNotes(input: {
+  conversationId: string;
+  notes: string;
+}) {
+  const current = getDashboardOperationsRecord();
+  const conversation = getConversationOrThrow(current, input.conversationId);
+
+  const nextConversation = {
+    ...conversation,
+    notes: input.notes,
+  } satisfies ConversationRecord;
+
+  const nextState = updateConversationState(current, nextConversation);
+  saveDashboardOperationsRecord(nextState);
+
+  return nextState.conversations.find((item) => item.id === conversation.id) ?? nextConversation;
+}
+
+export function createInboxTicket(input: { conversationId: string }) {
+  const current = getDashboardOperationsRecord();
+  const conversation = getConversationOrThrow(current, input.conversationId);
+
+  const nextConversation = {
+    ...conversation,
+    status: "assigned_to_admin",
+    assignedTo: "Admin Desk",
+    timestamp: "Sekarang",
+  } satisfies ConversationRecord;
+
+  const nextState = updateConversationState(current, nextConversation);
+  saveDashboardOperationsRecord(nextState);
+
+  return {
+    conversation:
+      nextState.conversations.find((item) => item.id === conversation.id) ?? nextConversation,
+    ticket:
+      nextState.tickets.find((item) => item.conversationId === conversation.id) ?? null,
+  };
+}

@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-14T00:43:00Z",
+  "title": "Design System: Balesin AI",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Electric Cyan", "canonical": "oklch(78% 0.14 210)", "tonalRamp": ["#00222b", "#004758", "#006d86", "#0093b5", "#00b9e2", "#00d2ff", "#4de0ff", "#99eeff"] },
+      "neutral-bg": { "role": "neutral", "displayName": "Obsidian Dark", "canonical": "oklch(12% 0.015 240)", "tonalRamp": ["#020306", "#04050b", "#050814", "#0b1022", "#121a36", "#1c2852", "#27376f", "#33478d"] },
+      "neutral-surface": { "role": "neutral", "displayName": "Deep Steel Surface", "canonical": "oklch(16% 0.015 240)", "tonalRamp": ["#030408", "#070a14", "#0a0e1c", "#121932", "#1d2950", "#2b3c73", "#3a5198", "#4e6abe"] },
+      "neutral-text": { "role": "neutral", "displayName": "Crisp Ice Text", "canonical": "oklch(96% 0.01 240)", "tonalRamp": ["#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display Heading", "purpose": "Lander hero headers only." },
+      "body": { "displayName": "Body Sans", "purpose": "Used for all standard UI text, inputs, headings, and lists." }
+    },
+    "shadows": [
+      { "name": "action-glow", "value": "0 0 12px rgba(0, 210, 255, 0.1)", "purpose": "Interactive highlight for focused and active items." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Standard timing for UI transitions." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Standard call-to-action button.",
+      "html": "<button class=\"ds-btn-primary\">Mulai Sekarang</button>",
+      "css": ".ds-btn-primary { background: #00d2ff; color: #050814; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 700; border: none; padding: 12px 24px; border-radius: 9999px; cursor: pointer; transition: background 0.2s, box-shadow 0.2s; } .ds-btn-primary:hover { background: #38bdf8; box-shadow: 0 0 12px rgba(0, 210, 255, 0.2); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Secondary action or cancel button.",
+      "html": "<button class=\"ds-btn-secondary\">Batal</button>",
+      "css": ".ds-btn-secondary { background: #0a0e1c; color: #f1f5f9; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 600; border: 1px solid rgba(255, 255, 255, 0.08); padding: 12px 24px; border-radius: 9999px; cursor: pointer; transition: background 0.2s, border-color 0.2s; } .ds-btn-secondary:hover { background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.16); }"
+    },
+    {
+      "name": "Standard Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Default container card.",
+      "html": "<div class=\"ds-card\"><h4 class=\"ds-card-title\">Informasi Operasional</h4><p class=\"ds-card-text\">Gunakan knowledge base untuk merekam detail harga, stok produk, dan SOP layanan.</p></div>",
+      "css": ".ds-card { background: #0a0e1c; border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 24px; font-family: 'Manrope', sans-serif; } .ds-card-title { color: #f1f5f9; font-size: 16px; font-weight: 700; margin: 0 0 8px 0; } .ds-card-text { color: #94a3b8; font-size: 14px; margin: 0; line-height: 1.6; }"
+    },
+    {
+      "name": "Form Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Single-line text field.",
+      "html": "<input type=\"text\" class=\"ds-input\" placeholder=\"Masukkan nama bisnis...\" />",
+      "css": ".ds-input { background: rgba(255, 255, 255, 0.02); color: #f1f5f9; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 10px 14px; font-size: 14px; width: 100%; box-sizing: border-box; outline: none; transition: border-color 0.2s, box-shadow 0.2s; } .ds-input:focus { border-color: #00d2ff; box-shadow: 0 0 0 2px rgba(0, 210, 255, 0.1); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Operational Workspace",
+    "overview": "Balesin AI visual identity is designed to convey absolute operational trust, safety, and modern efficiency. Rather than dressing up as an abstract, over-designed AI sandbox with translucent glass layers and glowing neon clouds, the system behaves as a crisp, solid, and reliable CRM workstation.",
+    "keyCharacteristics": [
+      "Solid Obsidian surfaces with precise, hairline borders.",
+      "Single sans-serif typography (Manrope) for clean readability.",
+      "State-driven color choices (Teal-Cyan for focus, Emerald for active automation, Amber for handoffs).",
+      "Compact, information-dense layouts suitable for actual SMB operations."
+    ],
+    "rules": [
+      { "name": "The Accent Limitation Rule", "body": "The primary Electric Cyan accent (#00d2ff) must never exceed 10% of any screen surface. It is a beacon for action, not a background element.", "section": "colors" },
+      { "name": "The Tonal Border Rule", "body": "Card borders must use a semi-transparent white wash (rgba(255,255,255,0.06)), letting the card background establish clean containment rather than high-contrast dividing lines.", "section": "colors" },
+      { "name": "The Text Contrast Rule", "body": "Body text must have a contrast ratio of at least 4.5:1 against its background. Text color is strictly Crisp Ice (#f1f5f9) or Slate Gray (#94a3b8); muted gray text on dark-tinted backgrounds must be avoided.", "section": "typography" },
+      { "name": "The Flat Container Rule", "body": "Drop shadows are prohibited on static cards and layouts. Shadows are reserved exclusively as responsive interactive cues for hover, focus, and open dropdowns/modals.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use a single font family (Manrope) for both heading and body to maintain a unified, premium product experience.",
+      "Do ensure all text hits a minimum of 4.5:1 contrast against its background.",
+      "Do represent system states (active automation, pending handoff) using standardized semantic colors.",
+      "Do reduce card border radius to 12px for a precise, clean visual system."
+    ],
+    "donts": [
+      "Don't use decorative glassmorphism or blur cards for default container layouts.",
+      "Don't use gradient text fills under any circumstances.",
+      "Don't use side-stripe colored borders on cards, list items, or alerts.",
+      "Don't pair Space Grotesk with IBM Plex Mono.",
+      "Don't use a repetitive tiny uppercase tracked eyebrow above every section.",
+      "Don't pair 1px borders with soft wide drop shadows (no ghost cards)."
+    ]
+  }
+}
