@@ -20,6 +20,11 @@ declare global {
 }
 
 function ensureDataDir() {
+  // Skip directory creation during build time
+  if (process.env.NEXT_PHASE === "phase-production-build") {
+    return;
+  }
+
   if (!existsSync(DATA_DIR)) {
     mkdirSync(DATA_DIR, { recursive: true });
   }
@@ -184,6 +189,15 @@ function seedJsonTable<T extends { id: string }>(
 }
 
 export function getDatabase() {
+  // Skip database initialization during Next.js build time
+  if (process.env.NEXT_PHASE === "phase-production-build") {
+    // Return a stub during build time
+    return {
+      prepare: () => ({ run: () => {}, get: () => undefined }),
+      exec: () => {},
+    } as unknown as DatabaseSync;
+  }
+
   if (globalThis.__balesinDb) {
     return globalThis.__balesinDb;
   }
