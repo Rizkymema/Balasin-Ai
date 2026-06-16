@@ -33,6 +33,24 @@ const HOURS_KEYWORDS = [
 ];
 
 const PRICE_KEYWORDS = ["harga", "berapa", "biaya", "tarif", "ongkos", "estimasi"];
+const GREETING_KEYWORDS = [
+  "halo",
+  "hallo",
+  "helo",
+  "hello",
+  "hi",
+  "hai",
+  "hii",
+  "hy",
+  "hey",
+  "pagi",
+  "siang",
+  "sore",
+  "malam",
+  "assalamualaikum",
+  "aslm",
+  "hlo",
+];
 
 const BOOKING_KEYWORDS = ["booking", "book", "servis besok", "service besok", "jadwal"];
 const COMPLAINT_KEYWORDS = ["refund", "komplain", "keluhan", "kecewa", "marah", "complain"];
@@ -85,6 +103,15 @@ function tokenize(input: string) {
 
 function hasKeyword(input: string, keywords: string[]) {
   return keywords.some((keyword) => input.includes(keyword));
+}
+
+function isGreetingMessage(input: string) {
+  const normalized = normalizeText(input);
+  const compact = normalized.replace(/\s+/g, "");
+
+  return GREETING_KEYWORDS.some(
+    (keyword) => normalized === keyword || compact === keyword || normalized.includes(keyword),
+  );
 }
 
 function scoreCandidate(messageText: string, candidateText: string) {
@@ -244,6 +271,19 @@ export async function generateReplyDecision(
         "Siap, kami bantu booking. Mohon kirim nama, tipe motor, keluhan, tanggal, dan jam yang diinginkan ya.",
       grounded: false,
       source: "fallback",
+    };
+  }
+
+  if (isGreetingMessage(messageText)) {
+    return {
+      intent: "Sapaan",
+      confidence: 92,
+      needsHuman: false,
+      status: "ai_active",
+      summary: "Customer mengirim sapaan umum dan sistem membalas dengan greeting aman.",
+      reply: `Halo, selamat datang di ${config.workspace.name}. Ada yang bisa kami bantu? Anda bisa tanya alamat, jam buka, booking, atau layanan yang dibutuhkan ya.`,
+      grounded: true,
+      source: "workspace",
     };
   }
 
