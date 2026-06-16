@@ -6,8 +6,23 @@ function getBlobStoreId() {
   return process.env.BLOB_STORE_ID?.trim() ?? "";
 }
 
+function getBlobReadWriteToken() {
+  return process.env.BLOB_READ_WRITE_TOKEN?.trim() ?? "";
+}
+
+function getBlobCommandOptions() {
+  const storeId = getBlobStoreId();
+
+  return storeId
+    ? { storeId }
+    : {};
+}
+
 export function isBlobStateEnabled() {
-  return process.env.VERCEL === "1" && getBlobStoreId().length > 0;
+  return (
+    process.env.VERCEL === "1" &&
+    (getBlobStoreId().length > 0 || getBlobReadWriteToken().length > 0)
+  );
 }
 
 export async function readPrivateJsonBlob<T>(pathname: string) {
@@ -17,8 +32,8 @@ export async function readPrivateJsonBlob<T>(pathname: string) {
 
   const result = await get(pathname, {
     access: PRIVATE_BLOB_ACCESS,
-    storeId: getBlobStoreId(),
     useCache: false,
+    ...getBlobCommandOptions(),
   });
 
   if (!result || result.statusCode !== 200 || !result.stream) {
@@ -43,6 +58,6 @@ export async function writePrivateJsonBlob(pathname: string, value: unknown) {
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: "application/json; charset=utf-8",
-    storeId: getBlobStoreId(),
+    ...getBlobCommandOptions(),
   });
 }
