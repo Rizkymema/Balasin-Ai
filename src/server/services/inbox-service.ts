@@ -6,6 +6,7 @@ import {
   getDashboardOperationsRecord,
   saveDashboardOperationsRecord,
 } from "@/server/repositories/dashboard-repository";
+import { generateReplyDecision, type ReplyDecision } from "@/server/services/reply-engine";
 import { sendChannelMessage } from "@/server/services/channel-adapters";
 import type {
   ChannelKind,
@@ -26,97 +27,6 @@ export type NormalizedIncomingMessage = {
   phone?: string;
   rawPayload: Record<string, unknown>;
 };
-
-type IntentDecision = {
-  intent: string;
-  confidence: number;
-  needsHuman: boolean;
-  status: ConversationStatus;
-  summary: string;
-  reply?: string;
-};
-
-function detectIntent(messageText: string) {
-  const lower = messageText.toLowerCase();
-
-  if (lower.includes("booking") || lower.includes("servis besok")) {
-    return "Booking";
-  }
-  if (lower.includes("harga") || lower.includes("berapa")) {
-    return "Tanya harga";
-  }
-  if (lower.includes("stok") || lower.includes("ready")) {
-    return "Tanya stok";
-  }
-  if (lower.includes("refund") || lower.includes("komplain")) {
-    return "Komplain";
-  }
-  if (lower.includes("judol") || lower.includes("link di bio")) {
-    return "Spam";
-  }
-  return "FAQ umum";
-}
-
-function buildDecision(messageText: string): IntentDecision {
-  const lower = messageText.toLowerCase();
-  const intent = detectIntent(messageText);
-
-  if (intent === "Spam") {
-    return {
-      intent,
-      confidence: 99,
-      needsHuman: false,
-      status: "spam",
-      summary: "Pesan terdeteksi sebagai spam dan tidak diteruskan ke alur aktif.",
-    };
-  }
-
-  if (intent === "Komplain") {
-    return {
-      intent,
-      confidence: 40,
-      needsHuman: true,
-      status: "assigned_to_admin",
-      summary: "Customer mengirim komplain dan perlu penanganan admin.",
-      reply:
-        "Terima kasih, pesan Anda sudah kami teruskan ke admin agar ditangani dengan lebih tepat.",
-    };
-  }
-
-  if (intent === "Booking") {
-    return {
-      intent,
-      confidence: 83,
-      needsHuman: false,
-      status: "waiting_customer",
-      summary: "Customer ingin booking dan sistem perlu mengumpulkan detail tambahan.",
-      reply:
-        "Siap, kami bantu booking. Mohon kirim nama, tipe motor, keluhan, tanggal, dan jam yang diinginkan ya.",
-    };
-  }
-
-  if (lower.includes("harga") || lower.includes("berapa")) {
-    return {
-      intent,
-      confidence: 88,
-      needsHuman: false,
-      status: "ai_active",
-      summary: "Customer menanyakan harga dan masih aman dijawab otomatis jika data tersedia.",
-      reply:
-        "Kami bantu cek harga ya. Jika perlu estimasi yang lebih akurat, mohon sertakan tipe motor atau detail layanan yang dimaksud.",
-    };
-  }
-
-  return {
-    intent,
-    confidence: 84,
-    needsHuman: false,
-    status: "ai_active",
-    summary: "Pesan umum masih aman diproses otomatis oleh sistem.",
-    reply:
-      "Terima kasih, pesan Anda sudah kami terima. Kami bantu jawab sesuai informasi yang tersedia ya.",
-  };
-}
 
 function buildCustomer(channel: ChannelKind, message: NormalizedIncomingMessage): CustomerRecord {
   return {
@@ -167,7 +77,7 @@ function appendMessage(
 export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   const config = await getDashboardConfigRecord();
   const current = await getDashboardOperationsRecord();
-  const decision = buildDecision(input.messageText);
+  const decision: ReplyDecision = await generateReplyDecision(input.messageText, config);
 
   let customer =
     current.customers.find(
