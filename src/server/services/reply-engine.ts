@@ -102,12 +102,62 @@ const STOP_WORDS = new Set([
   "an",
 ]);
 
+const COLLOQUIAL_TOKEN_MAP: Record<string, string> = {
+  almt: "alamat",
+  almat: "alamat",
+  almtny: "alamatnya",
+  alamatny: "alamatnya",
+  dmn: "dimana",
+  dimn: "dimana",
+  mn: "mana",
+  yg: "yang",
+  ygk: "yang",
+  yhh: "ya",
+  yh: "ya",
+  y: "ya",
+  brp: "berapa",
+  brapa: "berapa",
+  gmn: "bagaimana",
+  gmna: "bagaimana",
+  gmana: "bagaimana",
+  blh: "boleh",
+  tny: "tanya",
+  tnya: "tanya",
+  nnya: "nanya",
+  nanyaa: "nanya",
+  sy: "saya",
+  sya: "saya",
+  aq: "aku",
+  dr: "dari",
+  utk: "untuk",
+  bngkel: "bengkel",
+  bkl: "bengkel",
+  bngkelnya: "bengkelnya",
+  servisnya: "servisnya",
+  svc: "servis",
+  srvis: "servis",
+  jm: "jam",
+  bka: "buka",
+  tutp: "tutup",
+  hrg: "harga",
+  lgkp: "lengkap",
+};
+
 function normalizeText(input: string) {
-  return input
+  const normalized = input
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  return normalized
+    .split(" ")
+    .map((token) => COLLOQUIAL_TOKEN_MAP[token] ?? token)
+    .join(" ");
 }
 
 function tokenize(input: string) {
@@ -118,7 +168,9 @@ function tokenize(input: string) {
 }
 
 function hasKeyword(input: string, keywords: string[]) {
-  return keywords.some((keyword) => input.includes(keyword));
+  const normalizedInput = normalizeText(input);
+
+  return keywords.some((keyword) => normalizedInput.includes(normalizeText(keyword)));
 }
 
 function getGreetingKeywords(config: DashboardConfig) {
@@ -290,6 +342,61 @@ function buildGreetingReply(config: DashboardConfig) {
     );
 }
 
+function getEditDistanceWithinLimit(
+  source: string,
+  target: string,
+  limit: number,
+) {
+  if (Math.abs(source.length - target.length) > limit) {
+    return limit + 1;
+  }
+
+  let previousRow = Array.from(
+    { length: target.length + 1 },
+    (_, index) => index,
+  );
+
+  for (let row = 1; row <= source.length; row += 1) {
+    const currentRow = [row];
+    let rowMin = row;
+
+    for (let column = 1; column <= target.length; column += 1) {
+      const cost = source[row - 1] === target[column - 1] ? 0 : 1;
+      const value = Math.min(
+        previousRow[column] + 1,
+        currentRow[column - 1] + 1,
+        previousRow[column - 1] + cost,
+      );
+      currentRow.push(value);
+      rowMin = Math.min(rowMin, value);
+    }
+
+    if (rowMin > limit) {
+      return limit + 1;
+    }
+
+    previousRow = currentRow;
+  }
+
+  return previousRow[target.length];
+}
+
+function areTokensSimilar(source: string, target: string) {
+  if (source === target) {
+    return true;
+  }
+
+  if (
+    source.length >= 4 &&
+    target.length >= 4 &&
+    (source.startsWith(target) || target.startsWith(source))
+  ) {
+    return true;
+  }
+
+  return getEditDistanceWithinLimit(source, target, 1) <= 1;
+}
+
 function scoreCandidate(messageText: string, candidateText: string) {
   const normalizedMessage = normalizeText(messageText);
   const normalizedCandidate = normalizeText(candidateText);
@@ -310,14 +417,14 @@ function scoreCandidate(messageText: string, candidateText: string) {
   }
 
   const messageTokens = Array.from(new Set(tokenize(messageText)));
-  const candidateTokens = new Set(tokenize(candidateText));
+  const candidateTokens = Array.from(new Set(tokenize(candidateText)));
 
-  if (messageTokens.length === 0 || candidateTokens.size === 0) {
+  if (messageTokens.length === 0 || candidateTokens.length === 0) {
     return 0;
   }
 
   const matchedTokenCount = messageTokens.filter((token) =>
-    candidateTokens.has(token),
+    candidateTokens.some((candidateToken) => areTokensSimilar(token, candidateToken)),
   ).length;
 
   const overlapScore = matchedTokenCount / messageTokens.length;
