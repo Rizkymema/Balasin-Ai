@@ -1,8 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import mammoth from "mammoth";
-import { PDFParse } from "pdf-parse";
 
 import { resolveAppUrl } from "@/lib/app-url";
 import { defaultDashboardConfig, mergeDashboardConfig } from "@/lib/dashboard-config";
@@ -203,6 +201,7 @@ async function extractDocumentText(params: {
     params.mimeType === "application/pdf" ||
     lowerName.endsWith(".pdf")
   ) {
+    const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: params.buffer });
 
     try {
@@ -217,6 +216,7 @@ async function extractDocumentText(params: {
     params.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
     lowerName.endsWith(".docx")
   ) {
+    const { default: mammoth } = await import("mammoth");
     const result = await mammoth.extractRawText({ buffer: params.buffer });
     return result.value.trim();
   }
