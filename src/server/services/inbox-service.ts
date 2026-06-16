@@ -165,8 +165,8 @@ function appendMessage(
 }
 
 export async function processIncomingMessage(input: NormalizedIncomingMessage) {
-  const config = getDashboardConfigRecord();
-  const current = getDashboardOperationsRecord();
+  const config = await getDashboardConfigRecord();
+  const current = await getDashboardOperationsRecord();
   const decision = buildDecision(input.messageText);
 
   let customer =
@@ -288,7 +288,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     });
   }
 
-  saveDashboardOperationsRecord(current);
+  await saveDashboardOperationsRecord(current);
 
   return {
     conversation,

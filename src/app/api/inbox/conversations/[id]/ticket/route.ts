@@ -12,7 +12,7 @@ export async function POST(
 
   try {
     const { id } = await context.params;
-    const result = createInboxTicket({ conversationId: id });
+    const result = await createInboxTicket({ conversationId: id });
     return jsonOk(result);
   } catch (error) {
     return jsonError(

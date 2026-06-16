@@ -4,8 +4,16 @@ import { join } from "node:path";
 
 import { resolveAppUrl } from "@/lib/app-url";
 import { defaultDashboardConfig, mergeDashboardConfig } from "@/lib/dashboard-config";
+import {
+  defaultDashboardOperations,
+  normalizeDashboardOperations,
+} from "@/lib/dashboard-operations";
 import { resolveDashboardPublicAppUrl } from "@/lib/runtime-url";
-import { defaultDashboardOperations } from "@/lib/dashboard-operations";
+import {
+  isBlobStateEnabled,
+  readPrivateJsonBlob,
+  writePrivateJsonBlob,
+} from "@/server/blob-state";
 import {
   deleteJsonRow,
   getDatabase,
@@ -37,7 +45,10 @@ type KnowledgeChunk = {
   createdAt: string;
 };
 
-function readBaseConfig() {
+const DASHBOARD_CONFIG_BLOB_PATH = "state/dashboard-config.json";
+const DASHBOARD_OPERATIONS_BLOB_PATH = "state/dashboard-operations.json";
+
+function readLocalBaseConfig() {
   const database = getDatabase();
   const row = database
     .prepare("SELECT data_json FROM app_config WHERE id = 1")
@@ -53,17 +64,18 @@ function readBaseConfig() {
   );
 }
 
-function saveBaseConfig(config: DashboardConfig) {
+function saveLocalBaseConfig(config: DashboardConfig) {
   const database = getDatabase();
   database
     .prepare("UPDATE app_config SET data_json = ?, updated_at = ? WHERE id = 1")
     .run(JSON.stringify(config), new Date().toISOString());
 }
 
-export function getDashboardConfigRecord(): DashboardConfig {
-  const base = readBaseConfig();
-  const faqs = listJsonRows<FAQItem>("knowledge_faqs");
-  const documents = listJsonRows<KnowledgeDocument>("knowledge_documents");
+function finalizeDashboardConfig(
+  base: DashboardConfig,
+  faqs: FAQItem[],
+  documents: KnowledgeDocument[],
+) {
   const runtimePublicAppUrl = resolveDashboardPublicAppUrl(
     base.runtime.publicAppUrl,
     resolveAppUrl(),
@@ -91,13 +103,48 @@ export function getDashboardConfigRecord(): DashboardConfig {
   };
 }
 
-export function saveDashboardConfigRecord(config: DashboardConfig) {
-  saveBaseConfig(config);
+export async function getDashboardConfigRecord(): Promise<DashboardConfig> {
+  if (isBlobStateEnabled()) {
+    const stored =
+      (await readPrivateJsonBlob<Partial<DashboardConfig>>(
+        DASHBOARD_CONFIG_BLOB_PATH,
+      )) ?? {};
+    const base = mergeDashboardConfig(defaultDashboardConfig, stored);
+
+    return finalizeDashboardConfig(
+      base,
+      base.knowledgeBase.faqs,
+      base.knowledgeBase.documents,
+    );
+  }
+
+  const base = readLocalBaseConfig();
+  return finalizeDashboardConfig(
+    base,
+    listJsonRows<FAQItem>("knowledge_faqs"),
+    listJsonRows<KnowledgeDocument>("knowledge_documents"),
+  );
+}
+
+export async function saveDashboardConfigRecord(config: DashboardConfig) {
+  if (isBlobStateEnabled()) {
+    await writePrivateJsonBlob(DASHBOARD_CONFIG_BLOB_PATH, config);
+    return;
+  }
+
+  saveLocalBaseConfig(config);
   replaceJsonRows("knowledge_faqs", config.knowledgeBase.faqs);
   replaceJsonRows("knowledge_documents", config.knowledgeBase.documents);
 }
 
-export function getDashboardOperationsRecord(): DashboardOperationsData {
+export async function getDashboardOperationsRecord(): Promise<DashboardOperationsData> {
+  if (isBlobStateEnabled()) {
+    const stored = await readPrivateJsonBlob<DashboardOperationsData>(
+      DASHBOARD_OPERATIONS_BLOB_PATH,
+    );
+    return normalizeDashboardOperations(stored ?? defaultDashboardOperations);
+  }
+
   return {
     conversations: listJsonRows<ConversationRecord>("conversations"),
     customers: listJsonRows<CustomerRecord>("customers"),
@@ -110,7 +157,15 @@ export function getDashboardOperationsRecord(): DashboardOperationsData {
   };
 }
 
-export function saveDashboardOperationsRecord(data: DashboardOperationsData) {
+export async function saveDashboardOperationsRecord(data: DashboardOperationsData) {
+  if (isBlobStateEnabled()) {
+    await writePrivateJsonBlob(DASHBOARD_OPERATIONS_BLOB_PATH, {
+      ...data,
+      lastUpdatedAt: new Date().toISOString(),
+    });
+    return;
+  }
+
   replaceJsonRows("conversations", data.conversations);
   replaceJsonRows("customers", data.customers);
   replaceJsonRows("bookings", data.bookings);
@@ -248,6 +303,25 @@ export async function ingestKnowledgeDocument(params: {
 
   upsertJsonRow("knowledge_documents", document);
 
+  if (isBlobStateEnabled()) {
+    const currentConfig = await getDashboardConfigRecord();
+    const nextDocuments = currentConfig.knowledgeBase.documents.some(
+      (item) => item.id === document.id,
+    )
+      ? currentConfig.knowledgeBase.documents.map((item) =>
+          item.id === document.id ? document : item,
+        )
+      : [document, ...currentConfig.knowledgeBase.documents];
+
+    await saveDashboardConfigRecord({
+      ...currentConfig,
+      knowledgeBase: {
+        ...currentConfig.knowledgeBase,
+        documents: nextDocuments,
+      },
+    });
+  }
+
   const database = getDatabase();
   database.prepare("DELETE FROM knowledge_chunks WHERE document_id = ?").run(documentId);
 
@@ -283,8 +357,10 @@ export async function ingestKnowledgeDocument(params: {
   };
 }
 
-export function deleteKnowledgeDocument(documentId: string) {
-  const documents = listJsonRows<KnowledgeDocument>("knowledge_documents");
+export async function deleteKnowledgeDocument(documentId: string) {
+  const documents = isBlobStateEnabled()
+    ? (await getDashboardConfigRecord()).knowledgeBase.documents
+    : listJsonRows<KnowledgeDocument>("knowledge_documents");
   const target = documents.find((item) => item.id === documentId);
   if (target) {
     const filePath = join(getUploadDirectory(), `${documentId}-${target.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`);
@@ -296,10 +372,25 @@ export function deleteKnowledgeDocument(documentId: string) {
   deleteJsonRow("knowledge_documents", documentId);
   const database = getDatabase();
   database.prepare("DELETE FROM knowledge_chunks WHERE document_id = ?").run(documentId);
+
+  if (isBlobStateEnabled()) {
+    const currentConfig = await getDashboardConfigRecord();
+    await saveDashboardConfigRecord({
+      ...currentConfig,
+      knowledgeBase: {
+        ...currentConfig.knowledgeBase,
+        documents: currentConfig.knowledgeBase.documents.filter(
+          (item) => item.id !== documentId,
+        ),
+      },
+    });
+  }
 }
 
-export function readKnowledgeDocumentContent(documentId: string) {
-  const documents = listJsonRows<KnowledgeDocument>("knowledge_documents");
+export async function readKnowledgeDocumentContent(documentId: string) {
+  const documents = isBlobStateEnabled()
+    ? (await getDashboardConfigRecord()).knowledgeBase.documents
+    : listJsonRows<KnowledgeDocument>("knowledge_documents");
   const target = documents.find((item) => item.id === documentId);
   if (!target) {
     return null;
@@ -338,6 +429,6 @@ export function readKnowledgeDocumentContent(documentId: string) {
   }
 }
 
-export function resetOperationsToDefault() {
-  saveDashboardOperationsRecord(defaultDashboardOperations);
+export async function resetOperationsToDefault() {
+  await saveDashboardOperationsRecord(defaultDashboardOperations);
 }

@@ -13,7 +13,7 @@ export async function PUT(
   try {
     const { id } = await context.params;
     const body = (await request.json()) as { notes?: string };
-    const conversation = updateInboxConversationNotes({
+    const conversation = await updateInboxConversationNotes({
       conversationId: id,
       notes: body.notes ?? "",
     });

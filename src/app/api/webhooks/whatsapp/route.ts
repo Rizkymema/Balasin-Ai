@@ -4,7 +4,7 @@ import { processIncomingMessage } from "@/server/services/inbox-service";
 import { jsonError, jsonOk } from "@/server/http";
 
 export async function GET(request: Request) {
-  const config = getDashboardConfigRecord();
+  const config = await getDashboardConfigRecord();
   const { searchParams } = new URL(request.url);
   const mode = searchParams.get("hub.mode");
   const token = searchParams.get("hub.verify_token");

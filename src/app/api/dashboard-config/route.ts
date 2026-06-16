@@ -8,7 +8,7 @@ export async function GET() {
     return response;
   }
 
-  return jsonOk(getDashboardConfigRecord());
+  return jsonOk(await getDashboardConfigRecord());
 }
 
 export async function PUT(request: Request) {
@@ -19,8 +19,8 @@ export async function PUT(request: Request) {
 
   try {
     const body = (await request.json()) as DashboardConfig;
-    saveDashboardConfigRecord(body);
-    return jsonOk(body);
+    await saveDashboardConfigRecord(body);
+    return jsonOk(await getDashboardConfigRecord());
   } catch {
     return jsonError("Gagal menyimpan dashboard config.", 500);
   }

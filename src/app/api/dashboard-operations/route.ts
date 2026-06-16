@@ -9,7 +9,7 @@ export async function GET() {
     return response;
   }
 
-  return jsonOk(getDashboardOperationsRecord());
+  return jsonOk(await getDashboardOperationsRecord());
 }
 
 export async function PUT(request: Request) {
@@ -20,9 +20,9 @@ export async function PUT(request: Request) {
 
   try {
     const body = (await request.json()) as DashboardOperationsData;
-    saveDashboardOperationsRecord(body);
-    scheduleOperationalJobs();
-    return jsonOk(body);
+    await saveDashboardOperationsRecord(body);
+    await scheduleOperationalJobs();
+    return jsonOk(await getDashboardOperationsRecord());
   } catch {
     return jsonError("Gagal menyimpan data operasional.", 500);
   }

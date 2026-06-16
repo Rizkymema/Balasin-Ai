@@ -298,7 +298,7 @@ function normalizeBroadcast(input: Partial<BroadcastRecord>): BroadcastRecord {
   };
 }
 
-function normalizeDashboardOperations(raw: unknown): DashboardOperationsData {
+export function normalizeDashboardOperations(raw: unknown): DashboardOperationsData {
   if (!raw || typeof raw !== "object") {
     return cloneDefaultData();
   }

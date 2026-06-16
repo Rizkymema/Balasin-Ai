@@ -6,7 +6,7 @@ import {
 import { sendChannelMessage } from "@/server/services/channel-adapters";
 
 async function processLeadFollowup(payload: Record<string, unknown>) {
-  const current = getDashboardOperationsRecord();
+  const current = await getDashboardOperationsRecord();
   const conversationId = String(payload.conversationId ?? "");
   const target = current.conversations.find((item) => item.id === conversationId);
   if (!target || target.status !== "waiting_customer") {
@@ -29,7 +29,7 @@ async function processLeadFollowup(payload: Record<string, unknown>) {
   });
   target.lastMessage = "Follow-up otomatis dikirim oleh worker.";
 
-  saveDashboardOperationsRecord(current);
+  await saveDashboardOperationsRecord(current);
   return { sent: true };
 }
 
@@ -41,7 +41,7 @@ async function processHandoffNotify(payload: Record<string, unknown>) {
 }
 
 async function processBookingReminder(payload: Record<string, unknown>) {
-  const current = getDashboardOperationsRecord();
+  const current = await getDashboardOperationsRecord();
   const bookingId = String(payload.bookingId ?? "");
   const booking = current.bookings.find((item) => item.id === bookingId);
   if (!booking) {
@@ -59,7 +59,7 @@ async function processBookingReminder(payload: Record<string, unknown>) {
 }
 
 async function processBroadcastSend(payload: Record<string, unknown>) {
-  const current = getDashboardOperationsRecord();
+  const current = await getDashboardOperationsRecord();
   const broadcastId = String(payload.broadcastId ?? "");
   const broadcast = current.broadcasts.find((item) => item.id === broadcastId);
   if (!broadcast) {
@@ -78,7 +78,7 @@ async function processBroadcastSend(payload: Record<string, unknown>) {
   broadcast.status = "sent";
   broadcast.sentCount += Math.min(audience.length, 25);
   broadcast.scheduledAt = "Dikirim worker";
-  saveDashboardOperationsRecord(current);
+  await saveDashboardOperationsRecord(current);
 
   return {
     sentCount: Math.min(audience.length, 25),
@@ -138,8 +138,8 @@ export async function runDueJobs(limit = 20) {
   return results;
 }
 
-export function scheduleOperationalJobs() {
-  const current = getDashboardOperationsRecord();
+export async function scheduleOperationalJobs() {
+  const current = await getDashboardOperationsRecord();
 
   for (const booking of current.bookings) {
     if (booking.status === "Confirmed" || booking.status === "Waiting Payment") {

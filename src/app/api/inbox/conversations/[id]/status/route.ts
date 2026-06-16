@@ -29,7 +29,7 @@ export async function POST(
       return jsonError("Status percakapan tidak valid.", 400);
     }
 
-    const conversation = updateInboxConversationStatus({
+    const conversation = await updateInboxConversationStatus({
       conversationId: id,
       status: body.status,
     });

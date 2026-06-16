@@ -177,8 +177,8 @@ export async function sendInboxReply(input: {
   conversationId: string;
   message: string;
 }) {
-  const config = getDashboardConfigRecord();
-  const current = getDashboardOperationsRecord();
+  const config = await getDashboardConfigRecord();
+  const current = await getDashboardOperationsRecord();
   const conversation = getConversationOrThrow(current, input.conversationId);
   const isAiReply = AI_REPLY_STATUSES.includes(conversation.status);
   const sender: ConversationMessage["sender"] = isAiReply ? "ai" : "admin";
@@ -213,7 +213,7 @@ export async function sendInboxReply(input: {
   } satisfies ConversationRecord;
 
   const nextState = updateConversationState(current, nextConversation);
-  saveDashboardOperationsRecord(nextState);
+  await saveDashboardOperationsRecord(nextState);
 
   return {
     conversation: nextState.conversations.find((item) => item.id === conversation.id) ?? nextConversation,
@@ -221,12 +221,12 @@ export async function sendInboxReply(input: {
   };
 }
 
-export function updateInboxConversationStatus(input: {
+export async function updateInboxConversationStatus(input: {
   conversationId: string;
   status: ConversationStatus;
 }) {
-  const config = getDashboardConfigRecord();
-  const current = getDashboardOperationsRecord();
+  const config = await getDashboardConfigRecord();
+  const current = await getDashboardOperationsRecord();
   const conversation = getConversationOrThrow(current, input.conversationId);
 
   const assignedTo =
@@ -252,16 +252,16 @@ export function updateInboxConversationStatus(input: {
   } satisfies ConversationRecord;
 
   const nextState = updateConversationState(current, nextConversation);
-  saveDashboardOperationsRecord(nextState);
+  await saveDashboardOperationsRecord(nextState);
 
   return nextState.conversations.find((item) => item.id === conversation.id) ?? nextConversation;
 }
 
-export function updateInboxConversationNotes(input: {
+export async function updateInboxConversationNotes(input: {
   conversationId: string;
   notes: string;
 }) {
-  const current = getDashboardOperationsRecord();
+  const current = await getDashboardOperationsRecord();
   const conversation = getConversationOrThrow(current, input.conversationId);
 
   const nextConversation = {
@@ -270,13 +270,13 @@ export function updateInboxConversationNotes(input: {
   } satisfies ConversationRecord;
 
   const nextState = updateConversationState(current, nextConversation);
-  saveDashboardOperationsRecord(nextState);
+  await saveDashboardOperationsRecord(nextState);
 
   return nextState.conversations.find((item) => item.id === conversation.id) ?? nextConversation;
 }
 
-export function createInboxTicket(input: { conversationId: string }) {
-  const current = getDashboardOperationsRecord();
+export async function createInboxTicket(input: { conversationId: string }) {
+  const current = await getDashboardOperationsRecord();
   const conversation = getConversationOrThrow(current, input.conversationId);
 
   const nextConversation = {
@@ -287,7 +287,7 @@ export function createInboxTicket(input: { conversationId: string }) {
   } satisfies ConversationRecord;
 
   const nextState = updateConversationState(current, nextConversation);
-  saveDashboardOperationsRecord(nextState);
+  await saveDashboardOperationsRecord(nextState);
 
   return {
     conversation:

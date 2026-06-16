@@ -14,7 +14,7 @@ export async function GET(
   }
 
   const { id } = await context.params;
-  const content = readKnowledgeDocumentContent(id);
+  const content = await readKnowledgeDocumentContent(id);
   if (!content) {
     return jsonError("Document not found.", 404);
   }
@@ -32,6 +32,6 @@ export async function DELETE(
   }
 
   const { id } = await context.params;
-  deleteKnowledgeDocument(id);
+  await deleteKnowledgeDocument(id);
   return jsonOk({ deleted: true, id });
 }

@@ -5,7 +5,7 @@ import { runDueJobs, scheduleOperationalJobs } from "@/server/services/automatio
 
 export async function POST(request: Request) {
   const secret = request.headers.get("x-worker-secret");
-  const config = getDashboardConfigRecord();
+  const config = await getDashboardConfigRecord();
   const authorizedBySecret =
     secret === config.runtime.workerSecret || secret === serverEnv.workerSecret;
 
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     }
   }
 
-  scheduleOperationalJobs();
+  await scheduleOperationalJobs();
   const results = await runDueJobs();
   return jsonOk({ processed: results.length, results });
 }

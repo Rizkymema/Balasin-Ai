@@ -9,7 +9,7 @@ type SendMessageInput = {
 };
 
 export async function sendChannelMessage(input: SendMessageInput) {
-  const config = getDashboardConfigRecord();
+  const config = await getDashboardConfigRecord();
 
   if (input.channel === "WhatsApp" && config.channels.whatsapp.accessToken && config.channels.whatsapp.phoneNumberId && input.recipientId) {
     const response = await fetch(
