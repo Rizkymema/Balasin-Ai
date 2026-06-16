@@ -23,16 +23,12 @@ export function resolveDashboardPublicAppUrl(configuredUrl: string, origin: stri
   const normalizedOrigin = normalizeUrl(origin);
   const normalizedConfigured = normalizeUrl(configuredUrl);
 
-  if (!normalizedConfigured) {
-    return normalizedOrigin || "http://localhost:3000";
+  if (normalizedOrigin && !isLocalAppUrl(normalizedOrigin)) {
+    return normalizedOrigin;
   }
 
-  if (
-    normalizedOrigin &&
-    !isLocalAppUrl(normalizedOrigin) &&
-    isLocalAppUrl(normalizedConfigured)
-  ) {
-    return normalizedOrigin;
+  if (!normalizedConfigured) {
+    return normalizedOrigin || "http://localhost:3000";
   }
 
   return normalizedConfigured;
