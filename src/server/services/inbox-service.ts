@@ -7,13 +7,17 @@ import {
   saveDashboardOperationsRecord,
 } from "@/server/repositories/dashboard-repository";
 import { generateReplyDecision, type ReplyDecision } from "@/server/services/reply-engine";
-import { sendChannelMessage } from "@/server/services/channel-adapters";
+import {
+  sendChannelMessage,
+  sendWhatsAppReadTypingIndicator,
+} from "@/server/services/channel-adapters";
 import type {
   ChannelKind,
   ConversationMessage,
   ConversationRecord,
   ConversationStatus,
   CustomerRecord,
+  MessageDeliveryStatus,
 } from "@/types/operations";
 
 export type NormalizedIncomingMessage = {
@@ -23,6 +27,7 @@ export type NormalizedIncomingMessage = {
   messageText: string;
   messageType: "text" | "comment";
   timestamp: string;
+  externalMessageId?: string;
   username?: string;
   phone?: string;
   rawPayload: Record<string, unknown>;
@@ -50,28 +55,32 @@ function buildCustomer(channel: ChannelKind, message: NormalizedIncomingMessage)
 
 function appendMessage(
   conversation: ConversationRecord,
-  sender: ConversationMessage["sender"],
-  text: string,
-  type: ConversationMessage["type"],
-  status?: ConversationMessage["status"],
+  message: {
+    sender: ConversationMessage["sender"];
+    text: string;
+    type: ConversationMessage["type"];
+    status?: ConversationMessage["status"];
+    externalId?: string;
+  },
 ) {
   return {
     ...conversation,
-    lastMessage: text,
+    lastMessage: message.text,
     timestamp: "Sekarang",
     typingActor: null,
     messages: [
       ...conversation.messages,
       {
         id: randomUUID(),
-        sender,
-        text,
+        sender: message.sender,
+        text: message.text,
         timestamp: new Date().toLocaleTimeString("id-ID", {
           hour: "2-digit",
           minute: "2-digit",
         }),
-        status,
-        type,
+        externalId: message.externalId,
+        status: message.status,
+        type: message.type,
       },
     ],
   };
@@ -86,6 +95,36 @@ function markOutgoingMessagesAsRead(messages: ConversationMessage[]) {
           status: "read",
         },
   );
+}
+
+function resolveOutgoingMessageStatus(input: {
+  channel: ChannelKind;
+  delivered: boolean;
+}): MessageDeliveryStatus {
+  if (!input.delivered) {
+    return "sent";
+  }
+
+  return input.channel === "WhatsApp" ? "sent" : "delivered";
+}
+
+function normalizeWebhookTimestamp(timestamp?: string) {
+  if (!timestamp) {
+    return new Date().toISOString();
+  }
+
+  const parsed = Number(timestamp);
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return new Date(parsed * 1000).toISOString();
+  }
+
+  return new Date(timestamp).toISOString();
+}
+
+function wait(milliseconds: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
 }
 
 export async function processIncomingMessage(input: NormalizedIncomingMessage) {
@@ -141,9 +180,12 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       lastSeenAt: new Date().toISOString(),
       typingActor: "customer",
     },
-    "customer",
-    input.messageText,
-    input.messageType === "comment" ? "comment" : "text",
+    {
+      sender: "customer",
+      text: input.messageText,
+      type: input.messageType === "comment" ? "comment" : "text",
+      externalId: input.externalMessageId,
+    },
   );
 
   conversation = {
@@ -164,6 +206,17 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   };
 
   if (decision.reply && decision.status !== "spam") {
+    if (input.channel === "WhatsApp" && input.externalMessageId) {
+      try {
+        await sendWhatsAppReadTypingIndicator({
+          incomingMessageId: input.externalMessageId,
+        });
+        await wait(900);
+      } catch {
+        // Tetap kirim balasan walau read/typing indicator gagal.
+      }
+    }
+
     const delivery = await sendChannelMessage({
       channel: input.channel,
       recipientId: input.phone ?? input.externalUserId,
@@ -172,10 +225,16 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
 
     conversation = appendMessage(
       conversation,
-      "ai",
-      decision.reply,
-      "text",
-      delivery.ok ? "delivered" : "sent",
+      {
+        sender: "ai",
+        text: decision.reply,
+        type: "text",
+        status: resolveOutgoingMessageStatus({
+          channel: input.channel,
+          delivered: delivery.ok,
+        }),
+        externalId: delivery.messageId,
+      },
     );
   }
 
@@ -232,5 +291,75 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     conversation,
     customer,
     decision,
+  };
+}
+
+function normalizeIncomingDeliveryStatus(
+  status: string,
+): MessageDeliveryStatus | null {
+  switch (status) {
+    case "sent":
+    case "delivered":
+    case "read":
+      return status;
+    default:
+      return null;
+  }
+}
+
+export async function updateIncomingMessageDeliveryStatus(input: {
+  channel: ChannelKind;
+  externalMessageId: string;
+  status: string;
+  timestamp?: string;
+}) {
+  const nextStatus = normalizeIncomingDeliveryStatus(input.status);
+  if (!nextStatus) {
+    return {
+      updated: false,
+      reason: "unsupported_status",
+    };
+  }
+
+  const current = await getDashboardOperationsRecord();
+  const conversation = current.conversations.find(
+    (item) =>
+      item.channel === input.channel &&
+      item.messages.some((message) => message.externalId === input.externalMessageId),
+  );
+
+  if (!conversation) {
+    return {
+      updated: false,
+      reason: "conversation_not_found",
+    };
+  }
+
+  const nextConversation: ConversationRecord = {
+    ...conversation,
+    typingActor: null,
+    lastSeenAt:
+      nextStatus === "read"
+        ? normalizeWebhookTimestamp(input.timestamp)
+        : conversation.lastSeenAt,
+    messages: conversation.messages.map((message) =>
+      message.externalId === input.externalMessageId
+        ? {
+            ...message,
+            status: nextStatus,
+          }
+        : message,
+    ),
+  };
+
+  current.conversations = current.conversations.map((item) =>
+    item.id === conversation.id ? nextConversation : item,
+  );
+  await saveDashboardOperationsRecord(current);
+
+  return {
+    updated: true,
+    conversationId: conversation.id,
+    status: nextStatus,
   };
 }

@@ -22,6 +22,17 @@ function formatMessageTimestamp() {
   });
 }
 
+function resolveOutgoingMessageStatus(
+  channel: ConversationRecord["channel"],
+  delivered: boolean,
+) {
+  if (!delivered) {
+    return "sent" as const;
+  }
+
+  return channel === "WhatsApp" ? ("sent" as const) : ("delivered" as const);
+}
+
 function mapConversationStatusToLeadStatus(status: ConversationStatus): LeadStatus {
   switch (status) {
     case "assigned_to_admin":
@@ -218,7 +229,8 @@ export async function sendInboxReply(input: {
     sender,
     text: input.message,
     timestamp: formatMessageTimestamp(),
-    status: delivery.ok ? "delivered" : "sent",
+    externalId: delivery.messageId,
+    status: resolveOutgoingMessageStatus(conversation.channel, delivery.ok),
     type: "text",
   };
 

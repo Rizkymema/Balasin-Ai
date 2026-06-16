@@ -1,7 +1,35 @@
 import { getDashboardConfigRecord } from "@/server/repositories/dashboard-repository";
 import { recordWebhookEvent } from "@/server/repositories/webhook-repository";
-import { processIncomingMessage } from "@/server/services/inbox-service";
+import {
+  processIncomingMessage,
+  updateIncomingMessageDeliveryStatus,
+} from "@/server/services/inbox-service";
 import { jsonError, jsonOk } from "@/server/http";
+
+type WhatsAppWebhookBody = {
+  entry?: Array<{
+    changes?: Array<{
+      value?: {
+        messages?: Array<{
+          id?: string;
+          from?: string;
+          text?: { body?: string };
+          type?: string;
+        }>;
+        contacts?: Array<{
+          profile?: { name?: string };
+          wa_id?: string;
+        }>;
+        statuses?: Array<{
+          id?: string;
+          status?: string;
+          timestamp?: string;
+          recipient_id?: string;
+        }>;
+      };
+    }>;
+  }>;
+};
 
 export async function GET(request: Request) {
   const config = await getDashboardConfigRecord();
@@ -19,28 +47,82 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as {
-      entry?: Array<{
-        changes?: Array<{
-          value?: {
-            messages?: Array<{
-              from?: string;
-              text?: { body?: string };
-              type?: string;
-            }>;
-            contacts?: Array<{
-              profile?: { name?: string };
-              wa_id?: string;
-            }>;
-          };
-        }>;
-      }>;
-    };
+    const body = (await request.json()) as WhatsAppWebhookBody;
+    const changes = body.entry?.flatMap((entry) => entry.changes ?? []) ?? [];
+    let receivedCount = 0;
+    let statusUpdateCount = 0;
+    let ignoredCount = 0;
 
-    const message = body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-    const contact = body.entry?.[0]?.changes?.[0]?.value?.contacts?.[0];
+    for (const change of changes) {
+      const value = change.value;
+      const contact = value?.contacts?.[0];
+      const messages = value?.messages ?? [];
+      const statuses = value?.statuses ?? [];
 
-    if (!message?.text?.body || !contact?.profile?.name) {
+      for (const statusEvent of statuses) {
+        if (!statusEvent.id || !statusEvent.status) {
+          ignoredCount += 1;
+          continue;
+        }
+
+        const result = await updateIncomingMessageDeliveryStatus({
+          channel: "WhatsApp",
+          externalMessageId: statusEvent.id,
+          status: statusEvent.status,
+          timestamp: statusEvent.timestamp,
+        });
+
+        recordWebhookEvent({
+          source: "whatsapp",
+          payload: body as Record<string, unknown>,
+          normalized: {
+            type: "status",
+            externalMessageId: statusEvent.id,
+            status: statusEvent.status,
+            recipientId: statusEvent.recipient_id ?? null,
+            result,
+          },
+          status: result.updated ? "status_updated" : "ignored",
+        });
+
+        if (result.updated) {
+          statusUpdateCount += 1;
+        } else {
+          ignoredCount += 1;
+        }
+      }
+
+      for (const message of messages) {
+        if (!message.text?.body || !contact?.profile?.name) {
+          ignoredCount += 1;
+          continue;
+        }
+
+        const normalized = {
+          channel: "WhatsApp" as const,
+          externalUserId: contact.wa_id ?? message.from ?? contact.profile.name,
+          displayName: contact.profile.name,
+          messageText: message.text.body,
+          messageType: "text" as const,
+          timestamp: new Date().toISOString(),
+          externalMessageId: message.id,
+          phone: message.from,
+          rawPayload: body as Record<string, unknown>,
+        };
+
+        recordWebhookEvent({
+          source: "whatsapp",
+          payload: body as Record<string, unknown>,
+          normalized,
+          status: "received",
+        });
+
+        await processIncomingMessage(normalized);
+        receivedCount += 1;
+      }
+    }
+
+    if (receivedCount === 0 && statusUpdateCount === 0) {
       recordWebhookEvent({
         source: "whatsapp",
         payload: body as Record<string, unknown>,
@@ -49,26 +131,14 @@ export async function POST(request: Request) {
       return jsonOk({ ignored: true });
     }
 
-    const normalized = {
-      channel: "WhatsApp" as const,
-      externalUserId: contact.wa_id ?? message.from ?? contact.profile.name,
-      displayName: contact.profile.name,
-      messageText: message.text.body,
-      messageType: "text" as const,
-      timestamp: new Date().toISOString(),
-      phone: message.from,
-      rawPayload: body as Record<string, unknown>,
-    };
-
-    recordWebhookEvent({
-      source: "whatsapp",
-      payload: body as Record<string, unknown>,
-      normalized,
-      status: "received",
-    });
-
-    const result = await processIncomingMessage(normalized);
-    return jsonOk(result, { status: 201 });
+    return jsonOk(
+      {
+        received: receivedCount,
+        statusesUpdated: statusUpdateCount,
+        ignored: ignoredCount,
+      },
+      { status: receivedCount > 0 ? 201 : 200 },
+    );
   } catch {
     return jsonError("Gagal memproses webhook WhatsApp.", 500);
   }

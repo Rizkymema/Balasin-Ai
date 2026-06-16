@@ -30,6 +30,7 @@ export type ConversationMessage = {
   sender: MessageSender;
   text: string;
   timestamp: string;
+  externalId?: string;
   status?: MessageDeliveryStatus;
   type?: MessageType;
 };
