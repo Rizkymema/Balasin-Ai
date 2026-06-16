@@ -107,7 +107,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       label: businessName,
       onClick: () => {},
-      icon: <Building2 className="h-4 w-4 text-cyan-400" />,
+      icon: <Building2 className="h-4 w-4 text-[var(--color-brand)]" />,
     },
     {
       label: "Tambah Workspace",
@@ -145,7 +145,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* SIDEBAR LEFT */}
       <aside
-        className={`fixed inset-y-0 left-0 z-45 w-64 border-r border-[var(--color-border)] bg-[#0f172a] transition-transform duration-300 md:translate-x-0 md:static ${
+        className={`fixed inset-y-0 left-0 z-45 w-64 border-r border-[var(--color-border)] bg-[var(--color-surface-strong)] transition-transform duration-300 md:translate-x-0 md:static ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -153,7 +153,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Sidebar Header */}
           <div className="h-16 flex items-center justify-between px-6 border-b border-[var(--color-border)]">
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/12 bg-white/6 text-[var(--color-brand)]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-brand)]">
                 <Building2 className="h-4.5 w-4.5" />
               </div>
               <span className="font-heading font-bold text-lg">
@@ -174,7 +174,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               trigger={
               <div className="flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 hover:bg-[var(--color-surface-hover)] transition duration-200">
                   <div className="flex items-center gap-2 max-w-[170px]">
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--color-surface-strong)] text-[var(--color-brand)] border border-[var(--color-brand)]/20 text-xs font-bold font-heading">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] text-[var(--color-brand)] border border-[var(--color-brand)]/20 text-xs font-bold font-heading">
                       {businessName.substring(0, 2).toUpperCase()}
                     </div>
                     <span className="text-xs font-semibold text-white truncate">
@@ -221,7 +221,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </nav>
 
           {/* Sidebar Footer User Info */}
-          <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-surface)]">
+          <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-surface-strong)]">
             <Dropdown
               trigger={
                 <div className="flex items-center gap-3 cursor-pointer hover:bg-[var(--color-surface-hover)] p-2 rounded-lg transition duration-200">

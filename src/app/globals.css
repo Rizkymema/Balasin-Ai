@@ -1,23 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --color-bg: #0b1020;
-  --color-surface: #111827;
-  --color-surface-hover: #172036;
-  --color-surface-strong: #0f172a;
+  --color-bg: #050814;
+  --color-surface: #0a0e1c;
+  --color-surface-hover: #121932;
+  --color-surface-strong: #030408;
   --color-border: rgba(255, 255, 255, 0.06);
-  --color-border-hover: rgba(255, 255, 255, 0.12);
+  --color-border-hover: rgba(255, 255, 255, 0.16);
   --color-text: #f1f5f9;
   --color-muted: #94a3b8;
-  --color-brand: #14b8a6;
-  --color-brand-hover: #2dd4bf;
+  --color-brand: #00d2ff;
+  --color-brand-hover: #4de0ff;
   --color-success: #10b981;
   --color-warning: #f59e0b;
 }
 
 @theme inline {
-  --font-sans: var(--font-body);
-  --font-heading: var(--font-heading);
+  --font-sans: var(--font-manrope), var(--font-body);
+  --font-heading: var(--font-manrope), var(--font-heading);
 }
 
 * {
@@ -31,7 +31,7 @@ html {
 body {
   margin: 0;
   color: var(--color-text);
-  font-family: var(--font-body), sans-serif;
+  font-family: var(--font-manrope), var(--font-body), sans-serif;
   background-color: var(--color-bg);
 }
 
@@ -41,7 +41,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-heading), sans-serif;
+  font-family: var(--font-manrope), var(--font-heading), sans-serif;
 }
 
 a {

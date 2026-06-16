@@ -310,9 +310,15 @@ export function getDatabase() {
   // Skip database initialization during Next.js build time
   if (process.env.NEXT_PHASE === "phase-production-build") {
     // Return a stub during build time
+    const stubStmt = {
+      run: () => ({ changes: 0, lastInsertRowid: 0 }),
+      get: () => undefined,
+      all: () => [],
+    };
     return {
-      prepare: () => ({ run: () => {}, get: () => undefined }),
+      prepare: () => stubStmt,
       exec: () => {},
+      transaction: (cb: any) => cb,
     } as unknown as SqliteDatabase;
   }
 

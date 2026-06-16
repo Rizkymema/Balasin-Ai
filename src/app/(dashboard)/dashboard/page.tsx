@@ -3,22 +3,23 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  Building2,
+  BookOpen,
+  CalendarRange,
   CheckCircle2,
   CircleDashed,
   MessageSquare,
   Package2,
+  SendHorizontal,
+  ShieldCheck,
   Ticket,
-  TrendingUp,
-  Users,
   Wifi,
+  Workflow,
   Zap,
 } from "lucide-react";
 
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import { useDashboardOperations } from "@/hooks/use-dashboard-operations";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 export default function DashboardPage() {
@@ -39,91 +40,89 @@ export default function DashboardPage() {
 
   const stats = [
     {
-      label: "Omnichannel Active",
+      label: "OMNICHANNEL ACTIVE",
       value: `${data.conversations.length}`,
-      change: `${connectedChannels.length} channel`,
       icon: MessageSquare,
       color: "text-[var(--color-brand)] bg-[var(--color-brand)]/10 border-[var(--color-brand)]/20",
-      note:
-        connectedChannels.length > 0 ? connectedChannels.join(", ") : "Belum ada channel live",
+      note: connectedChannels.length > 0 ? connectedChannels.join(", ") : "Tidak ada channel aktif",
+      badgeColor: "bg-[var(--color-brand)]/10 text-[var(--color-brand)] border-[var(--color-brand)]/20",
+      badgeText: `${connectedChannels.length} Live`,
     },
     {
-      label: "Auto Reply",
+      label: "AUTO REPLY AI",
       value: config.aiAgent.autoReplyEnabled ? "ON" : "OFF",
-      change: `${config.aiAgent.confidenceThreshold}% safe`,
       icon: Zap,
-      color: "text-[var(--color-brand)] bg-[var(--color-brand)]/10 border-[var(--color-brand)]/20",
-      note: `Mode ${config.aiAgent.safetyMode} | balasan otomatis terkendali`,
+      color: config.aiAgent.autoReplyEnabled
+        ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/20"
+        : "text-amber-400 bg-amber-400/10 border-amber-400/20",
+      note: `Confidence threshold ${config.aiAgent.confidenceThreshold}%`,
+      badgeColor: config.aiAgent.autoReplyEnabled
+        ? "bg-emerald-400/10 text-emerald-400 border-emerald-400/20"
+        : "bg-amber-400/10 text-amber-400 border-amber-400/20",
+      badgeText: `Mode ${config.aiAgent.safetyMode}`,
     },
     {
-      label: "Open Tickets",
+      label: "TIKET TERBUKA",
       value: `${data.tickets.filter((ticket) => ticket.status !== "resolved").length}`,
-      change: `${automationCoverage}% rule`,
       icon: Ticket,
-      color: "text-[var(--color-warning)] bg-[var(--color-warning)]/10 border-[var(--color-warning)]/20",
-      note: "Kasus handoff, komplain, dan follow-up admin",
+      color: "text-amber-400 bg-amber-400/10 border-amber-400/20",
+      note: "Handoff, keluhan & eskalasi",
+      badgeColor: "bg-amber-400/10 text-amber-400 border-amber-400/20",
+      badgeText: `${automationCoverage}% Auto-Rule`,
     },
     {
-      label: "Catalog Ready",
+      label: "KATALOG & FAQ",
       value: `${data.products.length + data.services.length}`,
-      change: `${data.products.length} produk`,
       icon: Package2,
-      color: "text-[var(--color-success)] bg-[var(--color-success)]/10 border-[var(--color-success)]/20",
-      note: `${data.services.length} layanan | ${config.knowledgeBase.faqs.length} FAQ grounding`,
+      color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+      note: `${data.services.length} layanan | ${config.knowledgeBase.faqs.length} FAQ aktif`,
+      badgeColor: "bg-emerald-400/10 text-emerald-400 border-emerald-400/20",
+      badgeText: `${data.products.length} Produk`,
     },
   ];
 
   const controlCenterCards = [
     {
-      title: "Pusat balasan & knowledge",
-      detail:
-        "Intent, prompt, draft respons, guardrail, FAQ, dan dokumen sumber jawaban dikelola dari dashboard.",
+      title: "AI Assistant",
+      detail: "Konfigurasi sistem kecerdasan, intent, respons otomatis, FAQ, dan basis pengetahuan jawaban.",
       href: "/ai-agent",
+      icon: Zap,
     },
     {
-      title: "Produk, Layanan, dan Booking",
-      detail:
-        "Harga, stok, sparepart, paket servis, dan booking dibaca dari control center operasional yang sama.",
+      title: "Unified Inbox",
+      detail: "Pantau percakapan dari seluruh channel dan lakukan intervensi atau handoff manual admin.",
+      href: "/inbox",
+      icon: MessageSquare,
+    },
+    {
+      title: "Katalog & Layanan",
+      detail: "Kelola daftar produk, paket servis operasional, sparepart, dan sinkronisasi reservasi.",
       href: "/products-services",
+      icon: Package2,
     },
     {
-      title: "Ticket, Broadcast, dan Automation",
-      detail:
-        "Threshold handoff, campaign follow-up, reminder booking, moderation, queue worker, dan ticket escalation dipusatkan di dashboard.",
+      title: "Ticket & Escalation",
+      detail: "Kelola antrean komplain pelanggan, status tiket eskalasi, dan histori handoff agen.",
       href: "/tickets",
-    },
-  ];
-
-  const recentActivities = [
-    {
-      id: 1,
-      label: "Workspace",
-      value: config.workspace.name,
-      meta: `${config.workspace.industry} | ${config.workspace.timezone}`,
+      icon: Ticket,
     },
     {
-      id: 2,
-      label: "AI Assistant",
-      value: config.aiAgent.name,
-      meta: `${config.aiAgent.blacklist.length} blacklist item | fallback siap`,
+      title: "Automation Rules",
+      detail: "Atur trigger operasional, pesan berkala, pengalihan di luar jam kerja, dan moderasi bot.",
+      href: "/automation",
+      icon: Workflow,
     },
     {
-      id: 3,
-      label: "Ticket Desk",
-      value: `${data.tickets.length} ticket tercatat`,
-      meta: `${data.tickets.filter((ticket) => ticket.status === "in_progress").length} sedang diproses admin`,
-    },
-    {
-      id: 4,
-      label: "Broadcast",
-      value: `${data.broadcasts.length} campaign`,
-      meta: `${data.broadcasts.filter((item) => item.status === "scheduled").length} terjadwal | ${data.broadcasts.filter((item) => item.status === "sent").length} terkirim`,
+      title: "Broadcasting",
+      detail: "Kirim pesan kampanye, penawaran promo, pengumuman terjadwal, dan notifikasi massal.",
+      href: "/broadcast",
+      icon: SendHorizontal,
     },
   ];
 
   const setupChecklist = [
     {
-      title: "Profil workspace",
+      title: "Profil Workspace",
       href: "/settings",
       complete:
         Boolean(config.workspace.name.trim()) &&
@@ -137,294 +136,318 @@ export default function DashboardPage() {
         config.workspace.supportEmail,
         config.workspace.businessHours,
         config.workspace.address,
-      ].filter((item) => item.trim()).length}/5 data inti terisi`,
+      ].filter((item) => item.trim()).length}/5 profil terisi`,
     },
     {
-      title: "Knowledge base",
+      title: "Knowledge Base",
       href: "/knowledge-base",
       complete:
         config.knowledgeBase.faqs.length > 0 &&
         (config.knowledgeBase.documents.length > 0 ||
           config.knowledgeBase.websiteUrls.length > 0),
-      note: `${config.knowledgeBase.faqs.length} FAQ | ${config.knowledgeBase.documents.length} dokumen | ${config.knowledgeBase.websiteUrls.length} URL`,
+      note: `${config.knowledgeBase.faqs.length} FAQ | ${config.knowledgeBase.documents.length} dokumen`,
     },
     {
-      title: "Katalog produk & layanan",
+      title: "Katalog Produk & Servis",
       href: "/products-services",
       complete: data.products.length > 0 && data.services.length > 0,
       note: `${data.products.length} produk | ${data.services.length} layanan`,
     },
     {
-      title: "Channel live",
+      title: "Integrasi Channel",
       href: "/channels",
       complete:
         config.channels.webchat.enabled ||
         config.channels.whatsapp.status === "connected" ||
         config.channels.instagram.status === "connected",
-      note: `${connectedChannels.length} channel aktif`,
+      note: `${connectedChannels.length} channel terhubung`,
     },
     {
-      title: "AI provider",
+      title: "Konfigurasi AI Provider",
       href: "/ai-agent",
       complete:
         !config.aiProvider.enabled ||
         (Boolean(config.aiProvider.apiKey.trim()) &&
           Boolean(config.aiProvider.model.trim())),
       note: config.aiProvider.enabled
-        ? `${config.aiProvider.provider} | ${config.aiProvider.vectorStore}`
-        : "Belum diaktifkan",
+        ? `${config.aiProvider.provider} (${config.aiProvider.model})`
+        : "Dinonaktifkan",
     },
     {
-      title: "Automation rules",
+      title: "Aturan Automasi",
       href: "/automation",
       complete: activeRules > 0,
       note: `${activeRules}/${config.automation.rules.length} rule aktif`,
     },
     {
-      title: "Team operator",
+      title: "Tim Operator",
       href: "/settings",
       complete: config.team.members.some((member) => member.status === "active"),
-      note: `${config.team.members.filter((member) => member.status === "active").length} member aktif`,
+      note: `${config.team.members.filter((member) => member.status === "active").length} operator aktif`,
     },
   ];
 
   const completedChecklist = setupChecklist.filter((item) => item.complete).length;
+  const checklistPercentage = Math.round((completedChecklist / setupChecklist.length) * 100);
 
   return (
     <div className="space-y-6">
+      {/* Welcome Banner */}
       <div className="relative overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 md:p-8">
-        <div className="absolute right-6 bottom-0 translate-y-1/4 opacity-10">
-          <Building2 className="h-48 w-48 text-[var(--color-brand)]" />
-        </div>
-        <div className="relative z-10 space-y-3">
-          <Badge className="border-white/12 bg-white/6 text-slate-200">
-            Workspace Operasional
-          </Badge>
-          <h1 className="text-2xl font-bold text-white md:text-3xl tracking-tight">
-            Semua data operasional sekarang bisa Anda kelola dari dashboard{" "}
-            <span className="text-[var(--color-brand)]">{config.workspace.name}</span>
+        <div className="relative z-10 space-y-2">
+          <div className="flex items-center gap-2">
+            <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-[10px]">
+              Sistem Aktif
+            </Badge>
+            <span className="text-xs text-[var(--color-muted)] font-medium">
+              Timezone: {config.workspace.timezone}
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold text-white md:text-3xl tracking-tight mt-1">
+            Selamat datang di Workspace <span className="text-[var(--color-brand)]">{config.workspace.name}</span>
           </h1>
           <p className="max-w-3xl text-sm leading-relaxed text-[var(--color-muted)]">
-            Dashboard ini sekarang mengikuti blueprint omnichannel: dashboard overview, unified inbox,
-            contacts/CRM, AI assistant, knowledge base, products & services, booking, tickets,
-            automation, campaign, channels, reports, dan team/settings. Jadi setup operasional
-            tidak lagi tercecer.
+            Kelola interaksi pelanggan, automasi AI assistant, basis pengetahuan FAQ, booking slot, dan ticket eskalasi dalam satu panel kontrol terpusat yang aman dan andal.
           </p>
         </div>
       </div>
 
+      {/* Stats Cards Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
 
           return (
-            <Card key={stat.label} className="relative overflow-hidden p-5">
+            <Card key={stat.label} className="relative overflow-hidden p-5 bg-[var(--color-surface)] hover:border-[var(--color-border-hover)] transition duration-200">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">{stat.label}</span>
-                <div
-                  className={`flex h-8 w-8 items-center justify-center rounded border ${stat.color}`}
-                >
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">
+                  {stat.label}
+                </span>
+                <div className={`flex h-8 w-8 items-center justify-center rounded border ${stat.color}`}>
                   <Icon className="h-4 w-4" />
                 </div>
               </div>
               <div className="mt-4">
-                <span className="font-heading text-2xl font-bold text-white">
+                <span className="font-sans text-3xl font-extrabold text-white tracking-tight">
                   {stat.value}
                 </span>
-                <div className="mt-1.5 flex items-center gap-1.5">
-                  <span className="rounded bg-[var(--color-success)]/10 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-success)] border border-[var(--color-success)]/20">
-                    {stat.change}
+                <div className="mt-2 flex items-center gap-1.5">
+                  <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${stat.badgeColor}`}>
+                    {stat.badgeText}
                   </span>
                 </div>
-                <p className="mt-3 text-[11px] leading-5 text-[var(--color-muted)]">{stat.note}</p>
+                <p className="mt-3 text-[11px] leading-5 text-[var(--color-muted)]">
+                  {stat.note}
+                </p>
               </div>
             </Card>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <Card className="p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-bold tracking-tight text-white">Checklist Setup</h3>
-              <p className="mt-1 text-xs leading-relaxed text-[var(--color-muted)]">
-                Panel ini menunjukkan bagian mana yang masih perlu Anda isi dari dashboard.
+      {/* Main Content Layout Grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Left Column: Control Center & Checklist */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Operational Control Center */}
+          <Card className="p-6 bg-[var(--color-surface)]">
+            <div className="border-b border-[var(--color-border)] pb-4 mb-5">
+              <h3 className="text-base font-bold tracking-tight text-white">
+                Pusat Kendali Operasional
+              </h3>
+              <p className="mt-1 text-xs text-[var(--color-muted)]">
+                Akses cepat ke berbagai modul utama untuk mengelola respon dan layanan bisnis Anda.
               </p>
             </div>
-            <Badge className="border-white/12 bg-white/6 text-slate-200">
-              {completedChecklist}/{setupChecklist.length} siap
-            </Badge>
-          </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
-            {setupChecklist.map((item) => {
-              const Icon = item.complete ? CheckCircle2 : CircleDashed;
-
-              return (
-                <Link
-                  key={item.title}
-                  href={item.href}
-                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)]/20 p-4 transition hover:border-[var(--color-border-hover)] hover:bg-[var(--color-surface-hover)]/40"
-                >
-                  <div className="flex items-start justify-between gap-3">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {controlCenterCards.map((card) => {
+                const Icon = card.icon;
+                return (
+                  <Link
+                    key={card.title}
+                    href={card.href}
+                    className="flex flex-col justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-strong)]/30 p-4 transition-all duration-200 hover:border-[var(--color-border-hover)] hover:bg-[var(--color-surface-hover)]/30 group"
+                  >
                     <div>
-                      <p className="text-sm font-semibold text-white">{item.title}</p>
-                      <p className="mt-2 text-xs leading-6 text-[var(--color-muted)]">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[var(--color-brand)]">
+                          <Icon className="h-3.5 w-3.5" />
+                        </div>
+                        <h4 className="text-sm font-bold text-white tracking-tight group-hover:text-[var(--color-brand)] transition-colors duration-150">
+                          {card.title}
+                        </h4>
+                      </div>
+                      <p className="mt-3 text-xs leading-relaxed text-[var(--color-muted)]">
+                        {card.detail}
+                      </p>
+                    </div>
+                    <div className="mt-4 flex items-center gap-1.5 text-[11px] font-bold text-[var(--color-brand)] group-hover:text-[var(--color-brand-hover)] transition-colors duration-150">
+                      Buka Modul
+                      <ArrowRight className="h-3 w-3 transform group-hover:translate-x-0.5 transition-transform duration-150" />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </Card>
+
+          {/* Setup Checklist Progress */}
+          <Card className="p-6 bg-[var(--color-surface)]">
+            <div className="border-b border-[var(--color-border)] pb-4 mb-5">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <h3 className="text-base font-bold tracking-tight text-white">
+                    Setup & Integrasi Workspace
+                  </h3>
+                  <p className="mt-1 text-xs text-[var(--color-muted)]">
+                    Selesaikan langkah-langkah di bawah untuk memaksimalkan seluruh fitur dashboard.
+                  </p>
+                </div>
+                <Badge className="border-[var(--color-brand)]/20 bg-[var(--color-brand)]/5 text-[var(--color-brand)] self-start sm:self-center font-bold px-2.5 py-0.5">
+                  {completedChecklist} dari {setupChecklist.length} Siap
+                </Badge>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mt-4">
+                <div className="flex justify-between text-[10px] font-bold text-[var(--color-muted)] mb-1.5 uppercase">
+                  <span>Progress Kelengkapan</span>
+                  <span>{checklistPercentage}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-[var(--color-surface-strong)] rounded-full overflow-hidden border border-[var(--color-border)]">
+                  <div
+                    className="h-full bg-[var(--color-brand)] rounded-full transition-all duration-300"
+                    style={{ width: `${checklistPercentage}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {setupChecklist.map((item) => {
+                const Icon = item.complete ? CheckCircle2 : CircleDashed;
+
+                return (
+                  <Link
+                    key={item.title}
+                    href={item.href}
+                    className="flex items-start justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-strong)]/20 p-3.5 transition duration-150 hover:border-[var(--color-border-hover)] hover:bg-[var(--color-surface-hover)]/30 group"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-white group-hover:text-[var(--color-brand)] transition-colors duration-150">
+                        {item.title}
+                      </p>
+                      <p className="mt-1 text-[10px] text-[var(--color-muted)] truncate">
                         {item.note}
                       </p>
                     </div>
                     <Icon
-                      className={`mt-0.5 h-4 w-4 shrink-0 ${
-                        item.complete ? "text-emerald-300" : "text-amber-300"
+                      className={`h-4 w-4 shrink-0 mt-0.5 transition-colors duration-150 ${
+                        item.complete ? "text-emerald-400" : "text-amber-400 group-hover:text-amber-300"
                       }`}
                     />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </Card>
-
-        <Card className="p-5">
-          <div className="flex items-center gap-3">
-            <Ticket className="h-4 w-4 text-[var(--color-brand)]" />
-            <h3 className="text-sm font-bold tracking-tight text-white">
-              Yang Masih Manual
-            </h3>
-          </div>
-          <div className="mt-4 space-y-3 text-xs leading-6 text-[var(--color-muted)]">
-            <p>
-              Dashboard sekarang sudah menampung data operasional inti. Yang tetap perlu Anda isi
-              manual hanya secret session server dan kredensial integrasi yang memang rahasia.
-            </p>
-            <p>
-              `App URL`, `worker secret`, channel token, AI provider, produk, layanan, customer,
-              booking, ticket, knowledge base, dan rule automation sekarang bisa Anda kelola dari dashboard.
-            </p>
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 lg:col-span-2">
-          <div className="mb-5 flex items-center justify-between">
-            <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-white">
-              <TrendingUp className="h-4 w-4 text-[var(--color-brand)]" />
-              Control Surface
-            </h3>
-            <span className="text-xs font-medium text-[var(--color-muted)]">
-              Sumber data lintas modul
-            </span>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {controlCenterCards.map((card) => (
-              <Card key={card.title} className="bg-[var(--color-surface-hover)]/30 p-5">
-                <h4 className="text-sm font-bold text-white tracking-tight">{card.title}</h4>
-                <p className="mt-3 text-xs leading-relaxed text-[var(--color-muted)]">{card.detail}</p>
-                <Link
-                  href={card.href}
-                  className="mt-5 inline-flex items-center gap-1.5 text-xs font-bold text-[var(--color-brand)] transition hover:text-[var(--color-brand-hover)]"
-                >
-                  Buka modul
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </Card>
-            ))}
-          </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </Card>
         </div>
 
-        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-          <h3 className="mb-4 text-xs font-bold uppercase tracking-wide text-white">
-            Snapshot Operasional
-          </h3>
-          <div className="space-y-4">
-            {recentActivities.map((item) => (
-              <div key={item.id} className="flex items-start gap-3 text-xs leading-normal">
-                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--color-brand)]/20 bg-[var(--color-brand)]/10 text-[10px] font-bold text-[var(--color-brand)]">
-                  {item.label.slice(0, 2).toUpperCase()}
+        {/* Right Column: API Credentials Info & Workspace Snapshot */}
+        <div className="space-y-6">
+          {/* Security & Env Configuration Card */}
+          <Card className="p-6 bg-[var(--color-surface)] border border-[var(--color-border)]">
+            <div className="flex items-center gap-2.5 border-b border-[var(--color-border)] pb-4 mb-4">
+              <ShieldCheck className="h-5 w-5 text-emerald-400" />
+              <h3 className="text-sm font-bold tracking-tight text-white">
+                Kredensial & Integrasi Aman
+              </h3>
+            </div>
+            <p className="text-xs leading-relaxed text-[var(--color-muted)]">
+              Untuk menjamin keamanan operasional, seluruh token API pihak ketiga, secret token webhook, App URL, dan session key tidak disimpan di database frontend, melainkan dikelola langsung melalui variabel lingkungan server (*environment variables*).
+            </p>
+            <div className="mt-4 space-y-2 border-t border-[var(--color-border)] pt-4">
+              <div className="flex items-center justify-between text-[11px] py-1">
+                <span className="text-[var(--color-muted)] font-medium">App Environment</span>
+                <Badge className="bg-emerald-400/10 text-emerald-400 border-emerald-400/20 text-[10px] px-2 py-0">
+                  Secure Live
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between text-[11px] py-1">
+                <span className="text-[var(--color-muted)] font-medium">AI Provider API Key</span>
+                <span className="font-mono text-slate-300">
+                  {config.aiProvider.enabled && config.aiProvider.apiKey.trim()
+                    ? "••••••••••••••••"
+                    : "Not Configured"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] py-1">
+                <span className="text-[var(--color-muted)] font-medium">Workspace Status</span>
+                <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Online
+                </span>
+              </div>
+            </div>
+          </Card>
+
+          {/* System Workspace Snapshot */}
+          <Card className="p-6 bg-[var(--color-surface)]">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-white border-b border-[var(--color-border)] pb-3 mb-4">
+              Snapshot Workspace
+            </h3>
+            <div className="space-y-3.5">
+              <div className="flex items-start gap-3 text-xs">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[10px] font-bold text-[var(--color-brand)]">
+                  WS
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex justify-between">
-                    <span className="font-bold text-white">{item.label}</span>
-                  </div>
-                  <p className="mt-0.5 text-[11px] text-slate-300">{item.value}</p>
-                  <p className="mt-0.5 text-[10px] text-[var(--color-muted)]">{item.meta}</p>
+                  <p className="font-bold text-white text-[11px]">Workspace</p>
+                  <p className="text-[10px] text-[var(--color-muted)] mt-0.5 truncate">
+                    {config.workspace.name} ({config.workspace.industry})
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
+
+              <div className="flex items-start gap-3 text-xs">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[10px] font-bold text-[var(--color-brand)]">
+                  AI
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-white text-[11px]">Asisten Bot</p>
+                  <p className="text-[10px] text-[var(--color-muted)] mt-0.5 truncate">
+                    {config.aiAgent.name} | {config.aiAgent.blacklist.length} blacklist kata
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 text-xs">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[10px] font-bold text-[var(--color-brand)]">
+                  TK
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-white text-[11px]">Support Desk</p>
+                  <p className="text-[10px] text-[var(--color-muted)] mt-0.5">
+                    {data.tickets.filter((t) => t.status === "in_progress").length} tiket sedang diproses operator
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 text-xs">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[10px] font-bold text-[var(--color-brand)]">
+                  BC
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-white text-[11px]">Kampanye Broadcast</p>
+                  <p className="text-[10px] text-[var(--color-muted)] mt-0.5">
+                    {data.broadcasts.filter((item) => item.status === "sent").length} terkirim | {data.broadcasts.filter((item) => item.status === "scheduled").length} dijadwalkan
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <Card className="flex flex-col justify-between p-5 hover:border-[var(--color-border-hover)] transition-all">
-          <div>
-            <h4 className="text-sm font-bold text-white tracking-tight">Kelola knowledge & balasan</h4>
-            <p className="mt-2 text-xs leading-relaxed text-[var(--color-muted)]">
-              Edit intent, prompt, threshold, FAQ, dokumen, dan profil bisnis yang dipakai sistem balasan.
-            </p>
-          </div>
-          <Link href="/ai-agent" className="block pt-4">
-            <Button variant="secondary" className="h-9 w-full py-2 text-xs">
-              Buka AI Assistant
-            </Button>
-          </Link>
-        </Card>
-
-        <Card className="flex flex-col justify-between p-5 hover:border-[var(--color-border-hover)] transition-all">
-          <div>
-            <h4 className="text-sm font-bold text-white tracking-tight">Atur WA, IG, Web Chat</h4>
-            <p className="mt-2 text-xs leading-relaxed text-[var(--color-muted)]">
-              Token, webhook, DM automation, comment guard, dan widget web chat diatur dari dashboard.
-            </p>
-          </div>
-          <Link href="/channels" className="block pt-4">
-            <Button variant="secondary" className="h-9 w-full py-2 text-xs">
-              Hubungkan Channel
-            </Button>
-          </Link>
-        </Card>
-
-        <Card className="flex flex-col justify-between p-5 hover:border-[var(--color-border-hover)] transition-all">
-          <div>
-            <h4 className="text-sm font-bold text-white tracking-tight">Atur Ticket & Automation</h4>
-            <p className="mt-2 text-xs leading-relaxed text-[var(--color-muted)]">
-              Handoff admin, safety threshold, follow-up delay, queue worker, dan reminder booking sekarang satu panel.
-            </p>
-          </div>
-          <Link href="/tickets" className="block pt-4">
-            <Button variant="secondary" className="h-9 w-full py-2 text-xs">
-              Buka Ticket Desk
-            </Button>
-          </Link>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <Card className="p-5">
-          <div className="flex items-center gap-3">
-            <MessageSquare className="h-4 w-4 text-[var(--color-brand)]" />
-            <h4 className="text-sm font-bold text-white tracking-tight">Inbox-Ready Setup</h4>
-          </div>
-          <p className="mt-3 text-xs leading-relaxed text-[var(--color-muted)]">
-            Semua modul ini sekarang mengisi konteks yang nantinya dibaca inbox:
-            draft respons, customer handoff, knowledge grounding, pricing lookup, booking context,
-            dan rule moderation.
-          </p>
-        </Card>
-
-        <Card className="p-5">
-          <div className="flex items-center gap-3">
-            <Users className="h-4 w-4 text-[var(--color-brand)]" />
-            <h4 className="text-sm font-bold text-white tracking-tight">Team-Ready Workspace</h4>
-          </div>
-          <p className="mt-3 text-xs leading-relaxed text-[var(--color-muted)]">
-            Pengaturan workspace, anggota tim, dan notifikasi tetap dikelola dari dashboard
-            agar saat backend live nanti alur admin tidak perlu dirombak.
-          </p>
-        </Card>
       </div>
     </div>
   );
