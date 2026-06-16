@@ -1,6 +1,6 @@
 {
   "buildCommand": "npm run build",
-  "installCommand": "npm install",
+  "installCommand": "npm ci",
   "regions": ["sin1"],
   "functions": {
     "src/app/api/**": {

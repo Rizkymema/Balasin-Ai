@@ -4,7 +4,9 @@ import { join } from "node:path";
 import mammoth from "mammoth";
 import { PDFParse } from "pdf-parse";
 
+import { resolveAppUrl } from "@/lib/app-url";
 import { defaultDashboardConfig, mergeDashboardConfig } from "@/lib/dashboard-config";
+import { resolveDashboardPublicAppUrl } from "@/lib/runtime-url";
 import { defaultDashboardOperations } from "@/lib/dashboard-operations";
 import {
   deleteJsonRow,
@@ -64,13 +66,29 @@ export function getDashboardConfigRecord(): DashboardConfig {
   const base = readBaseConfig();
   const faqs = listJsonRows<FAQItem>("knowledge_faqs");
   const documents = listJsonRows<KnowledgeDocument>("knowledge_documents");
+  const runtimePublicAppUrl = resolveDashboardPublicAppUrl(
+    base.runtime.publicAppUrl,
+    resolveAppUrl(),
+  );
+  const whatsappWebhookUrl = `${runtimePublicAppUrl}/api/webhooks/whatsapp`;
 
   return {
     ...base,
+    runtime: {
+      ...base.runtime,
+      publicAppUrl: runtimePublicAppUrl,
+    },
     knowledgeBase: {
       ...base.knowledgeBase,
       faqs,
       documents,
+    },
+    channels: {
+      ...base.channels,
+      whatsapp: {
+        ...base.channels.whatsapp,
+        webhookUrl: whatsappWebhookUrl,
+      },
     },
   };
 }

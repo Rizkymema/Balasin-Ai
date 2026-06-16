@@ -88,7 +88,7 @@ export const defaultDashboardConfig: DashboardConfig = {
       phoneNumberId: "",
       accessToken: "",
       verifyToken: "balesin_secure_verification_token",
-      webhookUrl: "https://api.balesin.ai/webhooks/whatsapp",
+      webhookUrl: "",
       autoReply: true,
     },
     instagram: {
