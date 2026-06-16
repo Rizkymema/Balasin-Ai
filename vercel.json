@@ -1,6 +1,6 @@
 {
   "buildCommand": "npm run build",
-  "installCommand": "npm ci",
+  "installCommand": "npm ci --loglevel=error --no-audit --no-fund",
   "regions": ["sin1"],
   "functions": {
     "src/app/api/**": {
