@@ -58,6 +58,10 @@ export type DashboardConfig = {
     tone: string;
     confidenceThreshold: number;
     fallbackMessage: string;
+    replyInstructions: string;
+    replyStyleExample: string;
+    greetingKeywords: string[];
+    greetingTemplate: string;
     blacklist: string[];
     autoReplyEnabled: boolean;
     safetyMode: "strict" | "balanced" | "aggressive";

@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   Bot,
+  Check,
   CheckCheck,
+  Clock3,
   MessageSquare,
   Paperclip,
   PauseCircle,
@@ -13,6 +15,7 @@ import {
   Smile,
   Sparkles,
   Ticket,
+  Trash2,
   User,
   Wifi,
 } from "lucide-react";
@@ -20,6 +23,7 @@ import {
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import { useDashboardOperations } from "@/hooks/use-dashboard-operations";
 import type {
+  ConversationMessage,
   ConversationRecord,
   ConversationStatus,
 } from "@/types/operations";
@@ -51,6 +55,28 @@ const statusClasses: Record<ConversationStatus, string> = {
 
 const AI_REPLY_STATUSES: ConversationStatus[] = ["ai_active", "waiting_customer"];
 
+function getMessageStatusMeta(message: ConversationMessage) {
+  switch (message.status) {
+    case "read":
+      return {
+        label: "Dilihat",
+        icon: <CheckCheck className="h-3 w-3 text-cyan-400" />,
+      };
+    case "delivered":
+      return {
+        label: "Tersampaikan",
+        icon: <CheckCheck className="h-3 w-3 text-slate-400" />,
+      };
+    case "sent":
+      return {
+        label: "Terkirim",
+        icon: <Check className="h-3 w-3 text-slate-500" />,
+      };
+    default:
+      return null;
+  }
+}
+
 export default function InboxPage() {
   const { config } = useDashboardConfig();
   const { data, refreshData } = useDashboardOperations();
@@ -65,6 +91,7 @@ export default function InboxPage() {
   const [replyText, setReplyText] = useState("");
   const [noteDraft, setNoteDraft] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isReplyTyping, setIsReplyTyping] = useState(false);
   const [noteSaved, setNoteSaved] = useState(false);
 
   const filteredConversations = useMemo(() => {
@@ -91,6 +118,8 @@ export default function InboxPage() {
     data.conversations.find((conversation) => conversation.id === selectedId) ??
     filteredConversations[0] ??
     data.conversations[0];
+  const activeConversationId = activeConversation?.id ?? "";
+  const activeUnreadCount = activeConversation?.unreadCount ?? 0;
 
   useEffect(() => {
     if (!selectedId && data.conversations[0]?.id) {
@@ -99,8 +128,29 @@ export default function InboxPage() {
   }, [data.conversations, selectedId]);
 
   useEffect(() => {
+    if (
+      selectedId &&
+      data.conversations.length > 0 &&
+      !data.conversations.some((conversation) => conversation.id === selectedId)
+    ) {
+      setSelectedId(data.conversations[0]?.id ?? "");
+    }
+  }, [data.conversations, selectedId]);
+
+  useEffect(() => {
     setNoteDraft(activeConversation?.notes ?? "");
   }, [activeConversation?.id, activeConversation?.notes]);
+
+  useEffect(() => {
+    if (!activeConversationId || activeUnreadCount === 0) {
+      return;
+    }
+
+    void fetch(`/api/inbox/conversations/${activeConversationId}/seen`, {
+      method: "POST",
+      credentials: "include",
+    }).then(() => refreshData());
+  }, [activeConversationId, activeUnreadCount, refreshData]);
 
   const runConversationAction = async (path: string, init: RequestInit) => {
     setIsSubmitting(true);
@@ -126,7 +176,7 @@ export default function InboxPage() {
     }
   };
 
-  const handleSend = (event: FormEvent) => {
+  const handleSend = async (event: FormEvent) => {
     event.preventDefault();
     if (!replyText.trim() || !activeConversation) {
       return;
@@ -134,16 +184,21 @@ export default function InboxPage() {
 
     const nextReply = replyText.trim();
     setReplyText("");
+    setIsReplyTyping(true);
 
-    void runConversationAction(
-      `/api/inbox/conversations/${activeConversation.id}/reply`,
-      {
-        method: "POST",
-        body: JSON.stringify({ message: nextReply }),
-      },
-    ).catch(() => {
+    try {
+      await Promise.all([
+        runConversationAction(`/api/inbox/conversations/${activeConversation.id}/reply`, {
+          method: "POST",
+          body: JSON.stringify({ message: nextReply }),
+        }),
+        new Promise((resolve) => window.setTimeout(resolve, 650)),
+      ]);
+    } catch {
       setReplyText(nextReply);
-    });
+    } finally {
+      setIsReplyTyping(false);
+    }
   };
 
   const handleStatusAction = (nextStatus: ConversationStatus) => {
@@ -189,6 +244,23 @@ export default function InboxPage() {
 
     setNoteSaved(true);
     window.setTimeout(() => setNoteSaved(false), 2000);
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!activeConversation) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Hapus chat ${activeConversation.name} dari dashboard inbox?`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    await runConversationAction(`/api/inbox/conversations/${activeConversation.id}`, {
+      method: "DELETE",
+    });
   };
 
   if (!activeConversation) {
@@ -315,6 +387,12 @@ export default function InboxPage() {
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 via {activeConversation.channel}
               </p>
+              {activeConversation.lastSeenAt ? (
+                <p className="mt-1 flex items-center gap-1.5 text-[10px] text-slate-500">
+                  <Clock3 className="h-3 w-3" />
+                  Dibuka dari dashboard
+                </p>
+              ) : null}
             </div>
 
             <div className="flex items-center gap-2">
@@ -368,6 +446,15 @@ export default function InboxPage() {
             >
               Tandai selesai
             </button>
+            <button
+              type="button"
+              onClick={() => void handleDeleteConversation()}
+              disabled={isSubmitting}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Hapus chat
+            </button>
           </div>
         </div>
 
@@ -389,6 +476,7 @@ export default function InboxPage() {
           {activeConversation.messages.map((message) => {
             const isCustomer = message.sender === "customer";
             const isAi = message.sender === "ai";
+            const statusMeta = getMessageStatusMeta(message);
 
             return (
               <div
@@ -425,12 +513,41 @@ export default function InboxPage() {
                     }`}
                   >
                     {message.timestamp}
-                    {!isCustomer ? <CheckCheck className="h-3 w-3 text-cyan-400" /> : null}
+                    {!isCustomer && statusMeta ? statusMeta.icon : null}
+                    {!isCustomer && statusMeta ? (
+                      <span className={message.status === "read" ? "text-cyan-400" : ""}>
+                        {statusMeta.label}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               </div>
             );
           })}
+
+          {isReplyTyping ? (
+            <div className="ml-auto flex max-w-[80%] flex-row-reverse gap-3">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/6 text-xs font-bold text-slate-300">
+                {AI_REPLY_STATUSES.includes(activeConversation.status) ? (
+                  <Bot className="h-3.5 w-3.5 text-cyan-400" />
+                ) : (
+                  <User className="h-3.5 w-3.5 text-amber-400" />
+                )}
+              </div>
+              <div className="rounded-2xl rounded-tr-none border border-cyan-500/10 bg-cyan-950/30 px-4 py-2.5 text-xs text-cyan-100">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="flex gap-1">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-300 [animation-delay:-0.2s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-300 [animation-delay:-0.1s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-300" />
+                  </span>
+                  {AI_REPLY_STATUSES.includes(activeConversation.status)
+                    ? `${config.aiAgent.name} sedang mengetik`
+                    : "Admin sedang mengetik"}
+                </span>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <form
@@ -453,7 +570,7 @@ export default function InboxPage() {
             value={replyText}
             onChange={(event) => setReplyText(event.target.value)}
             className="h-10 text-xs"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isReplyTyping}
           />
 
           <button
@@ -465,7 +582,7 @@ export default function InboxPage() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isReplyTyping}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-400 text-slate-950 shadow-[0_0_12px_rgba(84,219,255,0.3)] transition hover:bg-cyan-300"
           >
             <Send className="h-4.5 w-4.5 stroke-[2.5]" />

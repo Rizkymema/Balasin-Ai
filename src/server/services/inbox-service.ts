@@ -53,11 +53,13 @@ function appendMessage(
   sender: ConversationMessage["sender"],
   text: string,
   type: ConversationMessage["type"],
+  status?: ConversationMessage["status"],
 ) {
   return {
     ...conversation,
     lastMessage: text,
     timestamp: "Sekarang",
+    typingActor: null,
     messages: [
       ...conversation.messages,
       {
@@ -68,10 +70,22 @@ function appendMessage(
           hour: "2-digit",
           minute: "2-digit",
         }),
+        status,
         type,
       },
     ],
   };
+}
+
+function markOutgoingMessagesAsRead(messages: ConversationMessage[]) {
+  return messages.map<ConversationMessage>((message) =>
+    message.sender === "customer" || message.status === "read"
+      ? message
+      : {
+          ...message,
+          status: "read",
+        },
+  );
 }
 
 export async function processIncomingMessage(input: NormalizedIncomingMessage) {
@@ -106,6 +120,8 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       tags: [],
       notes: "",
       summary: "",
+      lastSeenAt: null,
+      typingActor: null,
       phone: input.phone,
       email: customer.email,
       username: input.username,
@@ -119,7 +135,12 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     } satisfies ConversationRecord);
 
   conversation = appendMessage(
-    conversation,
+    {
+      ...conversation,
+      messages: markOutgoingMessagesAsRead(conversation.messages),
+      lastSeenAt: new Date().toISOString(),
+      typingActor: "customer",
+    },
     "customer",
     input.messageText,
     input.messageType === "comment" ? "comment" : "text",
@@ -143,12 +164,19 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   };
 
   if (decision.reply && decision.status !== "spam") {
-    conversation = appendMessage(conversation, "ai", decision.reply, "text");
-    await sendChannelMessage({
+    const delivery = await sendChannelMessage({
       channel: input.channel,
       recipientId: input.phone ?? input.externalUserId,
       message: decision.reply,
     });
+
+    conversation = appendMessage(
+      conversation,
+      "ai",
+      decision.reply,
+      "text",
+      delivery.ok ? "delivered" : "sent",
+    );
   }
 
   if (!current.conversations.find((item) => item.id === conversation.id)) {

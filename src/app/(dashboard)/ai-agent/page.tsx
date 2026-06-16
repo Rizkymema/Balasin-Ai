@@ -35,6 +35,18 @@ export default function AIAgentPage() {
   const [tone, setTone] = useState(config.aiAgent.tone);
   const [confidence, setConfidence] = useState(config.aiAgent.confidenceThreshold);
   const [fallbackMsg, setFallbackMsg] = useState(config.aiAgent.fallbackMessage);
+  const [replyInstructions, setReplyInstructions] = useState(
+    config.aiAgent.replyInstructions,
+  );
+  const [replyStyleExample, setReplyStyleExample] = useState(
+    config.aiAgent.replyStyleExample,
+  );
+  const [greetingKeywords, setGreetingKeywords] = useState(
+    config.aiAgent.greetingKeywords.join(", "),
+  );
+  const [greetingTemplate, setGreetingTemplate] = useState(
+    config.aiAgent.greetingTemplate,
+  );
   const [blacklist, setBlacklist] = useState(config.aiAgent.blacklist.join(", "));
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(config.aiAgent.autoReplyEnabled);
   const [safetyMode, setSafetyMode] = useState(config.aiAgent.safetyMode);
@@ -65,6 +77,10 @@ export default function AIAgentPage() {
     setTone(config.aiAgent.tone);
     setConfidence(config.aiAgent.confidenceThreshold);
     setFallbackMsg(config.aiAgent.fallbackMessage);
+    setReplyInstructions(config.aiAgent.replyInstructions);
+    setReplyStyleExample(config.aiAgent.replyStyleExample);
+    setGreetingKeywords(config.aiAgent.greetingKeywords.join(", "));
+    setGreetingTemplate(config.aiAgent.greetingTemplate);
     setBlacklist(config.aiAgent.blacklist.join(", "));
     setAutoReplyEnabled(config.aiAgent.autoReplyEnabled);
     setSafetyMode(config.aiAgent.safetyMode);
@@ -77,41 +93,50 @@ export default function AIAgentPage() {
     setVectorStore(config.aiProvider.vectorStore);
   }, [config]);
 
+  const buildDraftConfig = () => ({
+    ...config,
+    aiAgent: {
+      ...config.aiAgent,
+      name: agentName,
+      language,
+      tone,
+      confidenceThreshold: confidence,
+      fallbackMessage: fallbackMsg,
+      replyInstructions,
+      replyStyleExample,
+      greetingKeywords: greetingKeywords
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
+      greetingTemplate,
+      blacklist: blacklist
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
+      autoReplyEnabled,
+      safetyMode,
+    },
+    aiProvider: {
+      enabled: providerEnabled,
+      provider,
+      apiKey,
+      model,
+      embeddingModel,
+      baseUrl,
+      vectorStore,
+    },
+  });
+
   const handleSave = (event: FormEvent) => {
     event.preventDefault();
 
-    patchConfig((current) => ({
-      ...current,
-      aiAgent: {
-        ...current.aiAgent,
-        name: agentName,
-        language,
-        tone,
-        confidenceThreshold: confidence,
-        fallbackMessage: fallbackMsg,
-        blacklist: blacklist
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
-        autoReplyEnabled,
-        safetyMode,
-      },
-      aiProvider: {
-        enabled: providerEnabled,
-        provider,
-        apiKey,
-        model,
-        embeddingModel,
-        baseUrl,
-        vectorStore,
-      },
-    }));
+    patchConfig(() => buildDraftConfig());
 
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
   };
 
-  const handleTestSend = (event: FormEvent) => {
+  const handleTestSend = async (event: FormEvent) => {
     event.preventDefault();
     if (!testInput.trim()) {
       return;
@@ -122,45 +147,54 @@ export default function AIAgentPage() {
     setTestInput("");
     setIsTyping(true);
 
-    setTimeout(() => {
-      const lower = userMsg.toLowerCase();
-      const blockedTerms = blacklist
-        .split(",")
-        .map((item) => item.trim().toLowerCase())
-        .filter(Boolean);
+    try {
+      const response = await fetch("/api/ai-agent/preview", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: userMsg,
+          config: buildDraftConfig(),
+        }),
+      });
 
-      let reply = fallbackMsg;
-      let score = 45;
-      let grounded = false;
-
-      if (blockedTerms.some((term) => lower.includes(term))) {
-        reply = fallbackMsg;
-        score = 30;
-      } else if (
-        lower.includes("alamat") ||
-        lower.includes("lokasi") ||
-        lower.includes("dimana")
-      ) {
-        reply = `${config.workspace.name} berlokasi di ${config.workspace.address}.`;
-        score = 98;
-        grounded = true;
-      } else if (lower.includes("buka") || lower.includes("jam")) {
-        reply = `Jam operasional kami: ${config.workspace.businessHours}.`;
-        score = 95;
-        grounded = true;
-      } else if (lower.includes("harga") || lower.includes("bayar")) {
-        reply =
-          "Kami bisa bantu jelaskan harga atau alur pembayaran. Untuk harga spesifik, sistem akan merujuk ke knowledge base dan rule bisnis Anda.";
-        score = Math.max(72, confidence - 5);
-        grounded = true;
+      if (!response.ok) {
+        throw new Error("Preview balasan AI gagal dibuat.");
       }
+
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data: {
+          reply?: string;
+          confidence: number;
+          grounded: boolean;
+        };
+      };
 
       setTestMessages((prev) => [
         ...prev,
-        { sender: "ai", text: reply, confidence: score, grounded },
+        {
+          sender: "ai",
+          text: payload.data.reply ?? fallbackMsg,
+          confidence: payload.data.confidence,
+          grounded: payload.data.grounded,
+        },
       ]);
+    } catch {
+      setTestMessages((prev) => [
+        ...prev,
+        {
+          sender: "ai",
+          text: fallbackMsg,
+          confidence: 45,
+          grounded: false,
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -202,6 +236,67 @@ export default function AIAgentPage() {
                   <option value="formal">Formal / Sopan</option>
                   <option value="helpful">Ramah & Solutif</option>
                 </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">
+                  Instruksi Balasan AI
+                </label>
+                <Textarea
+                  value={replyInstructions}
+                  onChange={(event) => setReplyInstructions(event.target.value)}
+                  rows={4}
+                  placeholder="Contoh: Jawab singkat, pakai kata saya, panggil customer dengan kak, jangan terlalu formal."
+                />
+                <p className="text-[10px] leading-5 text-slate-500">
+                  Gunakan instruksi seperti: singkat, formal, santai, pakai saya,
+                  pakai kami, panggil kak, atau panggil Bapak/Ibu.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">
+                  Contoh Gaya Bicara Anda
+                </label>
+                <Textarea
+                  value={replyStyleExample}
+                  onChange={(event) => setReplyStyleExample(event.target.value)}
+                  rows={4}
+                  placeholder="Contoh: Halo kak, saya bantu cek dulu ya. Kalau mau booking, boleh kirim tipe motor dan jam yang diinginkan."
+                />
+                <p className="text-[10px] leading-5 text-slate-500">
+                  Contoh ini dipakai untuk membaca sapaan, kata ganti, dan nada balasan.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">
+                  Keyword Sapaan Tambahan
+                </label>
+                <Input
+                  value={greetingKeywords}
+                  onChange={(event) => setGreetingKeywords(event.target.value)}
+                  placeholder="Contoh: oi, punten, bang, min"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">
+                  Template Sapaan
+                </label>
+                <Textarea
+                  value={greetingTemplate}
+                  onChange={(event) => setGreetingTemplate(event.target.value)}
+                  rows={3}
+                  placeholder="Gunakan {businessName}, {agentName}, {address}, {businessHours}"
+                />
+                <p className="text-[10px] leading-5 text-slate-500">
+                  Placeholder yang bisa dipakai: <code>{`{businessName}`}</code>,{" "}
+                  <code>{`{agentName}`}</code>, <code>{`{address}`}</code>,{" "}
+                  <code>{`{businessHours}`}</code>.
+                </p>
               </div>
             </div>
 

@@ -38,6 +38,8 @@ const EMPTY_CONVERSATION_TEMPLATE: ConversationRecord = {
   tags: [],
   notes: "",
   summary: "",
+  lastSeenAt: null,
+  typingActor: null,
   phone: "",
   email: "",
   username: "",
@@ -192,6 +194,19 @@ function normalizeSender(value: unknown): MessageSender {
   }
 }
 
+function normalizeTypingActor(value: unknown): MessageSender | null {
+  switch (value) {
+    case "ai":
+    case "customer":
+    case "admin":
+    case "agent":
+    case "system":
+      return value;
+    default:
+      return null;
+  }
+}
+
 function normalizeLeadStatus(value: unknown): LeadStatus {
   switch (value) {
     case "New Lead":
@@ -236,6 +251,9 @@ function normalizeConversation(
     ...input,
     channel: normalizeChannel(input.channel),
     status: normalizeConversationStatus(input.status),
+    typingActor: normalizeTypingActor(input.typingActor),
+    lastSeenAt:
+      typeof input.lastSeenAt === "string" ? input.lastSeenAt : null,
     messages: Array.isArray(input.messages)
       ? input.messages.map((message) => ({
           ...cloneValue(EMPTY_MESSAGE_TEMPLATE),

@@ -211,6 +211,8 @@ export default function TicketsPage() {
           tags: ["Ticket", "Manual handoff"],
           notes: draft.resolutionNote.trim(),
           summary: draft.summary.trim(),
+          lastSeenAt: null,
+          typingActor: null,
           assignedTo: draft.assignedTo.trim() || "Admin Desk",
           responseTimeSeconds: 0,
           lastIntent: draft.issueType.trim(),

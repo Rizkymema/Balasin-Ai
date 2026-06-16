@@ -164,6 +164,28 @@ function updateConversationState(
   };
 }
 
+function recalculateCustomerSummary(current: DashboardOperationsData) {
+  return current.customers.map((customer) => {
+    const customerConversations = current.conversations.filter(
+      (conversation) => conversation.customerId === customer.id,
+    );
+    const latestConversation = customerConversations[0] ?? null;
+    const activeTicketCount = current.tickets.filter(
+      (ticket) =>
+        ticket.customerId === customer.id && ticket.status !== "resolved",
+    ).length;
+
+    return {
+      ...customer,
+      totalConversation: customerConversations.length,
+      lastContact: latestConversation?.timestamp ?? customer.lastContact,
+      assignedTo: latestConversation?.assignedTo ?? customer.assignedTo,
+      note: latestConversation?.notes ?? customer.note,
+      activeTicketCount,
+    } satisfies CustomerRecord;
+  });
+}
+
 function getConversationOrThrow(current: DashboardOperationsData, id: string) {
   const conversation = current.conversations.find((item) => item.id === id);
   if (!conversation) {
@@ -204,6 +226,9 @@ export async function sendInboxReply(input: {
     ...conversation,
     lastMessage: input.message,
     timestamp: "Sekarang",
+    unreadCount: 0,
+    lastSeenAt: new Date().toISOString(),
+    typingActor: null,
     status: isAiReply ? conversation.status : "assigned_to_admin",
     assignedTo: isAiReply ? config.aiAgent.name : "Admin Desk",
     messages: [...conversation.messages, outgoingMessage],
@@ -241,6 +266,8 @@ export async function updateInboxConversationStatus(input: {
     status: input.status,
     assignedTo,
     timestamp: "Sekarang",
+    lastSeenAt: new Date().toISOString(),
+    typingActor: null,
     summary:
       input.status === "assigned_to_admin"
         ? "AI menghentikan balasan otomatis dan meneruskan kasus ke admin."
@@ -255,6 +282,46 @@ export async function updateInboxConversationStatus(input: {
   await saveDashboardOperationsRecord(nextState);
 
   return nextState.conversations.find((item) => item.id === conversation.id) ?? nextConversation;
+}
+
+export async function markInboxConversationSeen(input: { conversationId: string }) {
+  const current = await getDashboardOperationsRecord();
+  const conversation = getConversationOrThrow(current, input.conversationId);
+
+  const nextConversation = {
+    ...conversation,
+    unreadCount: 0,
+    lastSeenAt: new Date().toISOString(),
+    typingActor: null,
+  } satisfies ConversationRecord;
+
+  const nextState = updateConversationState(current, nextConversation);
+  await saveDashboardOperationsRecord(nextState);
+
+  return nextState.conversations.find((item) => item.id === conversation.id) ?? nextConversation;
+}
+
+export async function deleteInboxConversation(input: { conversationId: string }) {
+  const current = await getDashboardOperationsRecord();
+  const conversation = getConversationOrThrow(current, input.conversationId);
+
+  const nextState: DashboardOperationsData = {
+    ...current,
+    conversations: current.conversations.filter(
+      (item) => item.id !== input.conversationId,
+    ),
+    tickets: current.tickets.filter(
+      (ticket) => ticket.conversationId !== input.conversationId,
+    ),
+    lastUpdatedAt: new Date().toISOString(),
+  };
+
+  nextState.customers = recalculateCustomerSummary(nextState);
+  await saveDashboardOperationsRecord(nextState);
+
+  return {
+    deletedConversationId: conversation.id,
+  };
 }
 
 export async function updateInboxConversationNotes(input: {

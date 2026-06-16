@@ -47,6 +47,8 @@ export type ConversationRecord = {
   tags: string[];
   notes: string;
   summary: string;
+  lastSeenAt?: string | null;
+  typingActor?: MessageSender | null;
   phone?: string;
   email?: string;
   username?: string;

@@ -21,6 +21,12 @@ export const defaultDashboardConfig: DashboardConfig = {
     confidenceThreshold: 80,
     fallbackMessage:
       "Maaf, saya kurang memahami pertanyaan Anda. Saya akan meneruskan chat ini ke admin manusia ya.",
+    replyInstructions:
+      "Jawab singkat, jelas, ramah, dan hanya berdasarkan data bisnis yang tersedia di dashboard.",
+    replyStyleExample: "",
+    greetingKeywords: [],
+    greetingTemplate:
+      "Halo, selamat datang di {businessName}. Ada yang bisa kami bantu? Anda bisa tanya alamat, jam buka, booking, atau layanan yang dibutuhkan ya.",
     blacklist: [],
     autoReplyEnabled: true,
     safetyMode: "balanced",
@@ -104,6 +110,8 @@ export function mergeDashboardConfig(
     aiAgent: {
       ...base.aiAgent,
       ...incoming.aiAgent,
+      greetingKeywords:
+        incoming.aiAgent?.greetingKeywords ?? base.aiAgent.greetingKeywords,
       blacklist: incoming.aiAgent?.blacklist ?? base.aiAgent.blacklist,
     },
     runtime: {

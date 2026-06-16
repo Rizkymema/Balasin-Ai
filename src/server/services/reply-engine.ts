@@ -33,7 +33,7 @@ const HOURS_KEYWORDS = [
 ];
 
 const PRICE_KEYWORDS = ["harga", "berapa", "biaya", "tarif", "ongkos", "estimasi"];
-const GREETING_KEYWORDS = [
+const DEFAULT_GREETING_KEYWORDS = [
   "halo",
   "hallo",
   "helo",
@@ -105,13 +105,136 @@ function hasKeyword(input: string, keywords: string[]) {
   return keywords.some((keyword) => input.includes(keyword));
 }
 
-function isGreetingMessage(input: string) {
+function getGreetingKeywords(config: DashboardConfig) {
+  const customKeywords = config.aiAgent.greetingKeywords
+    .map((keyword) => normalizeText(keyword))
+    .filter(Boolean);
+
+  return Array.from(new Set([...DEFAULT_GREETING_KEYWORDS, ...customKeywords]));
+}
+
+function isGreetingMessage(input: string, config: DashboardConfig) {
   const normalized = normalizeText(input);
   const compact = normalized.replace(/\s+/g, "");
+  const greetingKeywords = getGreetingKeywords(config);
 
-  return GREETING_KEYWORDS.some(
+  return greetingKeywords.some(
     (keyword) => normalized === keyword || compact === keyword || normalized.includes(keyword),
   );
+}
+
+function extractStyleSignals(config: DashboardConfig) {
+  const combined =
+    `${config.aiAgent.tone} ${config.aiAgent.replyInstructions} ${config.aiAgent.replyStyleExample}`.toLowerCase();
+
+  return {
+    prefersShort:
+      combined.includes("singkat") ||
+      combined.includes("ringkas") ||
+      combined.includes("to the point"),
+    prefersFormal:
+      config.aiAgent.tone === "formal" ||
+      combined.includes("formal") ||
+      combined.includes("sopan"),
+    prefersCasual:
+      config.aiAgent.tone === "casual" ||
+      config.aiAgent.tone === "helpful" ||
+      combined.includes("santai") ||
+      combined.includes("akrab"),
+    useSaya:
+      combined.includes("pakai saya") ||
+      combined.includes("gunakan saya") ||
+      /\bsaya\b/.test(config.aiAgent.replyStyleExample.toLowerCase()),
+    useKami:
+      combined.includes("pakai kami") ||
+      combined.includes("gunakan kami") ||
+      /\bkami\b/.test(config.aiAgent.replyStyleExample.toLowerCase()),
+    useKak:
+      combined.includes("panggil kak") ||
+      combined.includes("sapaan kak") ||
+      /\bkak\b/.test(config.aiAgent.replyStyleExample.toLowerCase()),
+    useBapakIbu:
+      combined.includes("bapak/ibu") ||
+      combined.includes("bapak ibu") ||
+      /\bbapak\b/.test(config.aiAgent.replyStyleExample.toLowerCase()) ||
+      /\bibu\b/.test(config.aiAgent.replyStyleExample.toLowerCase()),
+  };
+}
+
+function shortenReply(text: string) {
+  const sentences = text
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+
+  if (sentences.length >= 2) {
+    return sentences.slice(0, 2).join(" ").trim();
+  }
+
+  if (text.length > 180) {
+    return `${text.slice(0, 177).trim()}...`;
+  }
+
+  return text.trim();
+}
+
+function applyStyleInstructions(
+  reply: string,
+  config: DashboardConfig,
+  options?: { preserveLength?: boolean },
+) {
+  const signals = extractStyleSignals(config);
+  let text = reply.trim();
+
+  if (signals.useBapakIbu) {
+    text = text.replace(/\bAnda\b/g, "Bapak/Ibu").replace(/\banda\b/g, "Bapak/Ibu");
+  } else if (signals.useKak) {
+    text = text.replace(/\bAnda\b/g, "kak").replace(/\banda\b/g, "kak");
+  }
+
+  if (signals.useSaya && !signals.useKami) {
+    text = text.replace(/\bKami\b/g, "Saya").replace(/\bkami\b/g, "saya");
+  } else if (signals.useKami && !signals.useSaya) {
+    text = text.replace(/\bSaya\b/g, "Kami").replace(/\bsaya\b/g, "kami");
+  }
+
+  if (signals.prefersFormal) {
+    text = text
+      .replace(/^Siap,/i, "Baik,")
+      .replace(/\bAda yang bisa kami bantu\?/i, "Ada yang dapat kami bantu?")
+      .replace(/\bAda yang bisa saya bantu\?/i, "Ada yang dapat saya bantu?")
+      .replace(/\bMohon kirim\b/gi, "Mohon informasikan")
+      .replace(/\sya([.!?])/gi, "$1");
+  } else if (signals.prefersCasual) {
+    text = text
+      .replace(/^Baik,/i, "Siap,")
+      .replace(/\bdapat kami bantu\b/gi, "bisa kami bantu")
+      .replace(/\bdapat saya bantu\b/gi, "bisa saya bantu")
+      .replace(/\bMohon informasikan\b/gi, "Boleh kirim");
+  }
+
+  text = text.replace(/\s{2,}/g, " ").trim();
+
+  if (signals.prefersShort && !options?.preserveLength) {
+    text = shortenReply(text);
+  }
+
+  return text;
+}
+
+function buildGreetingReply(config: DashboardConfig) {
+  const template =
+    config.aiAgent.greetingTemplate.trim() ||
+    "Halo, selamat datang di {businessName}. Ada yang bisa kami bantu?";
+
+  return template
+    .replaceAll("{businessName}", config.workspace.name || "tempat kami")
+    .replaceAll("{agentName}", config.aiAgent.name || "AI Assistant")
+    .replaceAll("{address}", config.workspace.address || "alamat belum diisi")
+    .replaceAll(
+      "{businessHours}",
+      config.workspace.businessHours || "jam operasional belum diisi",
+    );
 }
 
 function scoreCandidate(messageText: string, candidateText: string) {
@@ -215,7 +338,7 @@ function buildFallbackDecision(config: DashboardConfig, summary: string): ReplyD
     needsHuman: false,
     status: "ai_active",
     summary,
-    reply: config.aiAgent.fallbackMessage,
+    reply: applyStyleInstructions(config.aiAgent.fallbackMessage, config),
     grounded: false,
     source: "fallback",
   };
@@ -253,8 +376,10 @@ export async function generateReplyDecision(
       needsHuman: true,
       status: "assigned_to_admin",
       summary: "Customer mengirim komplain dan perlu penanganan admin.",
-      reply:
+      reply: applyStyleInstructions(
         "Terima kasih, pesan Anda sudah kami teruskan ke admin agar ditangani dengan lebih tepat.",
+        config,
+      ),
       grounded: false,
       source: "fallback",
     };
@@ -267,21 +392,23 @@ export async function generateReplyDecision(
       needsHuman: false,
       status: "waiting_customer",
       summary: "Customer ingin booking dan sistem perlu mengumpulkan detail tambahan.",
-      reply:
+      reply: applyStyleInstructions(
         "Siap, kami bantu booking. Mohon kirim nama, tipe motor, keluhan, tanggal, dan jam yang diinginkan ya.",
+        config,
+      ),
       grounded: false,
       source: "fallback",
     };
   }
 
-  if (isGreetingMessage(messageText)) {
+  if (isGreetingMessage(messageText, config)) {
     return {
       intent: "Sapaan",
       confidence: 92,
       needsHuman: false,
       status: "ai_active",
       summary: "Customer mengirim sapaan umum dan sistem membalas dengan greeting aman.",
-      reply: `Halo, selamat datang di ${config.workspace.name}. Ada yang bisa kami bantu? Anda bisa tanya alamat, jam buka, booking, atau layanan yang dibutuhkan ya.`,
+      reply: applyStyleInstructions(buildGreetingReply(config), config),
       grounded: true,
       source: "workspace",
     };
@@ -294,7 +421,10 @@ export async function generateReplyDecision(
       needsHuman: false,
       status: "ai_active",
       summary: "Jawaban alamat diambil dari profil bisnis.",
-      reply: `${config.workspace.name} berlokasi di ${config.workspace.address}`,
+      reply: applyStyleInstructions(
+        `${config.workspace.name} berlokasi di ${config.workspace.address}`,
+        config,
+      ),
       grounded: true,
       source: "workspace",
     };
@@ -307,7 +437,9 @@ export async function generateReplyDecision(
       needsHuman: false,
       status: "ai_active",
       summary: "Jawaban jam operasional diambil dari profil bisnis.",
-      reply: config.workspace.businessHours,
+      reply: applyStyleInstructions(config.workspace.businessHours, config, {
+        preserveLength: true,
+      }),
       grounded: true,
       source: "workspace",
     };
@@ -321,7 +453,9 @@ export async function generateReplyDecision(
       needsHuman: false,
       status: "ai_active",
       summary: faqMatch.summary,
-      reply: faqMatch.reply,
+      reply: applyStyleInstructions(faqMatch.reply, config, {
+        preserveLength: true,
+      }),
       grounded: true,
       source: "faq",
     };
@@ -335,7 +469,9 @@ export async function generateReplyDecision(
       needsHuman: false,
       status: "ai_active",
       summary: documentMatch.summary,
-      reply: documentMatch.reply,
+      reply: applyStyleInstructions(documentMatch.reply, config, {
+        preserveLength: true,
+      }),
       grounded: true,
       source: "document",
     };
@@ -348,8 +484,10 @@ export async function generateReplyDecision(
       needsHuman: false,
       status: "ai_active",
       summary: "Customer menanyakan harga, tetapi belum ada jawaban grounded yang cukup kuat.",
-      reply:
+      reply: applyStyleInstructions(
         "Kami bisa bantu cek harga ya. Mohon kirim tipe motor atau detail layanan yang dimaksud agar saya jawab lebih akurat.",
+        config,
+      ),
       grounded: false,
       source: "fallback",
     };
