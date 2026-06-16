@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   BookOpen,
   Plus,
@@ -23,6 +23,45 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Modal } from "@/components/ui/modal";
+
+function normalizeFaqQuestion(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function mergeFaqCollections(existing: FAQItem[], imported: FAQItem[]) {
+  const existingByQuestion = new Map(
+    existing.map((item) => [normalizeFaqQuestion(item.question), item]),
+  );
+
+  for (const item of imported) {
+    const key = normalizeFaqQuestion(item.question);
+    const current = existingByQuestion.get(key);
+
+    if (current) {
+      existingByQuestion.set(key, {
+        ...current,
+        answer: item.answer,
+      });
+      continue;
+    }
+
+    existingByQuestion.set(key, item);
+  }
+
+  const importedQuestionSet = new Set(
+    imported.map((item) => normalizeFaqQuestion(item.question)),
+  );
+
+  const importedFirst = imported.map((item) => {
+    const merged = existingByQuestion.get(normalizeFaqQuestion(item.question));
+    return merged ?? item;
+  });
+  const remainingExisting = existing.filter(
+    (item) => !importedQuestionSet.has(normalizeFaqQuestion(item.question)),
+  );
+
+  return [...importedFirst, ...remainingExisting];
+}
 
 export default function KnowledgeBasePage() {
   const { config, patchConfig, refreshConfig } = useDashboardConfig();
@@ -49,6 +88,9 @@ export default function KnowledgeBasePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadName, setUploadName] = useState("");
+  const [isImportingFaqFile, setIsImportingFaqFile] = useState(false);
+  const [faqImportMessage, setFaqImportMessage] = useState("");
+  const [faqImportError, setFaqImportError] = useState("");
 
   useEffect(() => {
     setFaqs(config.knowledgeBase.faqs);
@@ -126,6 +168,75 @@ export default function KnowledgeBasePage() {
         .map((item) => item.trim())
         .filter(Boolean),
     );
+  };
+
+  const handleFaqFileImport = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    setFaqImportMessage("");
+    setFaqImportError("");
+    setIsImportingFaqFile(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/knowledge/faqs/import", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: { items: FAQItem[]; count: number };
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error ?? "File FAQ gagal dibaca.");
+      }
+
+      const importedItems = payload.data.items;
+      if (importedItems.length === 1 && !newQuestion.trim() && !newAnswer.trim()) {
+        setNewQuestion(importedItems[0].question);
+        setNewAnswer(importedItems[0].answer);
+        setFaqImportMessage(
+          `1 FAQ dari ${file.name} sudah diisi otomatis ke form.`,
+        );
+        return;
+      }
+
+      const nextFaqs = mergeFaqCollections(faqs, importedItems);
+      setFaqs(nextFaqs);
+      persistKnowledgeBase(
+        nextFaqs,
+        files,
+        websiteUrls
+          .split("\n")
+          .map((item) => item.trim())
+          .filter(Boolean),
+      );
+
+      setFaqImportMessage(
+        `${importedItems.length} FAQ dari ${file.name} berhasil diimpor.`,
+      );
+      setIsFaqSaved(true);
+      setTimeout(() => setIsFaqSaved(false), 2500);
+    } catch (error) {
+      setFaqImportError(
+        error instanceof Error
+          ? error.message
+          : "File FAQ belum bisa diproses.",
+      );
+    } finally {
+      setIsImportingFaqFile(false);
+    }
   };
 
   const handleSaveProfile = (event: FormEvent) => {
@@ -471,6 +582,57 @@ export default function KnowledgeBasePage() {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Tambah FAQ Baru">
         <form onSubmit={handleAddFaq} className="space-y-4">
+          <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.03] p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-white">Import FAQ dari file</p>
+                <p className="text-[11px] leading-relaxed text-slate-400">
+                  Gunakan file <span className="font-semibold text-slate-300">.xlsx</span>,
+                  <span className="font-semibold text-slate-300"> .xls</span>,
+                  <span className="font-semibold text-slate-300"> .csv</span>,
+                  <span className="font-semibold text-slate-300"> .json</span>,
+                  <span className="font-semibold text-slate-300"> .txt</span>, atau
+                  <span className="font-semibold text-slate-300"> .md</span>.
+                  Kolom yang didukung: <span className="font-semibold text-slate-300">Pertanyaan/Question</span> dan
+                  <span className="font-semibold text-slate-300"> Jawaban/Answer</span>.
+                </p>
+              </div>
+
+              <label className="relative inline-flex cursor-pointer items-center justify-center rounded-lg border border-cyan-400/20 bg-cyan-950/40 px-3 py-2 text-[11px] font-bold text-cyan-300 transition hover:border-cyan-300/40 hover:text-cyan-200">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv,.json,.txt,.md"
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                  onChange={handleFaqFileImport}
+                  disabled={isImportingFaqFile}
+                />
+                {isImportingFaqFile ? (
+                  <>
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    Membaca
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-1.5 h-3.5 w-3.5" />
+                    Pilih File
+                  </>
+                )}
+              </label>
+            </div>
+
+            {faqImportMessage ? (
+              <p className="mt-3 text-[11px] font-semibold text-emerald-400">
+                {faqImportMessage}
+              </p>
+            ) : null}
+
+            {faqImportError ? (
+              <p className="mt-3 text-[11px] font-semibold text-rose-400">
+                {faqImportError}
+              </p>
+            ) : null}
+          </div>
+
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-300">Pertanyaan</label>
             <Input
