@@ -30,22 +30,26 @@ export async function readPrivateJsonBlob<T>(pathname: string) {
     return null;
   }
 
-  const result = await get(pathname, {
-    access: PRIVATE_BLOB_ACCESS,
-    useCache: false,
-    ...getBlobCommandOptions(),
-  });
+  try {
+    const result = await get(pathname, {
+      access: PRIVATE_BLOB_ACCESS,
+      useCache: false,
+      ...getBlobCommandOptions(),
+    });
 
-  if (!result || result.statusCode !== 200 || !result.stream) {
+    if (!result || result.statusCode !== 200 || !result.stream) {
+      return null;
+    }
+
+    const payload = await new Response(result.stream).text();
+    if (!payload.trim()) {
+      return null;
+    }
+
+    return JSON.parse(payload) as T;
+  } catch {
     return null;
   }
-
-  const payload = await new Response(result.stream).text();
-  if (!payload.trim()) {
-    return null;
-  }
-
-  return JSON.parse(payload) as T;
 }
 
 export async function writePrivateJsonBlob(pathname: string, value: unknown) {

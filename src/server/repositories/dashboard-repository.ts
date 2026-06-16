@@ -1,6 +1,7 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import * as XLSX from "xlsx";
 
 import { resolveAppUrl } from "@/lib/app-url";
 import { defaultDashboardConfig, mergeDashboardConfig } from "@/lib/dashboard-config";
@@ -22,7 +23,12 @@ import {
   replaceJsonRows,
   upsertJsonRow,
 } from "@/server/db";
-import type { DashboardConfig, FAQItem, KnowledgeDocument } from "@/types/dashboard-config";
+import type {
+  DashboardConfig,
+  FAQItem,
+  KnowledgeDocument,
+  KnowledgeSourceType,
+} from "@/types/dashboard-config";
 import type {
   BroadcastRecord,
   BookingRecord,
@@ -41,12 +47,19 @@ type KnowledgeChunk = {
   content: string;
   metadata: {
     sourceName: string;
+    sourceType?: KnowledgeSourceType;
+    sourceUrl?: string;
+    question?: string;
+    answer?: string;
   };
   createdAt: string;
 };
 
 const DASHBOARD_CONFIG_BLOB_PATH = "state/dashboard-config.json";
 const DASHBOARD_OPERATIONS_BLOB_PATH = "state/dashboard-operations.json";
+const KNOWLEDGE_CHUNKS_BLOB_PATH = "state/knowledge-chunks.json";
+const QUESTION_KEYS = ["question", "pertanyaan", "q", "ask", "faq"];
+const ANSWER_KEYS = ["answer", "jawaban", "a", "response", "balasan"];
 
 function readLocalBaseConfig() {
   const database = getDatabase();
@@ -175,33 +188,158 @@ export async function saveDashboardOperationsRecord(data: DashboardOperationsDat
   replaceJsonRows("broadcasts", data.broadcasts);
 }
 
-export function getKnowledgeChunks(searchQuery?: string) {
+function normalizeSpreadsheetKey(key: string) {
+  return key.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function findRowValue(
+  row: Record<string, unknown>,
+  candidates: string[],
+): string | null {
+  for (const [key, value] of Object.entries(row)) {
+    const normalizedKey = normalizeSpreadsheetKey(key);
+    if (!candidates.some((candidate) => normalizedKey === candidate)) {
+      continue;
+    }
+
+    const normalizedValue =
+      typeof value === "string"
+        ? value.trim()
+        : value == null
+          ? ""
+          : String(value).trim();
+
+    if (normalizedValue) {
+      return normalizedValue;
+    }
+  }
+
+  return null;
+}
+
+function createTextChunk(params: {
+  documentId: string;
+  chunkIndex: number;
+  content: string;
+  sourceName: string;
+  sourceType?: KnowledgeSourceType;
+  sourceUrl?: string;
+  question?: string;
+  answer?: string;
+}) {
+  return {
+    id: randomUUID(),
+    documentId: params.documentId,
+    chunkIndex: params.chunkIndex,
+    content: params.content,
+    metadata: {
+      sourceName: params.sourceName,
+      sourceType: params.sourceType,
+      sourceUrl: params.sourceUrl,
+      question: params.question,
+      answer: params.answer,
+    },
+    createdAt: new Date().toISOString(),
+  } satisfies KnowledgeChunk;
+}
+
+function buildSpreadsheetChunks(params: {
+  rows: Array<Record<string, unknown>>;
+  documentId: string;
+  sourceName: string;
+  sourceType?: KnowledgeSourceType;
+  sourceUrl?: string;
+}) {
+  const chunks: KnowledgeChunk[] = [];
+
+  for (const row of params.rows) {
+    const question = findRowValue(row, QUESTION_KEYS);
+    const answer = findRowValue(row, ANSWER_KEYS);
+
+    if (question && answer) {
+      chunks.push(
+        createTextChunk({
+          documentId: params.documentId,
+          chunkIndex: chunks.length,
+          content: `Pertanyaan: ${question}\nJawaban: ${answer}`,
+          sourceName: params.sourceName,
+          sourceType: params.sourceType,
+          sourceUrl: params.sourceUrl,
+          question,
+          answer,
+        }),
+      );
+      continue;
+    }
+
+    const parts = Object.entries(row)
+      .map(([key, value]) => {
+        const normalizedValue =
+          typeof value === "string"
+            ? value.trim()
+            : value == null
+              ? ""
+              : String(value).trim();
+
+        return normalizedValue ? `${key}: ${normalizedValue}` : "";
+      })
+      .filter(Boolean);
+
+    if (parts.length === 0) {
+      continue;
+    }
+
+    chunks.push(
+      createTextChunk({
+        documentId: params.documentId,
+        chunkIndex: chunks.length,
+        content: parts.join(" | "),
+        sourceName: params.sourceName,
+        sourceType: params.sourceType,
+        sourceUrl: params.sourceUrl,
+      }),
+    );
+  }
+
+  return chunks;
+}
+
+function parseSpreadsheetBuffer(buffer: Buffer) {
+  const workbook = XLSX.read(buffer, { type: "buffer" });
+  const rows: Array<Record<string, unknown>> = [];
+
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    const sheetRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+      defval: "",
+      raw: false,
+    });
+    rows.push(...sheetRows);
+  }
+
+  return rows;
+}
+
+async function readAllKnowledgeChunks() {
+  if (isBlobStateEnabled()) {
+    return (
+      (await readPrivateJsonBlob<KnowledgeChunk[]>(KNOWLEDGE_CHUNKS_BLOB_PATH)) ?? []
+    );
+  }
+
   const database = getDatabase();
-  const rows = searchQuery
-    ? (database
-        .prepare(
-          "SELECT id, document_id, chunk_index, content, metadata_json, created_at FROM knowledge_chunks WHERE content LIKE ? ORDER BY created_at DESC",
-        )
-        .all(`%${searchQuery}%`) as Array<{
-        id: string;
-        document_id: string;
-        chunk_index: number;
-        content: string;
-        metadata_json: string;
-        created_at: string;
-      }>)
-    : (database
-        .prepare(
-          "SELECT id, document_id, chunk_index, content, metadata_json, created_at FROM knowledge_chunks ORDER BY created_at DESC",
-        )
-        .all() as Array<{
-        id: string;
-        document_id: string;
-        chunk_index: number;
-        content: string;
-        metadata_json: string;
-        created_at: string;
-      }>);
+  const rows = database
+    .prepare(
+      "SELECT id, document_id, chunk_index, content, metadata_json, created_at FROM knowledge_chunks ORDER BY created_at DESC",
+    )
+    .all() as Array<{
+    id: string;
+    document_id: string;
+    chunk_index: number;
+    content: string;
+    metadata_json: string;
+    created_at: string;
+  }>;
 
   return rows.map((row) => ({
     id: row.id,
@@ -213,7 +351,87 @@ export function getKnowledgeChunks(searchQuery?: string) {
   }));
 }
 
-function chunkText(content: string, documentId: string, sourceName: string) {
+async function writeAllKnowledgeChunks(chunks: KnowledgeChunk[]) {
+  if (isBlobStateEnabled()) {
+    await writePrivateJsonBlob(KNOWLEDGE_CHUNKS_BLOB_PATH, chunks);
+    return;
+  }
+
+  const database = getDatabase();
+  database.prepare("DELETE FROM knowledge_chunks").run();
+  const insertChunk = database.prepare(
+    "INSERT INTO knowledge_chunks (id, document_id, chunk_index, content, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+  );
+
+  database.exec("BEGIN");
+
+  try {
+    for (const item of chunks) {
+      insertChunk.run(
+        item.id,
+        item.documentId,
+        item.chunkIndex,
+        item.content,
+        JSON.stringify(item.metadata),
+        item.createdAt,
+      );
+    }
+    database.exec("COMMIT");
+  } catch (error) {
+    database.exec("ROLLBACK");
+    throw error;
+  }
+}
+
+async function replaceKnowledgeChunksForDocument(
+  documentId: string,
+  nextChunks: KnowledgeChunk[],
+) {
+  const chunks = await readAllKnowledgeChunks();
+  const filtered = chunks.filter((chunk) => chunk.documentId !== documentId);
+  await writeAllKnowledgeChunks([...nextChunks, ...filtered]);
+}
+
+async function deleteKnowledgeChunksForDocument(documentId: string) {
+  const chunks = await readAllKnowledgeChunks();
+  await writeAllKnowledgeChunks(
+    chunks.filter((chunk) => chunk.documentId !== documentId),
+  );
+}
+
+async function upsertKnowledgeDocumentRecord(document: KnowledgeDocument) {
+  if (isBlobStateEnabled()) {
+    const currentConfig = await getDashboardConfigRecord();
+    const nextDocuments = currentConfig.knowledgeBase.documents.some(
+      (item) => item.id === document.id,
+    )
+      ? currentConfig.knowledgeBase.documents.map((item) =>
+          item.id === document.id ? document : item,
+        )
+      : [document, ...currentConfig.knowledgeBase.documents];
+
+    await saveDashboardConfigRecord({
+      ...currentConfig,
+      knowledgeBase: {
+        ...currentConfig.knowledgeBase,
+        documents: nextDocuments,
+      },
+    });
+    return;
+  }
+
+  upsertJsonRow("knowledge_documents", document);
+}
+
+function chunkText(
+  content: string,
+  documentId: string,
+  sourceName: string,
+  options?: {
+    sourceType?: KnowledgeSourceType;
+    sourceUrl?: string;
+  },
+) {
   const normalized = content.replace(/\r/g, "").trim();
   if (!normalized) {
     return [] as KnowledgeChunk[];
@@ -224,14 +442,26 @@ function chunkText(content: string, documentId: string, sourceName: string) {
     .map((item) => item.trim())
     .filter(Boolean);
 
-  return paragraphs.map((paragraph, index) => ({
-    id: randomUUID(),
-    documentId,
-    chunkIndex: index,
-    content: paragraph,
-    metadata: { sourceName },
-    createdAt: new Date().toISOString(),
-  }));
+  return paragraphs.map((paragraph, index) =>
+    createTextChunk({
+      documentId,
+      chunkIndex: index,
+      content: paragraph,
+      sourceName,
+      sourceType: options?.sourceType,
+      sourceUrl: options?.sourceUrl,
+    }),
+  );
+}
+
+export async function getKnowledgeChunks(searchQuery?: string) {
+  const chunks = await readAllKnowledgeChunks();
+  if (!searchQuery?.trim()) {
+    return chunks;
+  }
+
+  const query = searchQuery.toLowerCase();
+  return chunks.filter((chunk) => chunk.content.toLowerCase().includes(query));
 }
 
 async function extractDocumentText(params: {
@@ -245,11 +475,36 @@ async function extractDocumentText(params: {
     params.mimeType.startsWith("text/") ||
     lowerName.endsWith(".txt") ||
     lowerName.endsWith(".md") ||
-    lowerName.endsWith(".csv") ||
     lowerName.endsWith(".json") ||
     lowerName.endsWith(".html")
   ) {
     return params.buffer.toString("utf8");
+  }
+
+  if (
+    lowerName.endsWith(".xlsx") ||
+    lowerName.endsWith(".xls") ||
+    lowerName.endsWith(".csv")
+  ) {
+    const rows = parseSpreadsheetBuffer(params.buffer);
+    return rows
+      .map((row) =>
+        Object.entries(row)
+          .map(([key, value]) => {
+            const normalizedValue =
+              typeof value === "string"
+                ? value.trim()
+                : value == null
+                  ? ""
+                  : String(value).trim();
+
+            return normalizedValue ? `${key}: ${normalizedValue}` : "";
+          })
+          .filter(Boolean)
+          .join(" | "),
+      )
+      .filter(Boolean)
+      .join("\n");
   }
 
   if (
@@ -279,11 +534,97 @@ async function extractDocumentText(params: {
   return `Dokumen ${params.fileName} tersimpan. Ekstraksi text otomatis belum tersedia untuk tipe ini, tetapi file dan metadata sudah masuk pipeline ingestion.`;
 }
 
+async function buildKnowledgeChunksFromBuffer(params: {
+  documentId: string;
+  fileName: string;
+  mimeType: string;
+  buffer: Buffer;
+  sourceType?: KnowledgeSourceType;
+  sourceUrl?: string;
+}) {
+  const lowerName = params.fileName.toLowerCase();
+
+  if (
+    lowerName.endsWith(".xlsx") ||
+    lowerName.endsWith(".xls") ||
+    lowerName.endsWith(".csv")
+  ) {
+    const rows = parseSpreadsheetBuffer(params.buffer);
+    const chunks = buildSpreadsheetChunks({
+      rows,
+      documentId: params.documentId,
+      sourceName: params.fileName,
+      sourceType: params.sourceType,
+      sourceUrl: params.sourceUrl,
+    });
+
+    return {
+      chunks,
+      extractedText:
+        chunks.map((item) => item.content).join("\n") ||
+        (await extractDocumentText(params)),
+    };
+  }
+
+  const extractedText = await extractDocumentText(params);
+  const chunks = chunkText(extractedText, params.documentId, params.fileName, {
+    sourceType: params.sourceType,
+    sourceUrl: params.sourceUrl,
+  });
+
+  return {
+    chunks,
+    extractedText,
+  };
+}
+
+export async function ingestKnowledgeTextSource(params: {
+  id?: string;
+  name: string;
+  content: string;
+  sourceType: KnowledgeSourceType;
+  sourceUrl?: string;
+}) {
+  const documentId =
+    params.id ??
+    `${params.sourceType}-${createHash("sha1")
+      .update(params.sourceUrl ?? params.name)
+      .digest("hex")
+      .slice(0, 16)}`;
+
+  const document: KnowledgeDocument = {
+    id: documentId,
+    name: params.name,
+    size: `${Math.max(Buffer.byteLength(params.content, "utf8") / 1024, 1).toFixed(1)} KB`,
+    status: "ready",
+    progress: 100,
+    sourceType: params.sourceType,
+    sourceUrl: params.sourceUrl,
+    syncedAt: new Date().toISOString(),
+  };
+
+  const chunks = chunkText(params.content, documentId, params.name, {
+    sourceType: params.sourceType,
+    sourceUrl: params.sourceUrl,
+  });
+
+  await upsertKnowledgeDocumentRecord(document);
+  await replaceKnowledgeChunksForDocument(documentId, chunks);
+
+  return {
+    document,
+    chunks,
+    extractedText: params.content,
+  };
+}
+
 export async function ingestKnowledgeDocument(params: {
   id?: string;
   fileName: string;
   mimeType: string;
   buffer: Buffer;
+  sourceType?: KnowledgeSourceType;
+  sourceUrl?: string;
 }) {
   const documentId = params.id ?? randomUUID();
   const uploadDir = getUploadDirectory();
@@ -291,7 +632,14 @@ export async function ingestKnowledgeDocument(params: {
   const savedPath = join(uploadDir, `${documentId}-${normalizedName}`);
   writeFileSync(savedPath, params.buffer);
 
-  const extractedText = await extractDocumentText(params);
+  const { chunks, extractedText } = await buildKnowledgeChunksFromBuffer({
+    documentId,
+    fileName: params.fileName,
+    mimeType: params.mimeType,
+    buffer: params.buffer,
+    sourceType: params.sourceType ?? "upload",
+    sourceUrl: params.sourceUrl,
+  });
 
   const document: KnowledgeDocument = {
     id: documentId,
@@ -299,55 +647,13 @@ export async function ingestKnowledgeDocument(params: {
     size: `${Math.max(params.buffer.byteLength / 1024, 1).toFixed(1)} KB`,
     status: "ready",
     progress: 100,
+    sourceType: params.sourceType ?? "upload",
+    sourceUrl: params.sourceUrl,
+    syncedAt: new Date().toISOString(),
   };
 
-  upsertJsonRow("knowledge_documents", document);
-
-  if (isBlobStateEnabled()) {
-    const currentConfig = await getDashboardConfigRecord();
-    const nextDocuments = currentConfig.knowledgeBase.documents.some(
-      (item) => item.id === document.id,
-    )
-      ? currentConfig.knowledgeBase.documents.map((item) =>
-          item.id === document.id ? document : item,
-        )
-      : [document, ...currentConfig.knowledgeBase.documents];
-
-    await saveDashboardConfigRecord({
-      ...currentConfig,
-      knowledgeBase: {
-        ...currentConfig.knowledgeBase,
-        documents: nextDocuments,
-      },
-    });
-  }
-
-  const database = getDatabase();
-  database.prepare("DELETE FROM knowledge_chunks WHERE document_id = ?").run(documentId);
-
-  const chunks = chunkText(extractedText, documentId, params.fileName);
-  const insertChunk = database.prepare(
-    "INSERT INTO knowledge_chunks (id, document_id, chunk_index, content, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-  );
-
-  database.exec("BEGIN");
-
-  try {
-    for (const item of chunks) {
-      insertChunk.run(
-        item.id,
-        item.documentId,
-        item.chunkIndex,
-        item.content,
-        JSON.stringify(item.metadata),
-        item.createdAt,
-      );
-    }
-    database.exec("COMMIT");
-  } catch (error) {
-    database.exec("ROLLBACK");
-    throw error;
-  }
+  await upsertKnowledgeDocumentRecord(document);
+  await replaceKnowledgeChunksForDocument(documentId, chunks);
 
   return {
     document,
@@ -369,10 +675,6 @@ export async function deleteKnowledgeDocument(documentId: string) {
     }
   }
 
-  deleteJsonRow("knowledge_documents", documentId);
-  const database = getDatabase();
-  database.prepare("DELETE FROM knowledge_chunks WHERE document_id = ?").run(documentId);
-
   if (isBlobStateEnabled()) {
     const currentConfig = await getDashboardConfigRecord();
     await saveDashboardConfigRecord({
@@ -384,7 +686,11 @@ export async function deleteKnowledgeDocument(documentId: string) {
         ),
       },
     });
+  } else {
+    deleteJsonRow("knowledge_documents", documentId);
   }
+
+  await deleteKnowledgeChunksForDocument(documentId);
 }
 
 export async function readKnowledgeDocumentContent(documentId: string) {
@@ -396,12 +702,10 @@ export async function readKnowledgeDocumentContent(documentId: string) {
     return null;
   }
 
-  const database = getDatabase();
-  const chunks = database
-    .prepare(
-      "SELECT content FROM knowledge_chunks WHERE document_id = ? ORDER BY chunk_index ASC",
-    )
-    .all(documentId) as Array<{ content: string }>;
+  const allChunks = await getKnowledgeChunks();
+  const chunks = allChunks
+    .filter((item) => item.documentId === documentId)
+    .sort((left, right) => left.chunkIndex - right.chunkIndex);
 
   if (chunks.length > 0) {
     return {

@@ -1,3 +1,5 @@
+export type KnowledgeSourceType = "upload" | "website" | "google_sheet";
+
 export type FAQItem = {
   id: string;
   question: string;
@@ -10,6 +12,9 @@ export type KnowledgeDocument = {
   size: string;
   status: "ready" | "processing";
   progress: number;
+  sourceType?: KnowledgeSourceType;
+  sourceUrl?: string;
+  syncedAt?: string;
 };
 
 export type TeamMember = {
@@ -83,6 +88,7 @@ export type DashboardConfig = {
     faqs: FAQItem[];
     documents: KnowledgeDocument[];
     websiteUrls: string[];
+    googleSheetUrls: string[];
   };
   channels: {
     webchat: {

@@ -219,6 +219,21 @@ function applyStyleInstructions(
     text = shortenReply(text);
   }
 
+  if (config.aiAgent.language === "en") {
+    text = text
+      .replace(/^Halo/gi, "Hello")
+      .replace(/^Siap,/gi, "Sure,")
+      .replace(/^Baik,/gi, "Alright,")
+      .replace(/Ada yang bisa kami bantu\?/gi, "How can we help you?")
+      .replace(/Ada yang bisa saya bantu\?/gi, "How can I help you?")
+      .replace(/Mohon informasikan/gi, "Please share")
+      .replace(/Boleh kirim/gi, "Please send")
+      .replace(/Terima kasih/gi, "Thank you")
+      .replace(/selamat datang/gi, "welcome")
+      .replace(/jam operasional/gi, "business hours")
+      .replace(/berlokasi di/gi, "is located at");
+  }
+
   return text;
 }
 
@@ -300,17 +315,39 @@ function findBestFaqMatch(messageText: string, faqs: FAQItem[]) {
   };
 }
 
-function findBestDocumentMatch(messageText: string) {
-  const chunks = getKnowledgeChunks();
-  let bestMatch: { content: string; sourceName: string; score: number } | null = null;
+async function findBestDocumentMatch(messageText: string) {
+  const chunks = await getKnowledgeChunks();
+  let bestMatch:
+    | {
+        content: string;
+        sourceName: string;
+        score: number;
+        answer?: string;
+        question?: string;
+      }
+    | null = null;
 
   for (const chunk of chunks) {
-    const score = scoreCandidate(messageText, chunk.content);
+    const questionScore = chunk.metadata.question
+      ? scoreCandidate(messageText, chunk.metadata.question)
+      : 0;
+    const answerScore = chunk.metadata.answer
+      ? scoreCandidate(messageText, chunk.metadata.answer)
+      : 0;
+    const contentScore = scoreCandidate(messageText, chunk.content);
+    const score = Math.max(
+      contentScore,
+      questionScore * 1.2,
+      (questionScore + answerScore) / 2,
+    );
+
     if (!bestMatch || score > bestMatch.score) {
       bestMatch = {
         content: chunk.content,
         sourceName: chunk.metadata.sourceName,
         score,
+        answer: chunk.metadata.answer,
+        question: chunk.metadata.question,
       };
     }
   }
@@ -319,15 +356,18 @@ function findBestDocumentMatch(messageText: string) {
     return null;
   }
 
+  const replySource = bestMatch.answer || bestMatch.content;
   const snippet =
-    bestMatch.content.length > 420
-      ? `${bestMatch.content.slice(0, 417).trim()}...`
-      : bestMatch.content.trim();
+    replySource.length > 420
+      ? `${replySource.slice(0, 417).trim()}...`
+      : replySource.trim();
 
   return {
     reply: snippet,
     confidence: Math.min(94, Math.round(bestMatch.score * 100)),
-    summary: `Jawaban diambil dari dokumen: ${bestMatch.sourceName}`,
+    summary: bestMatch.question
+      ? `Jawaban diambil dari knowledge source: ${bestMatch.sourceName} (${bestMatch.question})`
+      : `Jawaban diambil dari knowledge source: ${bestMatch.sourceName}`,
   };
 }
 
@@ -461,7 +501,7 @@ export async function generateReplyDecision(
     };
   }
 
-  const documentMatch = findBestDocumentMatch(messageText);
+  const documentMatch = await findBestDocumentMatch(messageText);
   if (documentMatch && documentMatch.confidence >= config.aiAgent.confidenceThreshold) {
     return {
       intent: hasKeyword(lower, PRICE_KEYWORDS) ? "Tanya harga" : "FAQ umum",

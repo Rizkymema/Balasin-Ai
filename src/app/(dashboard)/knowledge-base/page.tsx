@@ -75,6 +75,9 @@ export default function KnowledgeBasePage() {
   const [websiteUrls, setWebsiteUrls] = useState(
     config.knowledgeBase.websiteUrls.join("\n"),
   );
+  const [googleSheetUrls, setGoogleSheetUrls] = useState(
+    config.knowledgeBase.googleSheetUrls.join("\n"),
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newQuestion, setNewQuestion] = useState("");
   const [newAnswer, setNewAnswer] = useState("");
@@ -91,11 +94,15 @@ export default function KnowledgeBasePage() {
   const [isImportingFaqFile, setIsImportingFaqFile] = useState(false);
   const [faqImportMessage, setFaqImportMessage] = useState("");
   const [faqImportError, setFaqImportError] = useState("");
+  const [isSyncingSources, setIsSyncingSources] = useState(false);
+  const [sourceSyncMessage, setSourceSyncMessage] = useState("");
+  const [sourceSyncError, setSourceSyncError] = useState("");
 
   useEffect(() => {
     setFaqs(config.knowledgeBase.faqs);
     setFiles(config.knowledgeBase.documents);
     setWebsiteUrls(config.knowledgeBase.websiteUrls.join("\n"));
+    setGoogleSheetUrls(config.knowledgeBase.googleSheetUrls.join("\n"));
     setBizName(config.workspace.name);
     setBizIndustry(config.workspace.industry);
     setBizDesc(config.workspace.description);
@@ -113,7 +120,12 @@ export default function KnowledgeBasePage() {
     [faqs, searchQuery],
   );
 
-  const persistKnowledgeBase = (nextFaqs: FAQItem[], nextFiles: KnowledgeDocument[], nextUrls: string[]) => {
+  const persistKnowledgeBase = (
+    nextFaqs: FAQItem[],
+    nextFiles: KnowledgeDocument[],
+    nextUrls: string[],
+    nextSheetUrls: string[],
+  ) => {
     patchConfig((current) => ({
       ...current,
       knowledgeBase: {
@@ -121,6 +133,7 @@ export default function KnowledgeBasePage() {
         faqs: nextFaqs,
         documents: nextFiles,
         websiteUrls: nextUrls,
+        googleSheetUrls: nextSheetUrls,
       },
     }));
   };
@@ -148,6 +161,10 @@ export default function KnowledgeBasePage() {
         .split("\n")
         .map((item) => item.trim())
         .filter(Boolean),
+      googleSheetUrls
+        .split("\n")
+        .map((item) => item.trim())
+        .filter(Boolean),
     );
 
     setNewQuestion("");
@@ -164,6 +181,10 @@ export default function KnowledgeBasePage() {
       nextFaqs,
       files,
       websiteUrls
+        .split("\n")
+        .map((item) => item.trim())
+        .filter(Boolean),
+      googleSheetUrls
         .split("\n")
         .map((item) => item.trim())
         .filter(Boolean),
@@ -221,6 +242,10 @@ export default function KnowledgeBasePage() {
           .split("\n")
           .map((item) => item.trim())
           .filter(Boolean),
+        googleSheetUrls
+          .split("\n")
+          .map((item) => item.trim())
+          .filter(Boolean),
       );
 
       setFaqImportMessage(
@@ -242,11 +267,6 @@ export default function KnowledgeBasePage() {
   const handleSaveProfile = (event: FormEvent) => {
     event.preventDefault();
 
-    const urls = websiteUrls
-      .split("\n")
-      .map((item) => item.trim())
-      .filter(Boolean);
-
     patchConfig((current) => ({
       ...current,
       workspace: {
@@ -257,14 +277,81 @@ export default function KnowledgeBasePage() {
         address: bizAddress,
         businessHours: bizHours,
       },
-      knowledgeBase: {
-        ...current.knowledgeBase,
-        websiteUrls: urls,
-      },
     }));
 
     setIsProfileSaved(true);
     setTimeout(() => setIsProfileSaved(false), 2500);
+  };
+
+  const handleSyncSources = async () => {
+    const urls = websiteUrls
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const sheetUrls = googleSheetUrls
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    setSourceSyncMessage("");
+    setSourceSyncError("");
+    setIsSyncingSources(true);
+
+    try {
+      const response = await fetch("/api/knowledge/sources/sync", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          websiteUrls: urls,
+          googleSheetUrls: sheetUrls,
+        }),
+      });
+
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: {
+          syncedCount: number;
+          failures: Array<{ url: string; reason: string }>;
+        };
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error ?? "Sinkronisasi source gagal.");
+      }
+
+      patchConfig((current) => ({
+        ...current,
+        knowledgeBase: {
+          ...current.knowledgeBase,
+          websiteUrls: urls,
+          googleSheetUrls: sheetUrls,
+        },
+      }));
+
+      await refreshConfig();
+
+      if (payload.data.failures.length > 0) {
+        setSourceSyncError(
+          `Sebagian source gagal: ${payload.data.failures
+            .map((item) => `${item.url} (${item.reason})`)
+            .join(" | ")}`,
+        );
+      }
+
+      setSourceSyncMessage(
+        `${payload.data.syncedCount} source berhasil disinkronkan ke knowledge AI.`,
+      );
+    } catch (error) {
+      setSourceSyncError(
+        error instanceof Error ? error.message : "Sinkronisasi source gagal.",
+      );
+    } finally {
+      setIsSyncingSources(false);
+    }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -448,22 +535,6 @@ export default function KnowledgeBasePage() {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">
-              Website / URL Sumber Informasi
-            </label>
-            <Textarea
-              value={websiteUrls}
-              onChange={(event) => setWebsiteUrls(event.target.value)}
-              rows={3}
-              placeholder={"https://example.com/faq\nhttps://example.com/pricing"}
-            />
-            <p className="flex items-center gap-1.5 text-[10px] text-slate-500">
-              <Link2 className="h-3 w-3" />
-              Satu URL per baris. Nanti bisa dipakai untuk crawling atau grounding otomatis.
-            </p>
-          </div>
-
           <div className="flex items-center justify-between pt-2">
             {isProfileSaved ? (
               <span className="flex items-center gap-1 text-xs font-bold text-emerald-400 animate-fade-in">
@@ -509,9 +580,22 @@ export default function KnowledgeBasePage() {
                         <span className="block truncate text-xs font-bold text-white">
                           {file.name}
                         </span>
-                        <span className="text-[10px] font-semibold text-slate-500">
-                          {file.size}
-                        </span>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-slate-500">
+                          <span>{file.size}</span>
+                          <span className="rounded-full border border-white/8 px-2 py-0.5 text-[9px] uppercase tracking-wider text-slate-400">
+                            {file.sourceType === "google_sheet"
+                              ? "Google Sheet"
+                              : file.sourceType === "website"
+                                ? "Website"
+                                : "Upload"}
+                          </span>
+                          {file.syncedAt ? <span>sync: {file.syncedAt}</span> : null}
+                        </div>
+                        {file.sourceUrl ? (
+                          <span className="mt-1 block truncate text-[10px] text-cyan-300">
+                            {file.sourceUrl}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
 
@@ -535,17 +619,74 @@ export default function KnowledgeBasePage() {
 
           <div className="glass-panel space-y-4 rounded-xl p-5 text-center">
             <h3 className="text-left text-xs font-bold uppercase tracking-wider text-cyan-400">
-              Upload Dokumen Bisnis
+              Upload & Sinkronisasi Source
             </h3>
             <p className="text-left text-[11px] leading-normal text-slate-400">
               Unggah SOP, daftar harga, FAQ internal, atau panduan layanan. Semua file
               ini akan menjadi sumber pengetahuan AI dan reference automation.
             </p>
 
+            <div className="space-y-1.5 text-left">
+              <label className="text-xs font-semibold text-slate-300">
+                URL Website Sumber Informasi
+              </label>
+              <Textarea
+                value={websiteUrls}
+                onChange={(event) => setWebsiteUrls(event.target.value)}
+                rows={3}
+                placeholder={"https://example.com/faq\nhttps://example.com/pricing"}
+              />
+            </div>
+
+            <div className="space-y-1.5 text-left">
+              <label className="text-xs font-semibold text-slate-300">
+                URL Google Sheet
+              </label>
+              <Textarea
+                value={googleSheetUrls}
+                onChange={(event) => setGoogleSheetUrls(event.target.value)}
+                rows={3}
+                placeholder={
+                  "https://docs.google.com/spreadsheets/d/...\nSatu URL sheet per baris"
+                }
+              />
+              <p className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                <Link2 className="h-3 w-3" />
+                Gunakan link Google Sheet yang bisa diakses viewer atau export.
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              onClick={() => void handleSyncSources()}
+              disabled={isSyncingSources}
+            >
+              {isSyncingSources ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <Link2 className="mr-1.5 h-4 w-4" />
+              )}
+              Sinkronkan Website & Google Sheet
+            </Button>
+
+            {sourceSyncMessage ? (
+              <p className="text-left text-[11px] font-semibold text-emerald-400">
+                {sourceSyncMessage}
+              </p>
+            ) : null}
+
+            {sourceSyncError ? (
+              <p className="text-left text-[11px] font-semibold text-rose-400">
+                {sourceSyncError}
+              </p>
+            ) : null}
+
             <div className="relative cursor-pointer rounded-xl border border-dashed border-white/12 bg-white/2 p-6 transition duration-200 hover:border-cyan-400/50">
               <input
                 type="file"
-                accept=".pdf,.docx,.txt,.md,.csv,.json,.html,.doc"
+                accept=".pdf,.docx,.txt,.md,.csv,.json,.html,.doc,.xlsx,.xls"
                 className="absolute inset-0 cursor-pointer opacity-0"
                 onChange={handleFileUpload}
                 disabled={isUploading}
@@ -553,7 +694,7 @@ export default function KnowledgeBasePage() {
               <div className="flex flex-col items-center gap-2">
                 <Upload className="h-8 w-8 text-cyan-400" />
                 <span className="text-xs font-bold text-slate-300">
-                  Pilih File PDF, DOCX, atau Text
+                  Pilih File PDF, DOCX, XLSX, CSV, atau Text
                 </span>
                 <span className="text-[10px] font-bold text-slate-500">Maksimal 10MB</span>
               </div>

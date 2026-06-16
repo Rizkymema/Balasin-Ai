@@ -48,6 +48,7 @@ export const defaultDashboardConfig: DashboardConfig = {
     faqs: [],
     documents: [],
     websiteUrls: [],
+    googleSheetUrls: [],
   },
   channels: {
     webchat: {
@@ -130,6 +131,9 @@ export function mergeDashboardConfig(
         incoming.knowledgeBase?.documents ?? base.knowledgeBase.documents,
       websiteUrls:
         incoming.knowledgeBase?.websiteUrls ?? base.knowledgeBase.websiteUrls,
+      googleSheetUrls:
+        incoming.knowledgeBase?.googleSheetUrls ??
+        base.knowledgeBase.googleSheetUrls,
     },
     channels: {
       webchat: { ...base.channels.webchat, ...incoming.channels?.webchat },
