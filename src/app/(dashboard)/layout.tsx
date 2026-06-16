@@ -134,7 +134,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
 
   return (
-    <div className="relative min-h-screen bg-[var(--color-bg)] text-white flex">
+    <div className="relative h-screen bg-[var(--color-bg)] text-white flex overflow-hidden">
       {/* MOBILE SIDEBAR DRAWEROVERLAY */}
       {isSidebarOpen && (
         <div
