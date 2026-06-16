@@ -1,7 +1,7 @@
 import { mkdirSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import BetterSqlite3 from "better-sqlite3";
 
 import { defaultDashboardConfig } from "@/lib/dashboard-config";
 import { defaultDashboardOperations } from "@/lib/dashboard-operations";
@@ -19,8 +19,14 @@ type JsonRow = {
   updated_at: string;
 };
 
+function createDatabase(filePath: string) {
+  return new BetterSqlite3(filePath);
+}
+
+type SqliteDatabase = ReturnType<typeof createDatabase>;
+
 declare global {
-  var __balesinDb: DatabaseSync | undefined;
+  var __balesinDb: SqliteDatabase | undefined;
 }
 
 function ensureDataDir() {
@@ -38,7 +44,7 @@ function ensureDataDir() {
   }
 }
 
-function initializeSchema(database: DatabaseSync) {
+function initializeSchema(database: SqliteDatabase) {
   database.exec(`
     PRAGMA journal_mode = ${IS_EPHEMERAL_RUNTIME ? "MEMORY" : "WAL"};
     PRAGMA foreign_keys = ON;
@@ -163,7 +169,7 @@ function initializeSchema(database: DatabaseSync) {
   }
 }
 
-function runInTransaction(database: DatabaseSync, callback: () => void) {
+function runInTransaction(database: SqliteDatabase, callback: () => void) {
   database.exec("BEGIN");
 
   try {
@@ -176,7 +182,7 @@ function runInTransaction(database: DatabaseSync, callback: () => void) {
 }
 
 function seedJsonTable<T extends { id: string }>(
-  database: DatabaseSync,
+  database: SqliteDatabase,
   tableName: string,
   items: T[],
 ) {
@@ -199,7 +205,7 @@ export function getDatabase() {
     return {
       prepare: () => ({ run: () => {}, get: () => undefined }),
       exec: () => {},
-    } as unknown as DatabaseSync;
+    } as unknown as SqliteDatabase;
   }
 
   if (globalThis.__balesinDb) {
@@ -207,7 +213,7 @@ export function getDatabase() {
   }
 
   ensureDataDir();
-  const database = new DatabaseSync(DB_PATH);
+  const database = createDatabase(DB_PATH);
   initializeSchema(database);
   globalThis.__balesinDb = database;
   return database;
