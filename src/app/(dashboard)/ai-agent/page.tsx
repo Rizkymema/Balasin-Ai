@@ -27,6 +27,38 @@ interface TestMessage {
   grounded?: boolean;
 }
 
+const PROVIDER_MODELS: Record<AIProviderKind, { value: string; label: string }[]> = {
+  demo: [
+    { value: "balesin-demo-model", label: "Balesin Demo Model" },
+  ],
+  openai: [
+    { value: "gpt-4o", label: "GPT-4o (Flagship / Recommended)" },
+    { value: "gpt-4o-mini", label: "GPT-4o Mini (Fast & Cheap)" },
+    { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
+    { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
+  ],
+  gemini: [
+    { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Recommended)" },
+    { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+    { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash" },
+    { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
+  ],
+  anthropic: [
+    { value: "claude-3-7-sonnet-latest", label: "Claude 3.7 Sonnet (Latest)" },
+    { value: "claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet" },
+    { value: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku" },
+    { value: "claude-3-opus-latest", label: "Claude 3 Opus" },
+  ],
+  openrouter: [
+    { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash (via OpenRouter)" },
+    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini (via OpenRouter)" },
+    { value: "anthropic/claude-3.7-sonnet", label: "Claude 3.7 Sonnet (via OpenRouter)" },
+    { value: "meta-llama/llama-3.3-70b-instruct", label: "Llama 3.3 70B (via OpenRouter)" },
+    { value: "deepseek/deepseek-chat", label: "DeepSeek V3 (via OpenRouter)" },
+    { value: "deepseek/deepseek-r1", label: "DeepSeek R1 (via OpenRouter)" },
+  ],
+};
+
 export default function AIAgentPage() {
   const { config, patchConfig } = useDashboardConfig();
 
@@ -70,6 +102,16 @@ export default function AIAgentPage() {
     },
   ]);
   const [isTyping, setIsTyping] = useState(false);
+
+  const handleProviderChange = (newProvider: AIProviderKind) => {
+    setProvider(newProvider);
+    const defaultModels = PROVIDER_MODELS[newProvider] || [];
+    if (defaultModels.length > 0) {
+      setModel(defaultModels[0].value);
+    } else {
+      setModel("");
+    }
+  };
 
   useEffect(() => {
     setAgentName(config.aiAgent.name);
@@ -403,7 +445,7 @@ export default function AIAgentPage() {
                 <Select
                   value={provider}
                   onChange={(event) =>
-                    setProvider(event.target.value as AIProviderKind)
+                    handleProviderChange(event.target.value as AIProviderKind)
                   }
                 >
                   <option value="demo">Demo / Playground</option>
@@ -415,7 +457,38 @@ export default function AIAgentPage() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-300">Model utama</label>
-                <Input value={model} onChange={(event) => setModel(event.target.value)} />
+                <Select
+                  value={
+                    (PROVIDER_MODELS[provider] || []).some((m) => m.value === model)
+                      ? model
+                      : "custom"
+                  }
+                  onChange={(event) => {
+                    const val = event.target.value;
+                    if (val === "custom") {
+                      setModel("");
+                    } else {
+                      setModel(val);
+                    }
+                  }}
+                >
+                  {(PROVIDER_MODELS[provider] || []).map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                  <option value="custom">Model Kustom...</option>
+                </Select>
+                {(!(PROVIDER_MODELS[provider] || []).some((m) => m.value === model) || model === "") && (
+                  <div className="mt-2 animate-fade-in">
+                    <Input
+                      value={model}
+                      onChange={(event) => setModel(event.target.value)}
+                      placeholder="Masukkan nama model kustom (misal: gpt-4-32k)"
+                      className="text-xs h-9"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
