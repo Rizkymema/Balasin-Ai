@@ -47,25 +47,50 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [businessName, setBusinessName] = useState("Balesin Workspace");
-  const [userEmail, setUserEmail] = useState("admin@balesin.ai");
+  const [businessName, setBusinessName] = useState("Workspace Baru");
+  const [userEmail, setUserEmail] = useState("admin@workspace.local");
 
   useEffect(() => {
-    // Muat session mock
+    let mounted = true;
     const user = localStorage.getItem("balesin_user");
-    const biz = localStorage.getItem("onboarding_business");
 
     if (user) {
       try {
-        setUserEmail(JSON.parse(user).email || "admin@balesin.ai");
+        setUserEmail(JSON.parse(user).email || "admin@workspace.local");
       } catch (e) {}
     }
 
-    if (biz) {
+    const loadWorkspace = async () => {
       try {
-        setBusinessName(JSON.parse(biz).name || "Balesin Workspace");
-      } catch (e) {}
-    }
+        const response = await fetch("/api/dashboard-config", {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to load workspace");
+        }
+
+        const payload = (await response.json()) as {
+          ok: boolean;
+          data?: {
+            workspace?: {
+              name?: string;
+            };
+          };
+        };
+
+        if (mounted && payload.data?.workspace?.name?.trim()) {
+          setBusinessName(payload.data.workspace.name);
+        }
+      } catch {}
+    };
+
+    void loadWorkspace();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const handleLogout = async () => {

@@ -8,6 +8,7 @@ import type { BroadcastRecord, BroadcastStatus } from "@/types/operations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -95,7 +96,51 @@ export default function BroadcastPage() {
   };
 
   if (!selectedBroadcast) {
-    return null;
+    return (
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-white/8 bg-gradient-to-r from-white/[0.04] to-transparent p-6 md:p-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <Badge>Broadcast</Badge>
+              <h1 className="mt-3 text-3xl font-bold text-white">
+                Broadcast campaign siap Anda buat dari nol.
+              </h1>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
+                Belum ada campaign tersimpan. Buat campaign pertama untuk WhatsApp, Instagram DM,
+                atau web chat sesuai channel yang ingin Anda aktifkan.
+              </p>
+            </div>
+
+            <Button onClick={addDraftCampaign} className="rounded-xl px-5 py-3 text-xs">
+              Campaign baru
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {stats.map((stat) => (
+            <Card key={stat.label} className="glass-panel p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                {stat.label}
+              </p>
+              <p className="mt-3 text-3xl font-bold text-white">{stat.value}</p>
+            </Card>
+          ))}
+        </div>
+
+        <EmptyState
+          icon={<Megaphone className="h-10 w-10" />}
+          title="Belum ada campaign"
+          description="Campaign broadcast pertama bisa dibuat langsung dari dashboard. Setelah itu Anda bisa mengatur audience, template, dan jadwal kirim."
+          action={
+            <Button onClick={addDraftCampaign} className="rounded-xl px-5 py-3 text-xs">
+              Campaign baru
+            </Button>
+          }
+          className="min-h-[360px]"
+        />
+      </div>
+    );
   }
 
   return (

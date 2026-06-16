@@ -25,6 +25,7 @@ import type { BookingRecord, BookingStatus, ChannelKind, CustomerRecord } from "
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
@@ -231,7 +232,149 @@ export default function BookingPage() {
   };
 
   if (!selectedBooking) {
-    return null;
+    return (
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-white/8 bg-gradient-to-r from-white/[0.04] to-transparent p-6 md:p-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-3">
+              <Badge>Booking Desk</Badge>
+              <h1 className="text-3xl font-bold text-white">
+                Booking siap dikelola setelah data pertama Anda masuk.
+              </h1>
+              <p className="max-w-3xl text-sm leading-7 text-slate-300">
+                Belum ada booking tersimpan. Tambahkan booking pertama dari dashboard atau biarkan
+                booking dibuat otomatis nanti dari inbox dan automation.
+              </p>
+            </div>
+            <Button type="button" variant="secondary" className="rounded-xl px-4" onClick={() => setIsCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Tambah booking
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {bookingStats.map((stat) => (
+            <Card key={stat.label} className="glass-panel p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                {stat.label}
+              </p>
+              <p className="mt-3 text-3xl font-bold text-white">{stat.value}</p>
+              <p className="mt-4 text-xs leading-6 text-slate-400">{stat.note}</p>
+            </Card>
+          ))}
+        </div>
+
+        <EmptyState
+          icon={<CalendarClock className="h-10 w-10" />}
+          title="Belum ada booking"
+          description="Tambahkan booking pertama agar reminder, jadwal teknisi, dan status pembayaran mulai terbentuk di dashboard."
+          action={
+            <Button type="button" variant="secondary" className="rounded-xl px-4" onClick={() => setIsCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Tambah booking
+            </Button>
+          }
+          className="min-h-[360px]"
+        />
+
+        <Modal
+          isOpen={isCreateOpen}
+          onClose={() => {
+            setIsCreateOpen(false);
+            setDraft(initialDraft);
+          }}
+          title="Tambah Booking"
+          className="max-w-2xl"
+        >
+          <form onSubmit={handleCreateBooking} className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                value={draft.customer}
+                onChange={(event) => setDraft((current) => ({ ...current, customer: event.target.value }))}
+                placeholder="Nama customer"
+                required
+              />
+              <Input
+                value={draft.service}
+                onChange={(event) => setDraft((current) => ({ ...current, service: event.target.value }))}
+                placeholder="Layanan / paket"
+                required
+              />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                value={draft.date}
+                onChange={(event) => setDraft((current) => ({ ...current, date: event.target.value }))}
+                placeholder="Sabtu, 21 Juni"
+              />
+              <Input
+                value={draft.slot}
+                onChange={(event) => setDraft((current) => ({ ...current, slot: event.target.value }))}
+                placeholder="10:30"
+              />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Select
+                value={draft.channel}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    channel: event.target.value as ChannelKind,
+                  }))
+                }
+              >
+                <option value="WhatsApp">WhatsApp</option>
+                <option value="Website Chat">Website Chat</option>
+                <option value="Instagram DM">Instagram DM</option>
+                <option value="Instagram Comment">Instagram Comment</option>
+              </Select>
+              <Select
+                value={draft.status}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    status: event.target.value as BookingStatus,
+                  }))
+                }
+              >
+                <option value="New">New</option>
+                <option value="Pending Confirmation">Pending Confirmation</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="Waiting Payment">Waiting Payment</option>
+                <option value="Rescheduled">Rescheduled</option>
+                <option value="Done">Done</option>
+                <option value="Cancelled">Cancelled</option>
+              </Select>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                value={draft.technician}
+                onChange={(event) => setDraft((current) => ({ ...current, technician: event.target.value }))}
+                placeholder="PIC / Teknisi"
+              />
+              <Input
+                value={draft.branch}
+                onChange={(event) => setDraft((current) => ({ ...current, branch: event.target.value }))}
+                placeholder="Cabang"
+              />
+            </div>
+            <Textarea
+              rows={4}
+              value={draft.note}
+              onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))}
+              placeholder="Catatan booking"
+            />
+            <div className="flex justify-end gap-3 pt-2">
+              <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)}>
+                Batal
+              </Button>
+              <Button type="submit">Simpan booking</Button>
+            </div>
+          </form>
+        </Modal>
+      </div>
+    );
   }
 
   return (

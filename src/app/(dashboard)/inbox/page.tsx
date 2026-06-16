@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   Bot,
   CheckCheck,
+  MessageSquare,
   Paperclip,
   PauseCircle,
   Search,
@@ -24,6 +25,7 @@ import type {
 } from "@/types/operations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -190,7 +192,14 @@ export default function InboxPage() {
   };
 
   if (!activeConversation) {
-    return null;
+    return (
+      <EmptyState
+        icon={<MessageSquare className="h-10 w-10" />}
+        title="Inbox masih kosong"
+        description="Belum ada percakapan masuk. Hubungkan channel atau kirim test inbound dari halaman Channels agar chat mulai masuk ke inbox."
+        className="min-h-[420px]"
+      />
+    );
   }
 
   const filterButtons: Array<{

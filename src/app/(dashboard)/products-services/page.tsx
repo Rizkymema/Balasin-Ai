@@ -16,6 +16,7 @@ import type { ProductRecord, ServiceRecord } from "@/types/operations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
@@ -316,6 +317,46 @@ export default function ProductsServicesPage() {
           {activeView === "products" ? "Tambah produk" : "Tambah layanan"}
         </Button>
       </div>
+
+      {activeView === "products" && !selectedProduct ? (
+        <EmptyState
+          icon={<Package2 className="h-10 w-10" />}
+          title="Belum ada produk"
+          description="Tambahkan produk atau sparepart pertama agar AI, inbox, dan lookup harga membaca katalog nyata milik bisnis Anda."
+          action={
+            <Button
+              type="button"
+              variant="secondary"
+              className="rounded-full px-4 py-2 text-xs"
+              onClick={() => setIsProductModalOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Tambah produk
+            </Button>
+          }
+          className="min-h-[340px]"
+        />
+      ) : null}
+
+      {activeView === "services" && !selectedService ? (
+        <EmptyState
+          icon={<Wrench className="h-10 w-10" />}
+          title="Belum ada layanan"
+          description="Tambahkan layanan atau paket servis pertama agar booking, AI, dan guardrail harga punya referensi operasional yang nyata."
+          action={
+            <Button
+              type="button"
+              variant="secondary"
+              className="rounded-full px-4 py-2 text-xs"
+              onClick={() => setIsServiceModalOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Tambah layanan
+            </Button>
+          }
+          className="min-h-[340px]"
+        />
+      ) : null}
 
       {activeView === "products" && selectedProduct ? (
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">

@@ -172,7 +172,7 @@ export default function DashboardPage() {
           Boolean(config.aiProvider.model.trim())),
       note: config.aiProvider.enabled
         ? `${config.aiProvider.provider} | ${config.aiProvider.vectorStore}`
-        : "Mode demo masih aktif",
+        : "Belum diaktifkan",
     },
     {
       title: "Automation rules",

@@ -21,6 +21,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Modal } from "@/components/ui/modal";
 
 export default function KnowledgeBasePage() {
@@ -375,40 +376,49 @@ export default function KnowledgeBasePage() {
             <h3 className="text-xs font-bold uppercase tracking-wider text-white">
               Daftar Dokumen Aktif
             </h3>
-            <div className="space-y-3">
-              {files.map((file) => (
-                <div
-                  key={file.id}
-                  className="glass-panel flex items-center justify-between gap-4 rounded-xl p-4"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cyan-400/20 bg-cyan-950/40 text-cyan-400">
-                      <FileText className="h-5 w-5" />
+          <div className="space-y-3">
+              {files.length === 0 ? (
+                <EmptyState
+                  icon={<FileText className="h-10 w-10" />}
+                  title="Belum ada dokumen"
+                  description="Unggah SOP, daftar harga, katalog, atau panduan layanan agar AI membaca dokumen nyata milik bisnis Anda."
+                  className="min-h-[280px]"
+                />
+              ) : (
+                files.map((file) => (
+                  <div
+                    key={file.id}
+                    className="glass-panel flex items-center justify-between gap-4 rounded-xl p-4"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cyan-400/20 bg-cyan-950/40 text-cyan-400">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="block truncate text-xs font-bold text-white">
+                          {file.name}
+                        </span>
+                        <span className="text-[10px] font-semibold text-slate-500">
+                          {file.size}
+                        </span>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <span className="block truncate text-xs font-bold text-white">
-                        {file.name}
-                      </span>
-                      <span className="text-[10px] font-semibold text-slate-500">
-                        {file.size}
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center gap-4">
-                    <span className="flex items-center gap-1 rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-                      <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-                      Terserap AI
-                    </span>
-                    <button
-                      onClick={() => handleDeleteDocument(file.id)}
-                      className="rounded p-1.5 text-slate-500 transition hover:text-red-400"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-4">
+                      <span className="flex items-center gap-1 rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                        <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                        Terserap AI
+                      </span>
+                      <button
+                        onClick={() => handleDeleteDocument(file.id)}
+                        className="rounded p-1.5 text-slate-500 transition hover:text-red-400"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 

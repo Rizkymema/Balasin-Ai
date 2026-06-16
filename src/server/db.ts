@@ -19,6 +19,18 @@ type JsonRow = {
   updated_at: string;
 };
 
+const LEGACY_DEMO_IDS = {
+  faqs: ["faq-1", "faq-2"],
+  documents: ["doc-1", "doc-2"],
+  conversations: ["conv-1", "conv-2", "conv-3", "conv-4", "conv-5", "conv-6"],
+  customers: ["cust-1", "cust-2", "cust-3", "cust-4", "cust-5", "cust-6"],
+  bookings: ["booking-1", "booking-2", "booking-3", "booking-4"],
+  tickets: ["ticket-1", "ticket-2", "ticket-3"],
+  products: ["prod-1", "prod-2", "prod-3"],
+  services: ["svc-1", "svc-2", "svc-3"],
+  broadcasts: ["broadcast-1", "broadcast-2", "broadcast-3"],
+} as const;
+
 function createDatabase(filePath: string) {
   return new BetterSqlite3(filePath);
 }
@@ -166,7 +178,103 @@ function initializeSchema(database: SqliteDatabase) {
     seedJsonTable(database, "products", defaultDashboardOperations.products);
     seedJsonTable(database, "services", defaultDashboardOperations.services);
     seedJsonTable(database, "broadcasts", defaultDashboardOperations.broadcasts);
+    return;
   }
+
+  sanitizeLegacyDemoSeed(database);
+}
+
+function hasAnyLegacyDemoRows(
+  database: SqliteDatabase,
+  tableName: string,
+  ids: readonly string[],
+) {
+  if (ids.length === 0) {
+    return false;
+  }
+
+  const placeholders = ids.map(() => "?").join(", ");
+  const row = database
+    .prepare(`SELECT COUNT(1) as count FROM ${tableName} WHERE id IN (${placeholders})`)
+    .get(...ids) as { count?: number } | undefined;
+
+  return (row?.count ?? 0) > 0;
+}
+
+function clearJsonTable(database: SqliteDatabase, tableName: string) {
+  database.prepare(`DELETE FROM ${tableName}`).run();
+}
+
+function sanitizeLegacyDemoSeed(database: SqliteDatabase) {
+  const row = database
+    .prepare("SELECT data_json FROM app_config WHERE id = 1")
+    .get() as { data_json: string } | undefined;
+
+  if (!row) {
+    return;
+  }
+
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(row.data_json);
+  } catch {
+    return;
+  }
+
+  const config = parsed as {
+    workspace?: { name?: string; supportEmail?: string };
+    aiProvider?: { provider?: string };
+  };
+
+  const looksLikeLegacyDemoConfig =
+    config.workspace?.name === "Balesin Workspace" ||
+    config.workspace?.supportEmail === "admin@balesin.ai" ||
+    config.aiProvider?.provider === "demo";
+
+  if (!looksLikeLegacyDemoConfig) {
+    return;
+  }
+
+  const hasLegacySeed =
+    hasAnyLegacyDemoRows(database, "knowledge_faqs", LEGACY_DEMO_IDS.faqs) ||
+    hasAnyLegacyDemoRows(
+      database,
+      "knowledge_documents",
+      LEGACY_DEMO_IDS.documents,
+    ) ||
+    hasAnyLegacyDemoRows(
+      database,
+      "conversations",
+      LEGACY_DEMO_IDS.conversations,
+    ) ||
+    hasAnyLegacyDemoRows(database, "customers", LEGACY_DEMO_IDS.customers) ||
+    hasAnyLegacyDemoRows(database, "bookings", LEGACY_DEMO_IDS.bookings) ||
+    hasAnyLegacyDemoRows(database, "tickets", LEGACY_DEMO_IDS.tickets) ||
+    hasAnyLegacyDemoRows(database, "products", LEGACY_DEMO_IDS.products) ||
+    hasAnyLegacyDemoRows(database, "services", LEGACY_DEMO_IDS.services) ||
+    hasAnyLegacyDemoRows(database, "broadcasts", LEGACY_DEMO_IDS.broadcasts);
+
+  if (!hasLegacySeed) {
+    return;
+  }
+
+  runInTransaction(database, () => {
+    database
+      .prepare("UPDATE app_config SET data_json = ?, updated_at = ? WHERE id = 1")
+      .run(JSON.stringify(defaultDashboardConfig), new Date().toISOString());
+
+    clearJsonTable(database, "knowledge_faqs");
+    clearJsonTable(database, "knowledge_documents");
+    clearJsonTable(database, "knowledge_chunks");
+    clearJsonTable(database, "conversations");
+    clearJsonTable(database, "customers");
+    clearJsonTable(database, "bookings");
+    clearJsonTable(database, "tickets");
+    clearJsonTable(database, "products");
+    clearJsonTable(database, "services");
+    clearJsonTable(database, "broadcasts");
+  });
 }
 
 function runInTransaction(database: SqliteDatabase, callback: () => void) {

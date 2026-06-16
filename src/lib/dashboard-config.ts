@@ -5,34 +5,33 @@ const STORAGE_EVENT = "balesin-dashboard-config-change";
 
 export const defaultDashboardConfig: DashboardConfig = {
   workspace: {
-    name: "Balesin Workspace",
-    industry: "Bengkel Motor",
-    description:
-      "AI customer service omnichannel untuk membalas chat, menerima booking, dan menjaga handoff tetap aman.",
-    address: "Jl. Sudirman No. 42, Jakarta Pusat",
-    businessHours: "Senin - Minggu, 09.00 - 21.00 WIB",
+    name: "Workspace Baru",
+    industry: "",
+    description: "",
+    address: "",
+    businessHours: "",
     timezone: "Asia/Jakarta",
     language: "id",
-    supportEmail: "admin@balesin.ai",
+    supportEmail: "",
   },
   aiAgent: {
-    name: "Balesin Bot",
+    name: "AI Assistant",
     language: "id",
     tone: "casual",
     confidenceThreshold: 80,
     fallbackMessage:
       "Maaf, saya kurang memahami pertanyaan Anda. Saya akan meneruskan chat ini ke admin manusia ya.",
-    blacklist: ["kompetitor", "kata kasar", "refund ilegal"],
+    blacklist: [],
     autoReplyEnabled: true,
     safetyMode: "balanced",
   },
   runtime: {
     publicAppUrl: "",
-    workerSecret: "dashboard-worker-secret-change-me",
+    workerSecret: "",
   },
   aiProvider: {
     enabled: false,
-    provider: "demo",
+    provider: "openai",
     apiKey: "",
     model: "gpt-4.1-mini",
     embeddingModel: "text-embedding-3-small",
@@ -40,42 +39,14 @@ export const defaultDashboardConfig: DashboardConfig = {
     vectorStore: "none",
   },
   knowledgeBase: {
-    faqs: [
-      {
-        id: "faq-1",
-        question: "Apakah bisa kirim ke luar kota/daerah?",
-        answer:
-          "Ya, kami melayani pengiriman ke seluruh Indonesia menggunakan jasa kurir JNE, J&T, dan Sicepat.",
-      },
-      {
-        id: "faq-2",
-        question: "Berapa lama proses pengerjaan/pengiriman?",
-        answer:
-          "Untuk produk ready stock dikirim di hari yang sama. Untuk pre-order memerlukan waktu 2-3 hari kerja.",
-      },
-    ],
-    documents: [
-      {
-        id: "doc-1",
-        name: "SOP_Pelayanan_Toko.pdf",
-        size: "1.2 MB",
-        status: "ready",
-        progress: 100,
-      },
-      {
-        id: "doc-2",
-        name: "Price_List_Produk_2026.docx",
-        size: "850 KB",
-        status: "ready",
-        progress: 100,
-      },
-    ],
-    websiteUrls: ["https://example.com/faq", "https://example.com/pricing"],
+    faqs: [],
+    documents: [],
+    websiteUrls: [],
   },
   channels: {
     webchat: {
-      enabled: true,
-      status: "connected",
+      enabled: false,
+      status: "draft",
       widgetColor: "#06b6d4",
       welcomeText: "Halo! Ada yang bisa kami bantu?",
       captureLead: true,
@@ -84,17 +55,17 @@ export const defaultDashboardConfig: DashboardConfig = {
     whatsapp: {
       enabled: false,
       status: "disconnected",
-      businessLabel: "WhatsApp Resmi Toko",
+      businessLabel: "",
       phoneNumberId: "",
       accessToken: "",
-      verifyToken: "balesin_secure_verification_token",
+      verifyToken: "",
       webhookUrl: "",
       autoReply: true,
     },
     instagram: {
       enabled: false,
       status: "draft",
-      username: "@balesin.demo",
+      username: "",
       accountId: "",
       accessToken: "",
       autoReplyDm: true,
@@ -108,62 +79,10 @@ export const defaultDashboardConfig: DashboardConfig = {
     bookingReminderHours: 2,
     spamGuard: true,
     sentimentGuard: true,
-    rules: [
-      {
-        id: "rule-1",
-        name: "Human handoff untuk confidence rendah",
-        trigger: "Confidence AI di bawah threshold",
-        action: "Tahan auto reply dan assign ke admin",
-        channel: "all",
-        isActive: true,
-        risk: "high",
-      },
-      {
-        id: "rule-2",
-        name: "Comment guard Instagram",
-        trigger: "Keyword spam, judol, atau kasar",
-        action: "Hide komentar dan kirim ke review queue",
-        channel: "instagram",
-        isActive: true,
-        risk: "high",
-      },
-      {
-        id: "rule-3",
-        name: "Follow-up lead otomatis",
-        trigger: "Customer diam lebih dari 24 jam",
-        action: "Kirim follow-up ringan dan tawarkan booking",
-        channel: "whatsapp",
-        isActive: true,
-        risk: "medium",
-      },
-      {
-        id: "rule-4",
-        name: "Reminder booking H-2 jam",
-        trigger: "Mendekati jadwal kedatangan",
-        action: "Kirim pengingat waktu dan lokasi",
-        channel: "all",
-        isActive: true,
-        risk: "low",
-      },
-    ],
+    rules: [],
   },
   team: {
-    members: [
-      {
-        id: "member-1",
-        name: "Junaedi Rian",
-        email: "junaedi.rian@balesin.ai",
-        role: "Admin",
-        status: "active",
-      },
-      {
-        id: "member-2",
-        name: "Siti Rahma",
-        email: "siti.rahma@balesin.ai",
-        role: "Operator",
-        status: "active",
-      },
-    ],
+    members: [],
     notifications: {
       emailDigest: true,
       instantHandoff: true,

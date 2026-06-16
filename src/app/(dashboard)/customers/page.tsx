@@ -19,6 +19,7 @@ import type { ChannelKind, CustomerRecord, LeadStatus } from "@/types/operations
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
@@ -226,7 +227,190 @@ export default function CustomersPage() {
   };
 
   if (!selectedCustomer) {
-    return null;
+    return (
+      <div className="space-y-6">
+        <div className="relative overflow-hidden rounded-2xl border border-white/8 bg-gradient-to-r from-white/[0.04] to-transparent p-6 md:p-8">
+          <div className="relative z-10 space-y-3">
+            <Badge>Customer CRM</Badge>
+            <h1 className="text-3xl font-bold text-white">
+              Customer registry siap diisi dengan data bisnis Anda sendiri.
+            </h1>
+            <p className="max-w-3xl text-sm leading-7 text-slate-300">
+              Belum ada customer tersimpan. Tambahkan customer pertama agar inbox, booking,
+              ticket, dan broadcast memiliki sumber kontak yang sama.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {customerStats.map((stat) => {
+            const Icon = stat.icon;
+
+            return (
+              <Card key={stat.label} className="glass-panel p-5">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      {stat.label}
+                    </p>
+                    <p className="mt-3 text-3xl font-bold text-white">{stat.value}</p>
+                  </div>
+                  <div className={`rounded-2xl border border-white/8 bg-white/5 p-3 ${stat.tone}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+
+        <EmptyState
+          icon={<Users2 className="h-10 w-10" />}
+          title="Belum ada customer"
+          description="Mulai dengan menambahkan customer pertama dari dashboard. Data ini nanti akan dipakai ulang oleh inbox, booking, ticket, dan automation."
+          action={
+            <Button type="button" variant="secondary" className="h-11 rounded-xl px-4" onClick={() => setIsCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Tambah customer
+            </Button>
+          }
+          className="min-h-[360px]"
+        />
+
+        <Modal
+          isOpen={isCreateOpen}
+          onClose={() => {
+            setIsCreateOpen(false);
+            setDraft(initialDraft);
+          }}
+          title="Tambah Customer"
+          className="max-w-2xl"
+        >
+          <form onSubmit={handleCreateCustomer} className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">Nama customer</label>
+                <Input
+                  value={draft.name}
+                  onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+                  placeholder="Nama customer"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">Channel utama</label>
+                <Select
+                  value={draft.channel}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      channel: event.target.value as ChannelKind,
+                    }))
+                  }
+                >
+                  <option value="WhatsApp">WhatsApp</option>
+                  <option value="Website Chat">Website Chat</option>
+                  <option value="Instagram DM">Instagram DM</option>
+                  <option value="Instagram Comment">Instagram Comment</option>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">Lead status</label>
+                <Select
+                  value={draft.leadStatus}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      leadStatus: event.target.value as LeadStatus,
+                    }))
+                  }
+                >
+                  <option value="New Lead">New Lead</option>
+                  <option value="Interested">Interested</option>
+                  <option value="Hot Lead">Hot Lead</option>
+                  <option value="Asked Price">Asked Price</option>
+                  <option value="Booking">Booking</option>
+                  <option value="Paid">Paid</option>
+                  <option value="Complaint">Complaint</option>
+                  <option value="Spam">Spam</option>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">Assigned to</label>
+                <Input
+                  value={draft.assignedTo}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, assignedTo: event.target.value }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                value={draft.phone}
+                onChange={(event) => setDraft((current) => ({ ...current, phone: event.target.value }))}
+                placeholder="Nomor telepon"
+              />
+              <Input
+                value={draft.email}
+                onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))}
+                placeholder="Email"
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                value={draft.username}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, username: event.target.value }))
+                }
+                placeholder="Username / handle"
+              />
+              <Input
+                value={draft.segment}
+                onChange={(event) => setDraft((current) => ({ ...current, segment: event.target.value }))}
+                placeholder="Segment"
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                value={draft.revenueHint}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, revenueHint: event.target.value }))
+                }
+                placeholder="Revenue hint"
+              />
+              <Input
+                value={draft.tags}
+                onChange={(event) => setDraft((current) => ({ ...current, tags: event.target.value }))}
+                placeholder="Tag dipisah koma"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300">Catatan internal</label>
+              <Textarea
+                rows={4}
+                value={draft.note}
+                onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)}>
+                Batal
+              </Button>
+              <Button type="submit">Simpan customer</Button>
+            </div>
+          </form>
+        </Modal>
+      </div>
+    );
   }
 
   return (
