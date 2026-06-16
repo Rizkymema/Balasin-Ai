@@ -33,6 +33,22 @@ const HOURS_KEYWORDS = [
 ];
 
 const PRICE_KEYWORDS = ["harga", "berapa", "biaya", "tarif", "ongkos", "estimasi"];
+const OPENING_PHRASES = [
+  "boleh tanya",
+  "blh tanya",
+  "blh tnya",
+  "boleh nanya",
+  "blh nanya",
+  "mau tanya",
+  "mau nanya",
+  "izin tanya",
+  "izin bertanya",
+  "sy mau tanya",
+  "saya mau tanya",
+  "saya ingin tanya",
+  "permisi tanya",
+  "numpang tanya",
+];
 const DEFAULT_GREETING_KEYWORDS = [
   "halo",
   "hallo",
@@ -121,6 +137,28 @@ function isGreetingMessage(input: string, config: DashboardConfig) {
   return greetingKeywords.some(
     (keyword) => normalized === keyword || compact === keyword || normalized.includes(keyword),
   );
+}
+
+function stripOpeningPhrase(input: string) {
+  const normalized = normalizeText(input);
+
+  for (const phrase of OPENING_PHRASES) {
+    if (!normalized.startsWith(phrase)) {
+      continue;
+    }
+
+    return {
+      hadOpener: true,
+      normalized,
+      stripped: normalized.slice(phrase.length).trim(),
+    };
+  }
+
+  return {
+    hadOpener: false,
+    normalized,
+    stripped: normalized,
+  };
 }
 
 function extractStyleSignals(config: DashboardConfig) {
@@ -388,7 +426,9 @@ export async function generateReplyDecision(
   messageText: string,
   config: DashboardConfig,
 ): Promise<ReplyDecision> {
-  const lower = messageText.toLowerCase();
+  const opener = stripOpeningPhrase(messageText);
+  const routedMessage = opener.stripped || messageText;
+  const lower = normalizeText(routedMessage);
   const blacklist = config.aiAgent.blacklist.map((item) => item.toLowerCase());
 
   if (blacklist.some((term) => term && lower.includes(term))) {
@@ -441,6 +481,19 @@ export async function generateReplyDecision(
     };
   }
 
+  if (opener.hadOpener && !opener.stripped) {
+    return {
+      intent: "Sapaan",
+      confidence: 90,
+      needsHuman: false,
+      status: "ai_active",
+      summary: "Customer membuka percakapan dengan izin bertanya dan sistem membalas sebagai sapaan aman.",
+      reply: applyStyleInstructions(buildGreetingReply(config), config),
+      grounded: true,
+      source: "workspace",
+    };
+  }
+
   if (isGreetingMessage(messageText, config)) {
     return {
       intent: "Sapaan",
@@ -485,7 +538,7 @@ export async function generateReplyDecision(
     };
   }
 
-  const faqMatch = findBestFaqMatch(messageText, config.knowledgeBase.faqs);
+  const faqMatch = findBestFaqMatch(routedMessage, config.knowledgeBase.faqs);
   if (faqMatch && faqMatch.confidence >= config.aiAgent.confidenceThreshold) {
     return {
       intent: hasKeyword(lower, PRICE_KEYWORDS) ? "Tanya harga" : "FAQ umum",
@@ -501,7 +554,7 @@ export async function generateReplyDecision(
     };
   }
 
-  const documentMatch = await findBestDocumentMatch(messageText);
+  const documentMatch = await findBestDocumentMatch(routedMessage);
   if (documentMatch && documentMatch.confidence >= config.aiAgent.confidenceThreshold) {
     return {
       intent: hasKeyword(lower, PRICE_KEYWORDS) ? "Tanya harga" : "FAQ umum",
