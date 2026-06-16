@@ -49,6 +49,11 @@ a {
   text-decoration: none;
 }
 
+select option {
+  background-color: #0a0e1c;
+  color: #f1f5f9;
+}
+
 ::selection {
   background: rgba(20, 184, 166, 0.2);
   color: white;
