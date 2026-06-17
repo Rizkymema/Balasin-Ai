@@ -40,9 +40,7 @@ declare global {
 }
 
 const GOOGLE_CLIENT_ID =
-  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim() ??
-  process.env.NEXT_PUBLIC_GOOGLE_CLIENTID?.trim() ??
-  "";
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim() ?? "";
 
 export function LoginForm({ redirectTo }: LoginFormProps) {
   const router = useRouter();
@@ -183,8 +181,8 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
               <div>
                 <p className="font-semibold">Google login belum aktif.</p>
                 <p className="mt-1 text-amber-100/80">
-                  Isi `NEXT_PUBLIC_GOOGLE_CLIENT_ID` atau `GOOGLE_CLIENT_ID` di
-                  `.env.local` dan di Vercel agar tombol Google bisa dipakai.
+                  Isi `NEXT_PUBLIC_GOOGLE_CLIENT_ID` di `.env.local` dan Vercel
+                  agar tombol Google muncul di browser.
                 </p>
               </div>
             </div>

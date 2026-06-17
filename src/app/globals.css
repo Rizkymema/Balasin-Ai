@@ -16,8 +16,9 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-manrope), var(--font-body);
-  --font-heading: var(--font-manrope), var(--font-heading);
+  --font-sans: var(--app-font-body);
+  --font-heading: var(--app-font-heading);
+  --font-mono: var(--app-font-mono);
 }
 
 * {
@@ -31,7 +32,7 @@ html {
 body {
   margin: 0;
   color: var(--color-text);
-  font-family: var(--font-manrope), var(--font-body), sans-serif;
+  font-family: var(--app-font-body);
   background-color: var(--color-bg);
 }
 
@@ -41,7 +42,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-manrope), var(--font-heading), sans-serif;
+  font-family: var(--app-font-heading);
 }
 
 a {
