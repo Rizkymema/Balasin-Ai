@@ -579,13 +579,69 @@ function getWaHandoffLink(config: DashboardConfig): string {
   return label || "WhatsApp Admin";
 }
 
+function extractTriggersFromContent(content: string): string[] {
+  const match = content.match(/(?:Kata Kunci \/ Trigger|Kata Kunci|Trigger)\s*:\s*([^|]+)/i);
+  if (!match) return [];
+  
+  return match[1]
+    .split(",")
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function escapeRegExp(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function formatGoogleSheetReply(content: string): string {
   if (content.startsWith("Pertanyaan:") && content.includes("\nJawaban:")) {
     const parts = content.split("\nJawaban:");
     return parts.slice(1).join("\nJawaban:").trim();
   }
+
   if (content.includes(" | ")) {
-    return content.split(" | ").map((item) => item.trim()).join("\n");
+    const parts = content.split(" | ");
+    
+    // Look specifically for "Panduan Jawaban AI" or "Jawaban" or "Answer" or "Content"
+    for (const part of parts) {
+      const colonIndex = part.indexOf(":");
+      if (colonIndex !== -1) {
+        const key = part.slice(0, colonIndex).trim().toLowerCase();
+        const value = part.slice(colonIndex + 1).trim();
+        
+        if (
+          key === "panduan jawaban ai" || 
+          key === "jawaban" || 
+          key === "answer" || 
+          key === "jawaban ai"
+        ) {
+          return value;
+        }
+      }
+    }
+    
+    // Fallback: If no explicit answer column was found, format all parts except Category/Triggers/Status
+    return parts
+      .map((part) => {
+        const colonIndex = part.indexOf(":");
+        if (colonIndex !== -1) {
+          const key = part.slice(0, colonIndex).trim().toLowerCase();
+          const value = part.slice(colonIndex + 1).trim();
+          if (
+            key === "kategori" ||
+            key === "kata kunci" ||
+            key === "trigger" ||
+            key === "kata kunci / trigger" ||
+            key === "status"
+          ) {
+            return "";
+          }
+          return `${part.slice(0, colonIndex).trim()}: ${value}`;
+        }
+        return part.trim();
+      })
+      .filter(Boolean)
+      .join("\n");
   }
   return content;
 }
@@ -599,14 +655,44 @@ async function findBestGoogleSheetMatch(
     return null;
   }
 
+  const queryLower = messageText.toLowerCase().trim();
   const queryTokens = Array.from(new Set(tokenize(messageText)));
   if (queryTokens.length === 0) {
     return null;
   }
 
-  let bestMatch: { chunk: KnowledgeChunk; score: number } | null = null;
+  let bestMatch: { chunk: KnowledgeChunk; score: number; isTriggerMatch: boolean } | null = null;
 
   for (const chunk of sheetChunks) {
+    const triggers = extractTriggersFromContent(chunk.content);
+    let triggerScore = 0;
+    let hasTriggerMatch = false;
+
+    // Check triggers first (substring match with word boundary)
+    for (const trigger of triggers) {
+      if (trigger.length < 2) continue;
+      
+      const escapedTrigger = escapeRegExp(trigger);
+      const regex = new RegExp(`\\b${escapedTrigger}\\b`, "i");
+      
+      if (regex.test(queryLower)) {
+        hasTriggerMatch = true;
+        const wordCount = trigger.split(/\s+/).length;
+        const currentTriggerScore = wordCount >= 2 ? 1.0 : 0.95;
+        if (currentTriggerScore > triggerScore) {
+          triggerScore = currentTriggerScore;
+        }
+      }
+    }
+
+    if (hasTriggerMatch) {
+      if (!bestMatch || triggerScore > bestMatch.score || (!bestMatch.isTriggerMatch && triggerScore === bestMatch.score)) {
+        bestMatch = { chunk, score: triggerScore, isTriggerMatch: true };
+      }
+      continue;
+    }
+
+    // Fallback to token overlap
     const contentLower = chunk.content.toLowerCase();
     let matchCount = 0;
 
@@ -620,20 +706,27 @@ async function findBestGoogleSheetMatch(
       continue;
     }
 
-    const score = matchCount / queryTokens.length;
+    const overlapScore = matchCount / queryTokens.length;
+    const currentScore = overlapScore * 0.9;
 
-    if (!bestMatch || score > bestMatch.score) {
-      bestMatch = { chunk, score };
+    if (!bestMatch || (!bestMatch.isTriggerMatch && currentScore > bestMatch.score)) {
+      bestMatch = { chunk, score: currentScore, isTriggerMatch: false };
     }
   }
 
-  const threshold = queryTokens.length === 1 ? 1.0 : 0.5;
-  if (bestMatch && bestMatch.score >= threshold) {
-    return {
-      reply: formatGoogleSheetReply(bestMatch.chunk.content),
-      confidence: Math.min(99, Math.round(bestMatch.score * 100)),
-      summary: `Jawaban diambil dari Google Sheet (${bestMatch.chunk.metadata.sourceName}) berdasarkan kecocokan kata kunci.`,
-    };
+  if (bestMatch) {
+    const confidence = Math.min(99, Math.round(bestMatch.score * 100));
+    const isMatched = bestMatch.isTriggerMatch || confidence >= 60;
+
+    if (isMatched) {
+      return {
+        reply: formatGoogleSheetReply(bestMatch.chunk.content),
+        confidence,
+        summary: bestMatch.isTriggerMatch
+          ? `Jawaban diambil dari Google Sheet (${bestMatch.chunk.metadata.sourceName}) berdasarkan pencocokan trigger kata kunci.`
+          : `Jawaban diambil dari Google Sheet (${bestMatch.chunk.metadata.sourceName}) berdasarkan overlap kata kunci.`,
+      };
+    }
   }
 
   return null;
