@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import {
   AlertTriangle,
   CalendarClock,
+  ChevronRight,
   Mail,
   MessageSquareText,
   Phone,
+  Plus,
   Sparkles,
   Tag,
   Ticket,
@@ -34,21 +37,58 @@ type CustomerContextPanelProps = {
   hiddenOnDesktop?: boolean;
 };
 
-function ContextBlock({
+function SidebarSection({
   title,
+  action,
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  action?: ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <section className="rounded-[24px] border border-[var(--color-border)] bg-white/[0.03] p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">
-        {title}
-      </p>
-      <div className="mt-3">{children}</div>
+    <section className="border-t border-[#eef2f6] px-5 py-5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-[13px] font-semibold text-[#344054]">{title}</h3>
+        {action}
+      </div>
+      {children}
     </section>
   );
+}
+
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 text-[12px]">
+      <span className="text-[#98a2b3]">{label}</span>
+      <span className="text-right font-medium text-[#475467]">{value}</span>
+    </div>
+  );
+}
+
+function statusCardClass(status: ConversationRecord["status"]) {
+  switch (status) {
+    case "resolved":
+      return "border-[#b8e7c9] bg-[#eefbf2] text-[#279455]";
+    case "assigned_to_admin":
+      return "border-[#bfd3ff] bg-[#edf4ff] text-[#2563eb]";
+    case "waiting_customer":
+      return "border-[#c7defe] bg-[#eef6ff] text-[#1d4ed8]";
+    case "ai_paused":
+      return "border-[#f3d6a1] bg-[#fff7e8] text-[#b54708]";
+    case "blocked":
+      return "border-[#f8c4c7] bg-[#fff1f2] text-[#d92d20]";
+    case "spam":
+      return "border-[#d6dbe5] bg-[#f7f8fa] text-[#667085]";
+    default:
+      return "border-[#d7e7ff] bg-[#eff6ff] text-[#1570ef]";
+  }
 }
 
 export function CustomerContextPanel({
@@ -61,7 +101,7 @@ export function CustomerContextPanel({
     return (
       <aside
         className={cn(
-          "rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)]",
+          "rounded-[18px] border border-[#d9dfeb] bg-white",
           hiddenOnDesktop ? "xl:hidden" : "",
         )}
       >
@@ -76,216 +116,231 @@ export function CustomerContextPanel({
   }
 
   const statusMeta = getConversationStatusMeta(conversation);
+  const StatusIcon = statusMeta.icon;
 
   return (
     <aside
       className={cn(
-        "custom-scrollbar min-h-[42rem] overflow-y-auto rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5",
+        "custom-scrollbar min-h-[42rem] overflow-y-auto rounded-[18px] border border-[#d9dfeb] bg-white shadow-[0_8px_24px_rgba(92,110,145,0.08)]",
         hiddenOnDesktop ? "xl:hidden" : "",
       )}
     >
-      <div className="rounded-[24px] border border-[var(--color-brand)]/20 bg-[var(--color-brand)]/8 p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-brand)]">
-          Customer Context
-        </p>
-        <div className="mt-3 space-y-3">
-          <div>
-            <h3 className="text-lg font-semibold text-white">
-              {conversation.name}
-            </h3>
-            <p className="mt-1 text-sm text-slate-300">
-              {statusMeta.description}
-            </p>
+      <div className="flex items-start gap-3 px-5 py-5">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#dde4ee] bg-[#f5f7fb] text-[#667085]">
+          <UserRound className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <h2 className="truncate text-[1.1rem] font-semibold text-[#344054]">
+            {conversation.name}
+          </h2>
+          <div className="mt-1 flex items-center gap-2 text-[13px] text-[#98a2b3]">
+            <span>{conversation.channel}</span>
           </div>
-
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-            <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-200">
-              <Phone className="h-4 w-4 text-slate-400" />
-              {maskPhone(conversation.phone)}
-            </div>
-            <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-200">
-              <Mail className="h-4 w-4 text-slate-400" />
-              {maskEmail(conversation.email)}
-            </div>
+          <div
+            className={cn(
+              "mt-3 inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold",
+              statusCardClass(conversation.status),
+            )}
+          >
+            <StatusIcon className="mr-1 h-3.5 w-3.5" />
+            {statusMeta.shortLabel}
           </div>
         </div>
       </div>
 
-      <div className="mt-4 space-y-4">
-        <ContextBlock title="CRM Information">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="text-[11px] text-slate-400">Lifecycle stage</p>
-              <p className="mt-1 text-sm font-semibold text-white">
-                {context.customer?.leadStatus ?? "Belum tersegmentasi"}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="text-[11px] text-slate-400">Lead score</p>
-              <p className="mt-1 text-sm font-semibold text-white">
-                {context.leadScore}/100
-              </p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="text-[11px] text-slate-400">Segment</p>
-              <p className="mt-1 text-sm font-semibold text-white">
-                {context.customer?.segment || "General"}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="text-[11px] text-slate-400">Customer since</p>
-              <p className="mt-1 text-sm font-semibold text-white">
-                {context.customerSinceLabel}
-              </p>
-            </div>
+      <SidebarSection title="Contact">
+        <div className="space-y-3">
+          <div className="inline-flex w-full items-center gap-2 rounded-[12px] border border-[#e4e7ec] bg-white px-3 py-2 text-sm text-[#475467]">
+            <Phone className="h-4 w-4 text-[#98a2b3]" />
+            {maskPhone(conversation.phone)}
           </div>
-        </ContextBlock>
+          <div className="inline-flex w-full items-center gap-2 rounded-[12px] border border-[#e4e7ec] bg-white px-3 py-2 text-sm text-[#475467]">
+            <Mail className="h-4 w-4 text-[#98a2b3]" />
+            {maskEmail(conversation.email)}
+          </div>
+        </div>
+      </SidebarSection>
 
-        <ContextBlock title="AI Summary">
-          <div className="space-y-3">
-            <div className="flex items-start gap-3 rounded-2xl border border-cyan-500/15 bg-cyan-500/6 p-3">
-              <Sparkles className="mt-0.5 h-4 w-4 text-cyan-200" />
-              <p className="text-sm leading-6 text-slate-100">
+      <SidebarSection
+        title="Room History"
+        action={<ChevronRight className="h-4 w-4 text-[#98a2b3]" />}
+      >
+        <div className="space-y-3">
+          <DetailRow label="Customer since" value={context.customerSinceLabel} />
+          <DetailRow
+            label="Total chat"
+            value={`${context.customer?.totalConversation ?? 0}`}
+          />
+          <DetailRow label="Lead score" value={`${context.leadScore}/100`} />
+        </div>
+      </SidebarSection>
+
+      <SidebarSection
+        title="Profile Information"
+        action={<Plus className="h-4 w-4 text-[#98a2b3]" />}
+      >
+        <div className="space-y-3">
+          <DetailRow
+            label="Lifecycle"
+            value={context.customer?.leadStatus ?? "Belum tersegmentasi"}
+          />
+          <DetailRow
+            label="Segment"
+            value={context.customer?.segment || "General"}
+          />
+          <DetailRow label="Assigned" value={conversation.assignedTo} />
+          <DetailRow label="Intent" value={conversation.lastIntent} />
+        </div>
+      </SidebarSection>
+
+      <SidebarSection title="Notes">
+        <div className="rounded-[12px] border border-[#eaecf0] bg-[#fafbfc] p-3">
+          <p className="text-sm leading-6 text-[#667085]">
+            {conversation.notes.trim()
+              ? conversation.notes
+              : "Belum ada catatan internal pada percakapan ini."}
+          </p>
+        </div>
+      </SidebarSection>
+
+      <SidebarSection title="Tags">
+        <div className="flex flex-wrap gap-2">
+          {conversation.tags.length > 0 ? (
+            conversation.tags.map((tag) => (
+              <Badge
+                key={tag}
+                className="rounded-full border-[#e4e7ec] bg-white px-3 py-1 text-[11px] text-[#667085]"
+              >
+                <Tag className="mr-1 h-3.5 w-3.5" />
+                {tag}
+              </Badge>
+            ))
+          ) : (
+            <span className="text-sm text-[#98a2b3]">Belum ada tag</span>
+          )}
+        </div>
+      </SidebarSection>
+
+      <SidebarSection title="About Room">
+        <div className="space-y-3">
+          <DetailRow label="Created" value={conversation.timestamp} />
+          <DetailRow
+            label="Last Seen"
+            value={conversation.lastSeenAt || conversation.timestamp}
+          />
+          <DetailRow
+            label="Session"
+            value={conversation.status === "resolved" ? "Expired" : "Active"}
+          />
+        </div>
+      </SidebarSection>
+
+      <SidebarSection title="AI Summary">
+        <div className="space-y-3">
+          <div className="rounded-[12px] border border-[#d7e7ff] bg-[#eef6ff] p-3">
+            <div className="flex items-start gap-2">
+              <Sparkles className="mt-0.5 h-4 w-4 text-[#1570ef]" />
+              <p className="text-sm leading-6 text-[#475467]">
                 {conversation.summary}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="text-[11px] text-slate-400">Suggested next action</p>
-              <p className="mt-1 text-sm leading-6 text-white">
-                {getSuggestedNextAction(conversation)}
-              </p>
-            </div>
           </div>
-        </ContextBlock>
-
-        <ContextBlock title="Operational Information">
-          <div className="space-y-3">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] text-slate-400">Ticket aktif</p>
-                  <p className="mt-1 text-sm font-semibold text-white">
-                    {context.activeTicket?.id ?? "Belum ada"}
-                  </p>
-                </div>
-                <Ticket className="h-4 w-4 text-slate-400" />
-              </div>
-              <p className="mt-2 text-xs leading-5 text-slate-300">
-                {context.activeTicket?.summary ??
-                  "Gunakan tombol ticket bila butuh handoff ke proses internal."}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] text-slate-400">Booking terakhir</p>
-                  <p className="mt-1 text-sm font-semibold text-white">
-                    {context.latestBooking?.service ?? "Belum ada booking"}
-                  </p>
-                </div>
-                <CalendarClock className="h-4 w-4 text-slate-400" />
-              </div>
-              <p className="mt-2 text-xs leading-5 text-slate-300">
-                {context.latestBooking
-                  ? `${context.latestBooking.date} • ${context.latestBooking.slot} • ${context.latestBooking.status}`
-                  : "Data booking akan muncul di sini setelah customer dijadwalkan."}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="text-[11px] text-slate-400">Payment status</p>
-              <p className="mt-1 text-sm font-semibold text-white">
-                {context.paymentStatusLabel}
-              </p>
-            </div>
-          </div>
-        </ContextBlock>
-
-        <ContextBlock title="Tags & Signals">
-          <div className="space-y-3">
-            <div className="flex flex-wrap gap-2">
-              {conversation.tags.length > 0 ? (
-                conversation.tags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] text-slate-200"
-                  >
-                    <Tag className="mr-1 h-3.5 w-3.5" />
-                    {tag}
-                  </Badge>
-                ))
-              ) : (
-                <span className="text-sm text-slate-400">Belum ada tag</span>
-              )}
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="text-[11px] text-slate-400">Sentiment & risk</p>
-              <p className="mt-1 text-sm font-semibold capitalize text-white">
-                {conversation.sentiment} • {conversation.riskLevel}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="text-[11px] text-slate-400">Last service hint</p>
-              <p className="mt-1 text-sm font-semibold text-white">
-                {context.lastServiceLabel}
-              </p>
-            </div>
-          </div>
-        </ContextBlock>
-
-        <ContextBlock title="Quick Links">
-          <div className="grid gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              className="h-11 justify-start rounded-2xl px-4 text-xs"
-              onClick={onCreateTicket}
-            >
-              <Ticket className="mr-2 h-4 w-4" />
-              Buat Ticket dari Chat
-            </Button>
-            <Link
-              href="/booking"
-              className="inline-flex h-11 items-center rounded-2xl border border-[var(--color-border)] bg-white/[0.03] px-4 text-xs font-semibold text-white transition hover:bg-white/[0.06]"
-            >
-              <CalendarClock className="mr-2 h-4 w-4" />
-              Buka Booking
-            </Link>
-            <Link
-              href="/customers"
-              className="inline-flex h-11 items-center rounded-2xl border border-[var(--color-border)] bg-white/[0.03] px-4 text-xs font-semibold text-white transition hover:bg-white/[0.06]"
-            >
-              <UserRound className="mr-2 h-4 w-4" />
-              Buka Customer
-            </Link>
-          </div>
-        </ContextBlock>
-
-        {conversation.channel === "Instagram Comment" ? (
-          <ContextBlock title="Comment Context">
-            <div className="flex items-start gap-3 rounded-2xl border border-orange-500/15 bg-orange-500/6 p-3">
-              <AlertTriangle className="mt-0.5 h-4 w-4 text-orange-200" />
-              <p className="text-sm leading-6 text-slate-100">
-                Comment reply butuh moderasi ekstra. Pertimbangkan pindah ke DM
-                jika percakapan mulai sensitif atau butuh data privat.
-              </p>
-            </div>
-          </ContextBlock>
-        ) : null}
-
-        <ContextBlock title="Internal Notes">
-          <div className="flex items-start gap-3 rounded-2xl border border-violet-500/15 bg-violet-500/6 p-3">
-            <MessageSquareText className="mt-0.5 h-4 w-4 text-violet-200" />
-            <p className="text-sm leading-6 text-slate-100">
-              {conversation.notes.trim()
-                ? conversation.notes
-                : "Belum ada catatan internal pada percakapan ini."}
+          <div className="rounded-[12px] border border-[#eaecf0] bg-[#fafbfc] p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">
+              Next Action
+            </p>
+            <p className="mt-2 text-sm leading-6 text-[#475467]">
+              {getSuggestedNextAction(conversation)}
             </p>
           </div>
-        </ContextBlock>
-      </div>
+        </div>
+      </SidebarSection>
+
+      <SidebarSection title="Operational">
+        <div className="space-y-3">
+          <DetailRow
+            label="Ticket"
+            value={context.activeTicket?.id ?? "Belum ada"}
+          />
+          <DetailRow
+            label="Booking"
+            value={context.latestBooking?.service ?? "Belum ada booking"}
+          />
+          <DetailRow label="Payment" value={context.paymentStatusLabel} />
+          <DetailRow label="Last Service" value={context.lastServiceLabel} />
+          <div className="rounded-[12px] border border-[#eaecf0] bg-[#fafbfc] p-3 text-[12px] leading-5 text-[#667085]">
+            {context.latestBooking
+              ? [
+                  context.latestBooking.date,
+                  context.latestBooking.slot,
+                  context.latestBooking.status,
+                ].join(" • ")
+              : "Data booking akan muncul di sini setelah customer dijadwalkan."}
+          </div>
+        </div>
+      </SidebarSection>
+
+      <SidebarSection title="Sentiment & Risk">
+        <div className="rounded-[12px] border border-[#eaecf0] bg-[#fafbfc] p-3">
+          <p className="text-sm font-semibold capitalize text-[#344054]">
+            {[conversation.sentiment, conversation.riskLevel].join(" • ")}
+          </p>
+          <p className="mt-2 text-sm leading-6 text-[#667085]">
+            {statusMeta.description}
+          </p>
+        </div>
+      </SidebarSection>
+
+      {conversation.channel === "Instagram Comment" ? (
+        <SidebarSection title="Comment Context">
+          <div className="flex items-start gap-3 rounded-[12px] border border-[#fedf89] bg-[#fffaeb] p-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 text-[#dc6803]" />
+            <p className="text-sm leading-6 text-[#475467]">
+              Comment reply butuh moderasi ekstra. Jika topik sensitif, lebih aman
+              arahkan ke DM.
+            </p>
+          </div>
+        </SidebarSection>
+      ) : null}
+
+      <SidebarSection title="Quick Actions">
+        <div className="grid gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-10 justify-start rounded-[12px] border-[#dfe5ef] bg-white px-4 text-[11px] text-[#475467] hover:bg-[#f8fafc]"
+            onClick={onCreateTicket}
+          >
+            <Ticket className="mr-2 h-4 w-4" />
+            Buat Ticket
+          </Button>
+          <Link
+            href="/booking"
+            className="inline-flex h-10 items-center rounded-[12px] border border-[#dfe5ef] bg-white px-4 text-[11px] font-semibold text-[#475467] transition hover:bg-[#f8fafc]"
+          >
+            <CalendarClock className="mr-2 h-4 w-4" />
+            Buka Booking
+          </Link>
+          <Link
+            href="/customers"
+            className="inline-flex h-10 items-center rounded-[12px] border border-[#dfe5ef] bg-white px-4 text-[11px] font-semibold text-[#475467] transition hover:bg-[#f8fafc]"
+          >
+            <UserRound className="mr-2 h-4 w-4" />
+            Buka Customer
+          </Link>
+        </div>
+      </SidebarSection>
+
+      <SidebarSection title="Internal Notes">
+        <div className="flex items-start gap-3 rounded-[12px] border border-[#e9d7fe] bg-[#f9f5ff] p-3">
+          <MessageSquareText className="mt-0.5 h-4 w-4 text-[#7a5af8]" />
+          <p className="text-sm leading-6 text-[#475467]">
+            {conversation.notes.trim()
+              ? conversation.notes
+              : "Belum ada catatan internal pada percakapan ini."}
+          </p>
+        </div>
+      </SidebarSection>
     </aside>
   );
 }
-

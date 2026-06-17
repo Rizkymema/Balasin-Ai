@@ -15,7 +15,6 @@ import { CustomerContextPanel } from "./customer-context-panel";
 import { InboxLayoutSkeleton } from "./inbox-layout-skeleton";
 import {
   type InboxFilterState,
-  type InboxQuickFilterId,
   type InboxSortId,
   deriveInboxSummary,
   filterInboxConversations,
@@ -36,7 +35,7 @@ export function InboxWorkspace() {
   const [mobileView, setMobileView] = useState<"list" | "detail" | "context">(
     "list",
   );
-  const [showContextPanel, setShowContextPanel] = useState(false);
+  const [showContextPanel, setShowContextPanel] = useState(true);
   const [replyText, setReplyText] = useState("");
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSaved, setNoteSaved] = useState(false);
@@ -307,26 +306,26 @@ export function InboxWorkspace() {
 
   return (
     <div className="space-y-3">
-      <section className="rounded-[28px] border border-[#243138] bg-[#111b21] px-4 py-3 shadow-[0_14px_30px_rgba(0,0,0,0.22)]">
+      <section className="rounded-[26px] border border-[#d8deea] bg-white px-4 py-3 shadow-[0_10px_30px_rgba(76,94,133,0.08)]">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-semibold text-white">Unified Inbox</h1>
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300">
-                chat workspace
+              <h1 className="text-xl font-semibold text-[#273142]">Inbox</h1>
+              <span className="rounded-full border border-[#dbe4f2] bg-[#f4f7fb] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6d7a91]">
+                customer desk
               </span>
             </div>
-            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-400">
-              <span className="rounded-full bg-[#1f2c34] px-3 py-1">
+            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-[#6d7a91]">
+              <span className="rounded-full bg-[#f4f7fb] px-3 py-1">
                 Semua {summary.allCount}
               </span>
-              <span className="rounded-full bg-[#1f2c34] px-3 py-1">
+              <span className="rounded-full bg-[#f4f7fb] px-3 py-1">
                 Belum dibaca {summary.unhandledCount}
               </span>
-              <span className="rounded-full bg-[#1f2c34] px-3 py-1">
+              <span className="rounded-full bg-[#f4f7fb] px-3 py-1">
                 Butuh Admin {summary.needAdminCount}
               </span>
-              <span className="rounded-full bg-[#1f2c34] px-3 py-1">
+              <span className="rounded-full bg-[#f4f7fb] px-3 py-1">
                 AI Aktif {summary.aiActiveCount}
               </span>
             </div>
@@ -336,7 +335,7 @@ export function InboxWorkspace() {
             <button
               type="button"
               onClick={() => void refreshData()}
-              className="inline-flex h-10 items-center gap-2 rounded-full bg-[#1f2c34] px-4 text-sm font-semibold text-white transition hover:bg-[#25343d]"
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-[#dbe4f2] bg-[#f4f7fb] px-4 text-sm font-semibold text-[#273142] transition hover:bg-[#ebf1f8]"
             >
               <RefreshCcw className="h-4 w-4" />
               Refresh
@@ -344,7 +343,7 @@ export function InboxWorkspace() {
             <button
               type="button"
               onClick={() => setShowContextPanel((current) => !current)}
-              className="hidden h-10 items-center gap-2 rounded-full bg-[#1f2c34] px-4 text-sm font-semibold text-white transition hover:bg-[#25343d] xl:inline-flex"
+              className="hidden h-10 items-center gap-2 rounded-full border border-[#dbe4f2] bg-[#f4f7fb] px-4 text-sm font-semibold text-[#273142] transition hover:bg-[#ebf1f8] xl:inline-flex"
             >
               <PanelRight className="h-4 w-4" />
               {showContextPanel ? "Tutup Detail" : "Lihat Detail"}
@@ -354,15 +353,15 @@ export function InboxWorkspace() {
       </section>
 
       {data.conversations.length === 0 ? (
-        <section className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+        <section className="rounded-[26px] border border-[#d8deea] bg-white p-6">
           <div className="min-h-[36rem]">
-            <div className="flex h-full min-h-[36rem] items-center justify-center rounded-[24px] border border-dashed border-white/10 bg-white/[0.02]">
+            <div className="flex h-full min-h-[36rem] items-center justify-center rounded-[24px] border border-dashed border-[#d8deea] bg-[#fafbfd]">
               <div className="max-w-md text-center">
-                <MessageSquare className="mx-auto h-10 w-10 text-cyan-300" />
-                <h2 className="mt-4 text-xl font-semibold text-white">
+                <MessageSquare className="mx-auto h-10 w-10 text-[#5a8ec9]" />
+                <h2 className="mt-4 text-xl font-semibold text-[#334055]">
                   Inbox masih kosong
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-400">
+                <p className="mt-2 text-sm leading-6 text-[#7d8aa1]">
                   Belum ada percakapan masuk. Hubungkan channel atau kirim test
                   inbound dari halaman Channels agar chat mulai masuk ke unified
                   inbox.
@@ -372,14 +371,7 @@ export function InboxWorkspace() {
           </div>
         </section>
       ) : (
-        <div
-          className={cn(
-            "grid gap-3",
-            showContextPanel
-              ? "xl:grid-cols-[25rem_minmax(0,1fr)_21rem]"
-              : "xl:grid-cols-[25rem_minmax(0,1fr)]",
-          )}
-        >
+        <div className={cn("grid gap-3", "xl:grid-cols-[19rem_minmax(0,1fr)_18rem]")}>
           <div className={mobileView === "list" ? "block" : "hidden xl:block"}>
             <ConversationListPanel
               conversations={filteredConversations}
@@ -470,7 +462,7 @@ export function InboxWorkspace() {
 
           <div
             className={
-              showContextPanel || mobileView === "context" ? "block" : "hidden"
+              showContextPanel || mobileView === "context" ? "block" : "hidden xl:block"
             }
           >
             <CustomerContextPanel
