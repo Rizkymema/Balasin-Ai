@@ -88,32 +88,32 @@ function quickFilterCount(summary: InboxSummary, filter: InboxQuickFilterId) {
 function statusBadgeClass(status: ConversationRecord["status"]) {
   switch (status) {
     case "resolved":
-      return "border-[#b8e7c9] bg-[#eefbf2] text-[#279455]";
+      return "border-emerald-500/30 bg-emerald-500/15 text-emerald-300";
     case "assigned_to_admin":
-      return "border-[#bfd3ff] bg-[#edf4ff] text-[#2563eb]";
+      return "border-blue-400/30 bg-blue-500/15 text-blue-300";
     case "waiting_customer":
-      return "border-[#c7defe] bg-[#eef6ff] text-[#1d4ed8]";
+      return "border-cyan-400/30 bg-cyan-500/15 text-cyan-300";
     case "ai_paused":
-      return "border-[#f3d6a1] bg-[#fff7e8] text-[#b54708]";
+      return "border-amber-400/30 bg-amber-500/15 text-amber-300";
     case "blocked":
-      return "border-[#f8c4c7] bg-[#fff1f2] text-[#d92d20]";
+      return "border-red-400/30 bg-red-500/15 text-red-300";
     case "spam":
-      return "border-[#d6dbe5] bg-[#f7f8fa] text-[#667085]";
+      return "border-slate-500/30 bg-slate-500/15 text-slate-400";
     default:
-      return "border-[#d7e7ff] bg-[#eff6ff] text-[#1570ef]";
+      return "border-cyan-400/30 bg-cyan-500/15 text-cyan-300";
   }
 }
 
 function unreadBadgeClass(channel: ConversationRecord["channel"]) {
   if (channel === "WhatsApp") {
-    return "bg-[#22c55e] text-white";
+    return "bg-emerald-500 text-white";
   }
 
   if (channel === "Instagram DM" || channel === "Instagram Comment") {
-    return "bg-[#ec4899] text-white";
+    return "bg-fuchsia-500 text-white";
   }
 
-  return "bg-[#1570ef] text-white";
+  return "bg-cyan-500 text-white";
 }
 
 export function ConversationListPanel({
@@ -137,37 +137,37 @@ export function ConversationListPanel({
   onSelectConversation,
 }: ConversationListPanelProps) {
   return (
-    <aside className="flex min-h-[42rem] flex-col overflow-hidden rounded-[18px] border border-[#d9dfeb] bg-white shadow-[0_8px_24px_rgba(92,110,145,0.08)]">
-      <div className="border-b border-[#e6ebf2]">
+    <aside className="flex min-h-[42rem] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0e1c]">
+      <div className="border-b border-white/[0.06]">
         <div className="flex items-center justify-between px-4 py-4">
-          <h2 className="text-[1.45rem] font-semibold tracking-[-0.03em] text-[#344054]">
+          <h2 className="text-lg font-semibold tracking-tight text-slate-100">
             Inbox
           </h2>
           <div className="flex items-center gap-1">
             <button
               type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#98a2b3] transition hover:bg-[#f5f7fb] hover:text-[#344054]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
               title="Cari"
             >
               <Search className="h-[18px] w-[18px]" />
             </button>
             <button
               type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#98a2b3] transition hover:bg-[#f5f7fb] hover:text-[#344054]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
               title="Mulai chat baru"
             >
               <MessageSquarePlus className="h-[18px] w-[18px]" />
             </button>
             <button
               type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#98a2b3] transition hover:bg-[#f5f7fb] hover:text-[#344054]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
               title="Filter inbox"
             >
               <SlidersHorizontal className="h-[18px] w-[18px]" />
             </button>
             <button
               type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#98a2b3] transition hover:bg-[#f5f7fb] hover:text-[#344054]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
               title="Menu"
             >
               <MoreVertical className="h-[18px] w-[18px]" />
@@ -177,12 +177,12 @@ export function ConversationListPanel({
 
         <div className="px-4 pb-3">
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98a2b3]" />
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <Input
               value={searchQuery}
               onChange={(event) => onSearchChange(event.target.value)}
               placeholder="Cari pelanggan atau isi chat"
-              className="h-11 rounded-[14px] border-[#dfe5ef] bg-[#f8fafc] pl-10 text-sm text-[#344054] placeholder:text-[#98a2b3]"
+              className="h-11 rounded-xl border-white/[0.08] bg-white/[0.04] pl-10 text-sm text-slate-200 placeholder:text-slate-500"
             />
           </div>
         </div>
@@ -200,8 +200,8 @@ export function ConversationListPanel({
                 className={cn(
                   "shrink-0 border-b-2 pb-3 pt-0.5 font-medium transition",
                   active
-                    ? "border-[#1570ef] text-[#1570ef]"
-                    : "border-transparent text-[#667085] hover:text-[#344054]",
+                    ? "border-[#00d2ff] text-[#00d2ff]"
+                    : "border-transparent text-slate-500 hover:text-slate-300",
                 )}
               >
                 <span>{filter.label}</span>
@@ -211,7 +211,7 @@ export function ConversationListPanel({
           })}
         </div>
 
-        <div className="grid gap-2 border-t border-[#eef2f6] px-4 py-3">
+        <div className="grid gap-2 border-t border-white/[0.06] px-4 py-3">
           <div className="grid gap-2 sm:grid-cols-2">
             <Select
               value={channelFilter}
@@ -220,7 +220,7 @@ export function ConversationListPanel({
                   event.target.value as "all" | ConversationRecord["channel"],
                 )
               }
-              className="h-9 rounded-[12px] border-[#d9e0ec] bg-white text-[11px] text-[#667085]"
+              className="h-9 rounded-xl border-white/[0.08] bg-white/[0.04] text-[11px] text-slate-400"
             >
               {channelOptions.map((option) => (
                 <option key={option} value={option}>
@@ -236,7 +236,7 @@ export function ConversationListPanel({
                   event.target.value as "all" | ConversationStatus,
                 )
               }
-              className="h-9 rounded-[12px] border-[#d9e0ec] bg-white text-[11px] text-[#667085]"
+              className="h-9 rounded-xl border-white/[0.08] bg-white/[0.04] text-[11px] text-slate-400"
             >
               <option value="all">Semua Status</option>
               <option value="ai_active">AI Aktif</option>
@@ -253,7 +253,7 @@ export function ConversationListPanel({
             <Select
               value={assignmentFilter}
               onChange={(event) => onAssignmentFilterChange(event.target.value)}
-              className="h-9 rounded-[12px] border-[#d9e0ec] bg-white text-[11px] text-[#667085]"
+              className="h-9 rounded-xl border-white/[0.08] bg-white/[0.04] text-[11px] text-slate-400"
             >
               {assignmentOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -265,7 +265,7 @@ export function ConversationListPanel({
             <Select
               value={sortBy}
               onChange={(event) => onSortChange(event.target.value)}
-              className="h-9 rounded-[12px] border-[#d9e0ec] bg-white text-[11px] text-[#667085]"
+              className="h-9 rounded-xl border-white/[0.08] bg-white/[0.04] text-[11px] text-slate-400"
             >
               <option value="latest">Urut: Terbaru</option>
               <option value="unread">Urut: Unread</option>
@@ -277,7 +277,7 @@ export function ConversationListPanel({
         </div>
       </div>
 
-      <div className="custom-scrollbar flex-1 overflow-y-auto bg-white">
+      <div className="custom-scrollbar flex-1 overflow-y-auto">
         {conversations.length === 0 ? (
           <EmptyState
             title="Tidak ada percakapan"
@@ -299,18 +299,18 @@ export function ConversationListPanel({
                   type="button"
                   onClick={() => onSelectConversation(conversation.id)}
                   className={cn(
-                    "relative w-full border-b border-[#eef2f6] px-4 py-3 text-left transition",
-                    active ? "bg-[#f7faff]" : "hover:bg-[#fafcff]",
+                    "relative w-full border-b border-white/[0.04] px-4 py-3 text-left transition",
+                    active ? "bg-white/[0.06]" : "hover:bg-white/[0.03]",
                   )}
                 >
                   {active ? (
-                    <span className="absolute inset-y-0 right-0 w-1 rounded-l-full bg-[#1570ef]" />
+                    <span className="absolute inset-y-0 right-0 w-1 rounded-l-full bg-[#00d2ff]" />
                   ) : null}
 
                   <div className="flex items-start gap-3">
                     <Avatar
                       fallback={conversation.name}
-                      className="h-11 w-11 border-[#dde4ee] bg-[#f5f7fb] text-[#667085]"
+                      className="h-11 w-11 border-white/[0.08] bg-white/[0.06] text-slate-400"
                     />
 
                     <div className="min-w-0 flex-1">
@@ -319,7 +319,7 @@ export function ConversationListPanel({
                           <div className="flex items-center gap-2">
                             <h3
                               className={cn(
-                                "truncate text-[15px] text-[#344054]",
+                                "truncate text-[15px] text-slate-200",
                                 unread ? "font-semibold" : "font-medium",
                               )}
                             >
@@ -335,10 +335,10 @@ export function ConversationListPanel({
                             </span>
                           </div>
 
-                          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#98a2b3]">
+                          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
                             <ChannelIcon className="h-3.5 w-3.5" />
                             <span>{channelMeta.label}</span>
-                            <span className="h-1 w-1 rounded-full bg-[#c7d0dd]" />
+                            <span className="h-1 w-1 rounded-full bg-slate-600" />
                             <span className="truncate">{conversation.assignedTo}</span>
                           </div>
                         </div>
@@ -347,7 +347,7 @@ export function ConversationListPanel({
                           <span
                             className={cn(
                               "text-[11px]",
-                              unread ? "font-semibold text-[#1570ef]" : "text-[#98a2b3]",
+                              unread ? "font-semibold text-[#00d2ff]" : "text-slate-500",
                             )}
                           >
                             {conversation.timestamp}
@@ -362,7 +362,7 @@ export function ConversationListPanel({
                               {conversation.unreadCount}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-[#98a2b3]">
+                            <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
                               <CheckCheck className="h-3.5 w-3.5" />
                               Read
                             </span>
@@ -373,7 +373,7 @@ export function ConversationListPanel({
                       <p
                         className={cn(
                           "mt-2 line-clamp-1 text-[13px] leading-5",
-                          unread ? "text-[#475467]" : "text-[#667085]",
+                          unread ? "text-slate-300" : "text-slate-500",
                         )}
                       >
                         {conversation.lastMessage}
@@ -381,20 +381,20 @@ export function ConversationListPanel({
 
                       <div className="mt-2 flex items-center justify-between gap-3">
                         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                          <Badge className="rounded-full border-[#dfe5ef] bg-white px-2 py-0.5 text-[10px] text-[#667085]">
+                          <Badge className="rounded-full border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] text-slate-400">
                             {conversation.lastIntent}
                           </Badge>
                           {conversation.tags.slice(0, 1).map((tag) => (
                             <span
                               key={tag}
-                              className="rounded-full bg-[#f2f4f7] px-2 py-0.5 text-[10px] text-[#667085]"
+                              className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] text-slate-400"
                             >
                               {tag}
                             </span>
                           ))}
                         </div>
 
-                        <span className="inline-flex shrink-0 items-center gap-1 text-[10px] text-[#98a2b3]">
+                        <span className="inline-flex shrink-0 items-center gap-1 text-[10px] text-slate-500">
                           <Clock3 className="h-3.5 w-3.5" />
                           {formatSlaLabel(conversation)}
                         </span>

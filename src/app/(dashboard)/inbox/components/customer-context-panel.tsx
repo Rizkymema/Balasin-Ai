@@ -47,9 +47,9 @@ function SidebarSection({
   children: ReactNode;
 }) {
   return (
-    <section className="border-t border-[#eef2f6] px-5 py-5">
+    <section className="border-t border-white/[0.06] px-5 py-5">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-[13px] font-semibold text-[#344054]">{title}</h3>
+        <h3 className="text-[13px] font-semibold text-slate-200">{title}</h3>
         {action}
       </div>
       {children}
@@ -66,8 +66,8 @@ function DetailRow({
 }) {
   return (
     <div className="flex items-start justify-between gap-4 text-[12px]">
-      <span className="text-[#98a2b3]">{label}</span>
-      <span className="text-right font-medium text-[#475467]">{value}</span>
+      <span className="text-slate-500">{label}</span>
+      <span className="text-right font-medium text-slate-300">{value}</span>
     </div>
   );
 }
@@ -75,19 +75,19 @@ function DetailRow({
 function statusCardClass(status: ConversationRecord["status"]) {
   switch (status) {
     case "resolved":
-      return "border-[#b8e7c9] bg-[#eefbf2] text-[#279455]";
+      return "border-emerald-500/30 bg-emerald-500/15 text-emerald-300";
     case "assigned_to_admin":
-      return "border-[#bfd3ff] bg-[#edf4ff] text-[#2563eb]";
+      return "border-blue-400/30 bg-blue-500/15 text-blue-300";
     case "waiting_customer":
-      return "border-[#c7defe] bg-[#eef6ff] text-[#1d4ed8]";
+      return "border-cyan-400/30 bg-cyan-500/15 text-cyan-300";
     case "ai_paused":
-      return "border-[#f3d6a1] bg-[#fff7e8] text-[#b54708]";
+      return "border-amber-400/30 bg-amber-500/15 text-amber-300";
     case "blocked":
-      return "border-[#f8c4c7] bg-[#fff1f2] text-[#d92d20]";
+      return "border-red-400/30 bg-red-500/15 text-red-300";
     case "spam":
-      return "border-[#d6dbe5] bg-[#f7f8fa] text-[#667085]";
+      return "border-slate-500/30 bg-slate-500/15 text-slate-400";
     default:
-      return "border-[#d7e7ff] bg-[#eff6ff] text-[#1570ef]";
+      return "border-cyan-400/30 bg-cyan-500/15 text-cyan-300";
   }
 }
 
@@ -101,7 +101,7 @@ export function CustomerContextPanel({
     return (
       <aside
         className={cn(
-          "rounded-[18px] border border-[#d9dfeb] bg-white",
+          "rounded-xl border border-white/[0.06] bg-[#0a0e1c]",
           hiddenOnDesktop ? "xl:hidden" : "",
         )}
       >
@@ -121,19 +121,20 @@ export function CustomerContextPanel({
   return (
     <aside
       className={cn(
-        "custom-scrollbar min-h-[42rem] overflow-y-auto rounded-[18px] border border-[#d9dfeb] bg-white shadow-[0_8px_24px_rgba(92,110,145,0.08)]",
+        "custom-scrollbar min-h-[42rem] overflow-y-auto rounded-xl border border-white/[0.06] bg-[#0a0e1c]",
         hiddenOnDesktop ? "xl:hidden" : "",
       )}
     >
+      {/* Customer Avatar & Name */}
       <div className="flex items-start gap-3 px-5 py-5">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#dde4ee] bg-[#f5f7fb] text-[#667085]">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.06] text-slate-400">
           <UserRound className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <h2 className="truncate text-[1.1rem] font-semibold text-[#344054]">
+          <h2 className="truncate text-[1.1rem] font-semibold text-slate-100">
             {conversation.name}
           </h2>
-          <div className="mt-1 flex items-center gap-2 text-[13px] text-[#98a2b3]">
+          <div className="mt-1 flex items-center gap-2 text-[13px] text-slate-500">
             <span>{conversation.channel}</span>
           </div>
           <div
@@ -150,12 +151,12 @@ export function CustomerContextPanel({
 
       <SidebarSection title="Contact">
         <div className="space-y-3">
-          <div className="inline-flex w-full items-center gap-2 rounded-[12px] border border-[#e4e7ec] bg-white px-3 py-2 text-sm text-[#475467]">
-            <Phone className="h-4 w-4 text-[#98a2b3]" />
+          <div className="inline-flex w-full items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-sm text-slate-300">
+            <Phone className="h-4 w-4 text-slate-500" />
             {maskPhone(conversation.phone)}
           </div>
-          <div className="inline-flex w-full items-center gap-2 rounded-[12px] border border-[#e4e7ec] bg-white px-3 py-2 text-sm text-[#475467]">
-            <Mail className="h-4 w-4 text-[#98a2b3]" />
+          <div className="inline-flex w-full items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-sm text-slate-300">
+            <Mail className="h-4 w-4 text-slate-500" />
             {maskEmail(conversation.email)}
           </div>
         </div>
@@ -163,7 +164,7 @@ export function CustomerContextPanel({
 
       <SidebarSection
         title="Room History"
-        action={<ChevronRight className="h-4 w-4 text-[#98a2b3]" />}
+        action={<ChevronRight className="h-4 w-4 text-slate-500" />}
       >
         <div className="space-y-3">
           <DetailRow label="Customer since" value={context.customerSinceLabel} />
@@ -177,7 +178,7 @@ export function CustomerContextPanel({
 
       <SidebarSection
         title="Profile Information"
-        action={<Plus className="h-4 w-4 text-[#98a2b3]" />}
+        action={<Plus className="h-4 w-4 text-slate-500" />}
       >
         <div className="space-y-3">
           <DetailRow
@@ -194,8 +195,8 @@ export function CustomerContextPanel({
       </SidebarSection>
 
       <SidebarSection title="Notes">
-        <div className="rounded-[12px] border border-[#eaecf0] bg-[#fafbfc] p-3">
-          <p className="text-sm leading-6 text-[#667085]">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
+          <p className="text-sm leading-6 text-slate-400">
             {conversation.notes.trim()
               ? conversation.notes
               : "Belum ada catatan internal pada percakapan ini."}
@@ -209,14 +210,14 @@ export function CustomerContextPanel({
             conversation.tags.map((tag) => (
               <Badge
                 key={tag}
-                className="rounded-full border-[#e4e7ec] bg-white px-3 py-1 text-[11px] text-[#667085]"
+                className="rounded-full border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[11px] text-slate-400"
               >
                 <Tag className="mr-1 h-3.5 w-3.5" />
                 {tag}
               </Badge>
             ))
           ) : (
-            <span className="text-sm text-[#98a2b3]">Belum ada tag</span>
+            <span className="text-sm text-slate-500">Belum ada tag</span>
           )}
         </div>
       </SidebarSection>
@@ -237,19 +238,19 @@ export function CustomerContextPanel({
 
       <SidebarSection title="AI Summary">
         <div className="space-y-3">
-          <div className="rounded-[12px] border border-[#d7e7ff] bg-[#eef6ff] p-3">
+          <div className="rounded-xl border border-[#00d2ff]/15 bg-[#00d2ff]/[0.06] p-3">
             <div className="flex items-start gap-2">
-              <Sparkles className="mt-0.5 h-4 w-4 text-[#1570ef]" />
-              <p className="text-sm leading-6 text-[#475467]">
+              <Sparkles className="mt-0.5 h-4 w-4 text-[#00d2ff]" />
+              <p className="text-sm leading-6 text-slate-300">
                 {conversation.summary}
               </p>
             </div>
           </div>
-          <div className="rounded-[12px] border border-[#eaecf0] bg-[#fafbfc] p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
               Next Action
             </p>
-            <p className="mt-2 text-sm leading-6 text-[#475467]">
+            <p className="mt-2 text-sm leading-6 text-slate-300">
               {getSuggestedNextAction(conversation)}
             </p>
           </div>
@@ -268,7 +269,7 @@ export function CustomerContextPanel({
           />
           <DetailRow label="Payment" value={context.paymentStatusLabel} />
           <DetailRow label="Last Service" value={context.lastServiceLabel} />
-          <div className="rounded-[12px] border border-[#eaecf0] bg-[#fafbfc] p-3 text-[12px] leading-5 text-[#667085]">
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 text-[12px] leading-5 text-slate-400">
             {context.latestBooking
               ? [
                   context.latestBooking.date,
@@ -281,11 +282,11 @@ export function CustomerContextPanel({
       </SidebarSection>
 
       <SidebarSection title="Sentiment & Risk">
-        <div className="rounded-[12px] border border-[#eaecf0] bg-[#fafbfc] p-3">
-          <p className="text-sm font-semibold capitalize text-[#344054]">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
+          <p className="text-sm font-semibold capitalize text-slate-200">
             {[conversation.sentiment, conversation.riskLevel].join(" • ")}
           </p>
-          <p className="mt-2 text-sm leading-6 text-[#667085]">
+          <p className="mt-2 text-sm leading-6 text-slate-400">
             {statusMeta.description}
           </p>
         </div>
@@ -293,9 +294,9 @@ export function CustomerContextPanel({
 
       {conversation.channel === "Instagram Comment" ? (
         <SidebarSection title="Comment Context">
-          <div className="flex items-start gap-3 rounded-[12px] border border-[#fedf89] bg-[#fffaeb] p-3">
-            <AlertTriangle className="mt-0.5 h-4 w-4 text-[#dc6803]" />
-            <p className="text-sm leading-6 text-[#475467]">
+          <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-400" />
+            <p className="text-sm leading-6 text-slate-300">
               Comment reply butuh moderasi ekstra. Jika topik sensitif, lebih aman
               arahkan ke DM.
             </p>
@@ -308,7 +309,7 @@ export function CustomerContextPanel({
           <Button
             type="button"
             variant="secondary"
-            className="h-10 justify-start rounded-[12px] border-[#dfe5ef] bg-white px-4 text-[11px] text-[#475467] hover:bg-[#f8fafc]"
+            className="h-10 justify-start rounded-xl border-white/[0.08] bg-white/[0.04] px-4 text-[11px] text-slate-300 hover:bg-white/[0.08]"
             onClick={onCreateTicket}
           >
             <Ticket className="mr-2 h-4 w-4" />
@@ -316,14 +317,14 @@ export function CustomerContextPanel({
           </Button>
           <Link
             href="/booking"
-            className="inline-flex h-10 items-center rounded-[12px] border border-[#dfe5ef] bg-white px-4 text-[11px] font-semibold text-[#475467] transition hover:bg-[#f8fafc]"
+            className="inline-flex h-10 items-center rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-[11px] font-semibold text-slate-300 transition hover:bg-white/[0.08]"
           >
             <CalendarClock className="mr-2 h-4 w-4" />
             Buka Booking
           </Link>
           <Link
             href="/customers"
-            className="inline-flex h-10 items-center rounded-[12px] border border-[#dfe5ef] bg-white px-4 text-[11px] font-semibold text-[#475467] transition hover:bg-[#f8fafc]"
+            className="inline-flex h-10 items-center rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-[11px] font-semibold text-slate-300 transition hover:bg-white/[0.08]"
           >
             <UserRound className="mr-2 h-4 w-4" />
             Buka Customer
@@ -332,9 +333,9 @@ export function CustomerContextPanel({
       </SidebarSection>
 
       <SidebarSection title="Internal Notes">
-        <div className="flex items-start gap-3 rounded-[12px] border border-[#e9d7fe] bg-[#f9f5ff] p-3">
-          <MessageSquareText className="mt-0.5 h-4 w-4 text-[#7a5af8]" />
-          <p className="text-sm leading-6 text-[#475467]">
+        <div className="flex items-start gap-3 rounded-xl border border-purple-500/20 bg-purple-500/[0.06] p-3">
+          <MessageSquareText className="mt-0.5 h-4 w-4 text-purple-400" />
+          <p className="text-sm leading-6 text-slate-300">
             {conversation.notes.trim()
               ? conversation.notes
               : "Belum ada catatan internal pada percakapan ini."}

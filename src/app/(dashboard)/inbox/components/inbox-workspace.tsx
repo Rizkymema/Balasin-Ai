@@ -306,26 +306,27 @@ export function InboxWorkspace() {
 
   return (
     <div className="space-y-3">
-      <section className="rounded-[26px] border border-[#d8deea] bg-white px-4 py-3 shadow-[0_10px_30px_rgba(76,94,133,0.08)]">
+      {/* Top Header Bar */}
+      <section className="rounded-xl border border-white/[0.06] bg-[#0a0e1c] px-4 py-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-semibold text-[#273142]">Inbox</h1>
-              <span className="rounded-full border border-[#dbe4f2] bg-[#f4f7fb] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6d7a91]">
+              <h1 className="text-xl font-semibold text-slate-100">Inbox</h1>
+              <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                 customer desk
               </span>
             </div>
-            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-[#6d7a91]">
-              <span className="rounded-full bg-[#f4f7fb] px-3 py-1">
+            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
+              <span className="rounded-full bg-white/[0.06] px-3 py-1">
                 Semua {summary.allCount}
               </span>
-              <span className="rounded-full bg-[#f4f7fb] px-3 py-1">
+              <span className="rounded-full bg-white/[0.06] px-3 py-1">
                 Belum dibaca {summary.unhandledCount}
               </span>
-              <span className="rounded-full bg-[#f4f7fb] px-3 py-1">
+              <span className="rounded-full bg-white/[0.06] px-3 py-1">
                 Butuh Admin {summary.needAdminCount}
               </span>
-              <span className="rounded-full bg-[#f4f7fb] px-3 py-1">
+              <span className="rounded-full bg-white/[0.06] px-3 py-1">
                 AI Aktif {summary.aiActiveCount}
               </span>
             </div>
@@ -335,7 +336,7 @@ export function InboxWorkspace() {
             <button
               type="button"
               onClick={() => void refreshData()}
-              className="inline-flex h-10 items-center gap-2 rounded-full border border-[#dbe4f2] bg-[#f4f7fb] px-4 text-sm font-semibold text-[#273142] transition hover:bg-[#ebf1f8]"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.08]"
             >
               <RefreshCcw className="h-4 w-4" />
               Refresh
@@ -343,7 +344,7 @@ export function InboxWorkspace() {
             <button
               type="button"
               onClick={() => setShowContextPanel((current) => !current)}
-              className="hidden h-10 items-center gap-2 rounded-full border border-[#dbe4f2] bg-[#f4f7fb] px-4 text-sm font-semibold text-[#273142] transition hover:bg-[#ebf1f8] xl:inline-flex"
+              className="hidden h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.08] xl:inline-flex"
             >
               <PanelRight className="h-4 w-4" />
               {showContextPanel ? "Tutup Detail" : "Lihat Detail"}
@@ -353,15 +354,15 @@ export function InboxWorkspace() {
       </section>
 
       {data.conversations.length === 0 ? (
-        <section className="rounded-[26px] border border-[#d8deea] bg-white p-6">
+        <section className="rounded-xl border border-white/[0.06] bg-[#0a0e1c] p-6">
           <div className="min-h-[36rem]">
-            <div className="flex h-full min-h-[36rem] items-center justify-center rounded-[24px] border border-dashed border-[#d8deea] bg-[#fafbfd]">
+            <div className="flex h-full min-h-[36rem] items-center justify-center rounded-xl border border-dashed border-white/[0.08] bg-white/[0.02]">
               <div className="max-w-md text-center">
-                <MessageSquare className="mx-auto h-10 w-10 text-[#5a8ec9]" />
-                <h2 className="mt-4 text-xl font-semibold text-[#334055]">
+                <MessageSquare className="mx-auto h-10 w-10 text-[#00d2ff]" />
+                <h2 className="mt-4 text-xl font-semibold text-slate-200">
                   Inbox masih kosong
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-[#7d8aa1]">
+                <p className="mt-2 text-sm leading-6 text-slate-500">
                   Belum ada percakapan masuk. Hubungkan channel atau kirim test
                   inbound dari halaman Channels agar chat mulai masuk ke unified
                   inbox.
