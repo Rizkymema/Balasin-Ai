@@ -180,12 +180,20 @@ export default function ChannelsPage() {
 
   const persistWhatsApp = (event: FormEvent) => {
     event.preventDefault();
+    const trimmedLabel = waLabel.trim();
+    const trimmedPhoneId = phoneId.trim();
+    const trimmedAccessToken = accessToken.trim();
+    const trimmedVerifyToken = verifyToken.trim();
 
     const nextStatus =
-      phoneId.trim() && accessToken.trim() && verifyToken.trim()
+      trimmedPhoneId && trimmedAccessToken && trimmedVerifyToken
         ? ("connected" as const)
         : ("draft" as const);
 
+    setWaLabel(trimmedLabel);
+    setPhoneId(trimmedPhoneId);
+    setAccessToken(trimmedAccessToken);
+    setVerifyToken(trimmedVerifyToken);
     setWaStatus(nextStatus);
 
     patchConfig((current) => ({
@@ -196,10 +204,10 @@ export default function ChannelsPage() {
           ...current.channels.whatsapp,
           enabled: nextStatus === "connected",
           status: nextStatus,
-          businessLabel: waLabel,
-          phoneNumberId: phoneId,
-          accessToken,
-          verifyToken,
+          businessLabel: trimmedLabel,
+          phoneNumberId: trimmedPhoneId,
+          accessToken: trimmedAccessToken,
+          verifyToken: trimmedVerifyToken,
           webhookUrl: whatsappWebhookUrl,
           autoReply: waAutoReply,
         },

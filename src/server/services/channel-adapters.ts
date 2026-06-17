@@ -14,8 +14,33 @@ type WhatsAppGraphResponse = {
   }>;
   error?: {
     message?: string;
+    type?: string;
+    code?: number;
+    error_subcode?: number;
+    fbtrace_id?: string;
+    error_data?: {
+      details?: string;
+    };
   };
 };
+
+function formatWhatsAppGraphError(error?: WhatsAppGraphResponse["error"]) {
+  if (!error) {
+    return undefined;
+  }
+
+  const parts = [
+    error.message?.trim(),
+    error.error_data?.details?.trim(),
+    typeof error.code === "number" ? `code ${error.code}` : "",
+    typeof error.error_subcode === "number"
+      ? `subcode ${error.error_subcode}`
+      : "",
+    error.type?.trim() ? `type ${error.type.trim()}` : "",
+  ].filter(Boolean);
+
+  return parts.join(" | ");
+}
 
 async function parseGraphResponse(
   response: Response,
@@ -61,7 +86,10 @@ export async function sendChannelMessage(input: SendMessageInput) {
   const config = await getDashboardConfigRecord();
 
   if (input.channel === "WhatsApp") {
-    if (!config.channels.whatsapp.phoneNumberId || !config.channels.whatsapp.accessToken) {
+    const phoneNumberId = config.channels.whatsapp.phoneNumberId.trim();
+    const accessToken = config.channels.whatsapp.accessToken.trim();
+
+    if (!phoneNumberId || !accessToken) {
       return {
         ok: false,
         provider: "whatsapp",
@@ -80,8 +108,8 @@ export async function sendChannelMessage(input: SendMessageInput) {
     }
 
     const response = await sendWhatsAppGraphRequest(
-      config.channels.whatsapp.accessToken,
-      config.channels.whatsapp.phoneNumberId,
+      accessToken,
+      phoneNumberId,
       {
         messaging_product: "whatsapp",
         to: input.recipientId,
@@ -98,7 +126,7 @@ export async function sendChannelMessage(input: SendMessageInput) {
       status: response.status,
       body: response.body,
       messageId: response.body?.messages?.[0]?.id,
-      note: response.body?.error?.message,
+      note: formatWhatsAppGraphError(response.body?.error),
     };
   }
 
@@ -114,8 +142,10 @@ export async function sendWhatsAppReadTypingIndicator(input: {
   incomingMessageId: string;
 }) {
   const config = await getDashboardConfigRecord();
+  const accessToken = config.channels.whatsapp.accessToken.trim();
+  const phoneNumberId = config.channels.whatsapp.phoneNumberId.trim();
 
-  if (!config.channels.whatsapp.accessToken || !config.channels.whatsapp.phoneNumberId) {
+  if (!accessToken || !phoneNumberId) {
     return {
       ok: false,
       provider: "whatsapp",
@@ -125,8 +155,8 @@ export async function sendWhatsAppReadTypingIndicator(input: {
   }
 
   const response = await sendWhatsAppGraphRequest(
-    config.channels.whatsapp.accessToken,
-    config.channels.whatsapp.phoneNumberId,
+    accessToken,
+    phoneNumberId,
     {
       messaging_product: "whatsapp",
       status: "read",
@@ -142,5 +172,6 @@ export async function sendWhatsAppReadTypingIndicator(input: {
     provider: "whatsapp",
     status: response.status,
     body: response.body,
+    note: formatWhatsAppGraphError(response.body?.error),
   };
 }
