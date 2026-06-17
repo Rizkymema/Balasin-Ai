@@ -235,7 +235,9 @@ export async function sendInboxReply(input: {
   const isAiReply = AI_REPLY_STATUSES.includes(conversation.status);
   const sender: ConversationMessage["sender"] = isAiReply ? "ai" : "admin";
   const recipientId =
-    conversation.phone ?? conversation.username ?? conversation.customerId;
+    conversation.channel === "Instagram DM"
+      ? conversation.channelContext?.externalUserId || conversation.channelContext?.instagramUserId || conversation.username || conversation.customerId
+      : conversation.phone ?? conversation.username ?? conversation.customerId;
 
   const delivery = await sendChannelMessage({
     channel: conversation.channel,

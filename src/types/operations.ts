@@ -39,6 +39,7 @@ export type ConversationChannelContext = {
   externalUserId?: string;
   whatsappPhoneNumberId?: string;
   whatsappDisplayPhoneNumber?: string;
+  instagramUserId?: string;
 };
 
 export type ConversationRecord = {
