@@ -133,6 +133,83 @@ export async function sendChannelMessage(input: SendMessageInput) {
     };
   }
 
+  if (input.channel === "Instagram DM") {
+    const accountId = config.channels.instagram.accountId?.trim();
+    const igAccessToken = config.channels.instagram.accessToken?.trim();
+
+    if (!accountId || !igAccessToken) {
+      return {
+        ok: false,
+        provider: "instagram",
+        status: 412,
+        note: "Account ID atau access token Instagram belum tersedia di dashboard.",
+      };
+    }
+
+    if (!input.recipientId) {
+      return {
+        ok: false,
+        provider: "instagram",
+        status: 422,
+        note: "Recipient ID Instagram tidak tersedia.",
+      };
+    }
+
+    try {
+      const igResponse = await fetch(
+        `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/${accountId}/messages`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${igAccessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            recipient: { id: input.recipientId },
+            message: { text: input.message },
+          }),
+        },
+      );
+
+      const igBody = await igResponse.text();
+      let parsedBody: Record<string, unknown> | null = null;
+      try {
+        parsedBody = JSON.parse(igBody) as Record<string, unknown>;
+      } catch {
+        // Body bukan JSON
+      }
+
+      return {
+        ok: igResponse.ok,
+        provider: "instagram",
+        status: igResponse.status,
+        body: parsedBody,
+        messageId: (parsedBody as { message_id?: string })?.message_id,
+        note: igResponse.ok
+          ? undefined
+          : `Instagram API error: ${igBody.slice(0, 200)}`,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        provider: "instagram",
+        status: 500,
+        note: `Gagal mengirim DM Instagram: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  }
+
+  if (input.channel === "Instagram Comment") {
+    // Komentar tidak bisa dibalas via DM secara otomatis tanpa user consent.
+    // Catat sebagai simulated send.
+    return {
+      ok: true,
+      provider: "instagram-comment",
+      status: 200,
+      note: "Balasan komentar dicatat di inbox. Balas manual melalui Instagram atau aktifkan Comment-to-DM.",
+    };
+  }
+
   return {
     ok: true,
     provider: "simulated",
