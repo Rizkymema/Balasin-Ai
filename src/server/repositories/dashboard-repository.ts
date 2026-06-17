@@ -56,6 +56,7 @@ type KnowledgeChunk = {
 };
 
 const DASHBOARD_CONFIG_BLOB_PATH = "state/dashboard-config.json";
+const DASHBOARD_CONFIG_BACKUP_BLOB_PATH = "state/dashboard-config.backup.json";
 const DASHBOARD_OPERATIONS_BLOB_PATH = "state/dashboard-operations.json";
 const KNOWLEDGE_CHUNKS_BLOB_PATH = "state/knowledge-chunks.json";
 const QUESTION_KEYS = ["question", "pertanyaan", "q", "ask", "faq"];
@@ -116,12 +117,77 @@ function finalizeDashboardConfig(
   };
 }
 
+function keepExistingString(existing: string, incoming: string) {
+  return incoming.trim() ? incoming : existing;
+}
+
+function mergePersistedDashboardConfig(
+  existing: DashboardConfig,
+  incoming: DashboardConfig,
+) {
+  return {
+    ...incoming,
+    runtime: {
+      ...incoming.runtime,
+      workerSecret: keepExistingString(
+        existing.runtime.workerSecret,
+        incoming.runtime.workerSecret,
+      ),
+    },
+    aiProvider: {
+      ...incoming.aiProvider,
+      apiKey: keepExistingString(existing.aiProvider.apiKey, incoming.aiProvider.apiKey),
+    },
+    channels: {
+      ...incoming.channels,
+      whatsapp: {
+        ...incoming.channels.whatsapp,
+        businessLabel: keepExistingString(
+          existing.channels.whatsapp.businessLabel,
+          incoming.channels.whatsapp.businessLabel,
+        ),
+        phoneNumberId: keepExistingString(
+          existing.channels.whatsapp.phoneNumberId,
+          incoming.channels.whatsapp.phoneNumberId,
+        ),
+        accessToken: keepExistingString(
+          existing.channels.whatsapp.accessToken,
+          incoming.channels.whatsapp.accessToken,
+        ),
+        verifyToken: keepExistingString(
+          existing.channels.whatsapp.verifyToken,
+          incoming.channels.whatsapp.verifyToken,
+        ),
+      },
+      instagram: {
+        ...incoming.channels.instagram,
+        username: keepExistingString(
+          existing.channels.instagram.username,
+          incoming.channels.instagram.username,
+        ),
+        accountId: keepExistingString(
+          existing.channels.instagram.accountId,
+          incoming.channels.instagram.accountId,
+        ),
+        accessToken: keepExistingString(
+          existing.channels.instagram.accessToken,
+          incoming.channels.instagram.accessToken,
+        ),
+      },
+    },
+  } satisfies DashboardConfig;
+}
+
 export async function getDashboardConfigRecord(): Promise<DashboardConfig> {
   if (isBlobStateEnabled()) {
     const stored =
       (await readPrivateJsonBlob<Partial<DashboardConfig>>(
         DASHBOARD_CONFIG_BLOB_PATH,
-      )) ?? {};
+      )) ??
+      (await readPrivateJsonBlob<Partial<DashboardConfig>>(
+        DASHBOARD_CONFIG_BACKUP_BLOB_PATH,
+      )) ??
+      {};
     const base = mergeDashboardConfig(defaultDashboardConfig, stored);
 
     return finalizeDashboardConfig(
@@ -141,7 +207,10 @@ export async function getDashboardConfigRecord(): Promise<DashboardConfig> {
 
 export async function saveDashboardConfigRecord(config: DashboardConfig) {
   if (isBlobStateEnabled()) {
-    await writePrivateJsonBlob(DASHBOARD_CONFIG_BLOB_PATH, config);
+    const current = await getDashboardConfigRecord();
+    const nextConfig = mergePersistedDashboardConfig(current, config);
+    await writePrivateJsonBlob(DASHBOARD_CONFIG_BLOB_PATH, nextConfig);
+    await writePrivateJsonBlob(DASHBOARD_CONFIG_BACKUP_BLOB_PATH, nextConfig);
     return;
   }
 

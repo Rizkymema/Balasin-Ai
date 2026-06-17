@@ -127,6 +127,27 @@ function wait(milliseconds: number) {
   });
 }
 
+function buildDeliveryFailureNote(input: {
+  channel: ChannelKind;
+  note?: string;
+  status?: number;
+}) {
+  const prefix =
+    input.channel === "WhatsApp"
+      ? "Pengiriman balasan WhatsApp gagal."
+      : `Pengiriman balasan ${input.channel} gagal.`;
+
+  if (input.note?.trim()) {
+    return `${prefix} ${input.note.trim()}`;
+  }
+
+  if (input.status) {
+    return `${prefix} Provider mengembalikan status ${input.status}.`;
+  }
+
+  return `${prefix} Periksa kredensial channel dan koneksi provider.`;
+}
+
 export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   const config = await getDashboardConfigRecord();
   const current = await getDashboardOperationsRecord();
@@ -236,6 +257,18 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
         externalId: delivery.messageId,
       },
     );
+
+    if (!delivery.ok) {
+      conversation = appendMessage(conversation, {
+        sender: "system",
+        text: buildDeliveryFailureNote({
+          channel: input.channel,
+          note: delivery.note,
+          status: delivery.status,
+        }),
+        type: "system",
+      });
+    }
   }
 
   if (!current.conversations.find((item) => item.id === conversation.id)) {

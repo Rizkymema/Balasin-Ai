@@ -60,7 +60,25 @@ async function sendWhatsAppGraphRequest(
 export async function sendChannelMessage(input: SendMessageInput) {
   const config = await getDashboardConfigRecord();
 
-  if (input.channel === "WhatsApp" && config.channels.whatsapp.accessToken && config.channels.whatsapp.phoneNumberId && input.recipientId) {
+  if (input.channel === "WhatsApp") {
+    if (!config.channels.whatsapp.phoneNumberId || !config.channels.whatsapp.accessToken) {
+      return {
+        ok: false,
+        provider: "whatsapp",
+        status: 412,
+        note: "Phone Number ID atau access token WhatsApp belum tersedia di dashboard.",
+      };
+    }
+
+    if (!input.recipientId) {
+      return {
+        ok: false,
+        provider: "whatsapp",
+        status: 422,
+        note: "Nomor tujuan WhatsApp tidak tersedia.",
+      };
+    }
+
     const response = await sendWhatsAppGraphRequest(
       config.channels.whatsapp.accessToken,
       config.channels.whatsapp.phoneNumberId,
@@ -80,6 +98,7 @@ export async function sendChannelMessage(input: SendMessageInput) {
       status: response.status,
       body: response.body,
       messageId: response.body?.messages?.[0]?.id,
+      note: response.body?.error?.message,
     };
   }
 

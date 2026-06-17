@@ -33,6 +33,27 @@ function resolveOutgoingMessageStatus(
   return channel === "WhatsApp" ? ("sent" as const) : ("delivered" as const);
 }
 
+function buildDeliveryFailureNote(input: {
+  channel: ConversationRecord["channel"];
+  note?: string;
+  status?: number;
+}) {
+  const prefix =
+    input.channel === "WhatsApp"
+      ? "Pengiriman balasan WhatsApp gagal."
+      : `Pengiriman balasan ${input.channel} gagal.`;
+
+  if (input.note?.trim()) {
+    return `${prefix} ${input.note.trim()}`;
+  }
+
+  if (input.status) {
+    return `${prefix} Provider mengembalikan status ${input.status}.`;
+  }
+
+  return `${prefix} Periksa kredensial channel dan koneksi provider.`;
+}
+
 function mapConversationStatusToLeadStatus(status: ConversationStatus): LeadStatus {
   switch (status) {
     case "assigned_to_admin":
@@ -248,6 +269,21 @@ export async function sendInboxReply(input: {
       ? conversation.summary
       : "Admin sudah mengambil alih percakapan dan mengirim balasan manual.",
   } satisfies ConversationRecord;
+
+  if (!delivery.ok) {
+    nextConversation.messages.push({
+      id: randomUUID(),
+      sender: "system",
+      text: buildDeliveryFailureNote({
+        channel: conversation.channel,
+        note: delivery.note,
+        status: delivery.status,
+      }),
+      timestamp: formatMessageTimestamp(),
+      type: "system",
+    });
+    nextConversation.lastMessage = nextConversation.messages.at(-1)?.text ?? input.message;
+  }
 
   const nextState = updateConversationState(current, nextConversation);
   await saveDashboardOperationsRecord(nextState);
