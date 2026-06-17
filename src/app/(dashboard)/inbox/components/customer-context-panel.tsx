@@ -101,14 +101,14 @@ export function CustomerContextPanel({
     return (
       <aside
         className={cn(
-          "rounded-xl border border-white/[0.06] bg-[#0a0e1c]",
+          "rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full",
           hiddenOnDesktop ? "xl:hidden" : "",
         )}
       >
         <EmptyState
           title="Customer context belum tersedia"
           description="Pilih percakapan agar panel kanan menampilkan identitas customer, AI summary, ticket, dan booking terkait."
-          className="min-h-[42rem] border-none bg-transparent"
+          className="min-h-[42rem] border-none bg-transparent lg:h-full lg:min-h-0"
           icon={<UserRound className="h-10 w-10" />}
         />
       </aside>
@@ -121,7 +121,7 @@ export function CustomerContextPanel({
   return (
     <aside
       className={cn(
-        "custom-scrollbar min-h-[42rem] overflow-y-auto rounded-xl border border-white/[0.06] bg-[#0a0e1c]",
+        "custom-scrollbar min-h-[42rem] overflow-y-auto rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full lg:min-h-0",
         hiddenOnDesktop ? "xl:hidden" : "",
       )}
     >
@@ -275,7 +275,7 @@ export function CustomerContextPanel({
                   context.latestBooking.date,
                   context.latestBooking.slot,
                   context.latestBooking.status,
-                ].join(" • ")
+                ].join(" | ")
               : "Data booking akan muncul di sini setelah customer dijadwalkan."}
           </div>
         </div>
@@ -284,7 +284,7 @@ export function CustomerContextPanel({
       <SidebarSection title="Sentiment & Risk">
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
           <p className="text-sm font-semibold capitalize text-slate-200">
-            {[conversation.sentiment, conversation.riskLevel].join(" • ")}
+            {[conversation.sentiment, conversation.riskLevel].join(" | ")}
           </p>
           <p className="mt-2 text-sm leading-6 text-slate-400">
             {statusMeta.description}

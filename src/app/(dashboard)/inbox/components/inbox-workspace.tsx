@@ -372,7 +372,12 @@ export function InboxWorkspace() {
           </div>
         </section>
       ) : (
-        <div className={cn("grid gap-3", "lg:grid-cols-[16rem_minmax(0,1fr)_15rem]")}>
+        <div
+          className={cn(
+            "grid gap-3",
+            "lg:h-[calc(100vh-11rem)] lg:grid-cols-[16rem_minmax(0,1fr)_15rem]",
+          )}
+        >
           <div className={mobileView === "list" ? "block" : "hidden lg:block"}>
             <ConversationListPanel
               conversations={filteredConversations}
