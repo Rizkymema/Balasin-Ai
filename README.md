@@ -85,6 +85,25 @@ Catatan:
 - `SESSION_SECRET` dan `WORKER_SECRET` wajib diganti saat masuk environment non-local.
 - Jika `NEXT_PUBLIC_SUPABASE_URL` dan `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` diisi, aplikasi akan memakai Supabase sebagai database utama.
 - `SUPABASE_SERVICE_ROLE_KEY` sangat direkomendasikan untuk production agar akses server-side tidak bergantung pada policy publik.
+- Untuk login Google, isi `NEXT_PUBLIC_GOOGLE_CLIENT_ID` atau `GOOGLE_CLIENT_ID`.
+
+## Setup Google Login
+
+1. Buat OAuth Client di Google Cloud Console.
+2. Pilih tipe `Web application`.
+3. Isi `Authorized JavaScript origins` dengan:
+   - `https://balasin-ai-tau.vercel.app`
+   - `http://localhost:3000`
+4. Simpan `Client ID` lalu isi ke `.env.local`:
+
+```env
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+```
+
+Catatan:
+- Implementasi login saat ini memakai Google Identity Services mode popup.
+- Untuk mode ini yang wajib adalah `Authorized JavaScript origins`.
+- `Redirect URI` tidak dipakai oleh flow login popup yang sekarang ada di aplikasi.
 
 ## Setup Supabase
 
