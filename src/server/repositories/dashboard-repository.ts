@@ -44,7 +44,7 @@ import type {
   TicketRecord,
 } from "@/types/operations";
 
-type KnowledgeChunk = {
+export type KnowledgeChunk = {
   id: string;
   documentId: string;
   chunkIndex: number;

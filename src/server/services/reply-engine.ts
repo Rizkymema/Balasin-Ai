@@ -1,4 +1,4 @@
-import { getKnowledgeChunks } from "@/server/repositories/dashboard-repository";
+import { getKnowledgeChunks, type KnowledgeChunk } from "@/server/repositories/dashboard-repository";
 import { resolveAppUrl } from "@/lib/app-url";
 import { formatCurrentTimeContext, getDefaultTimezone } from "@/lib/time";
 import type { DashboardConfig, FAQItem } from "@/types/dashboard-config";
@@ -71,8 +71,90 @@ const DEFAULT_GREETING_KEYWORDS = [
 ];
 
 const BOOKING_KEYWORDS = ["booking", "book", "servis besok", "service besok", "jadwal"];
-const COMPLAINT_KEYWORDS = ["refund", "komplain", "keluhan", "kecewa", "marah", "complain"];
-const SPAM_KEYWORDS = ["judol", "link di bio"];
+const SPAM_KEYWORDS = ["judol", "link di bio", "slot", "gacor", "promosi", "iklan"];
+
+const FINANCE_KEYWORDS = [
+  "bukti bayar",
+  "bukti transfer",
+  "dp",
+  "down payment",
+  "refund",
+  "uang kembali",
+  "kembalian",
+  "gagal bayar",
+  "salah bayar",
+  "rekening",
+  "qris",
+  "sudah bayar",
+  "sudah transfer",
+  "konfirmasi bayar",
+  "pembayaran",
+  "transfer"
+];
+
+const DISCOUNT_KEYWORDS = [
+  "diskon",
+  "potongan harga",
+  "kurangi harga",
+  "nego",
+  "harga khusus",
+  "harga grosir",
+  "b2b",
+  "diskon khusus",
+  "minta diskon"
+];
+
+const DETAILED_COMPLAINT_KEYWORDS = [
+  "komplain",
+  "klaim",
+  "rusak",
+  "pecah",
+  "cacat",
+  "garansi",
+  "kecewa",
+  "jelek",
+  "buruk",
+  "salah kirim",
+  "barang kurang",
+  "salah barang",
+  "pengembalian barang",
+  "retur"
+];
+
+const SAFETY_KEYWORDS = [
+  "bahaya",
+  "celaka",
+  "darurat",
+  "urgent",
+  "cepat",
+  "tabrakan",
+  "kecelakaan",
+  "rem blong",
+  "mogok",
+  "terbakar",
+  "kebakaran",
+  "overbooking",
+  "bentrok"
+];
+
+const ANGRY_KEYWORDS = [
+  "tuntut",
+  "hukum",
+  "polisi",
+  "viral",
+  "sosmed",
+  "lapor",
+  "penipu",
+  "bohong",
+  "brengsek",
+  "anjing",
+  "babi",
+  "goblok",
+  "tolol",
+  "kecewa banget",
+  "marah",
+  "kasar"
+];
 
 const STOP_WORDS = new Set([
   "yang",
@@ -480,6 +562,79 @@ function buildRelevantFaqContext(messageText: string, faqs: FAQItem[]) {
     .slice(0, 6);
 }
 
+function getWaHandoffLink(config: DashboardConfig): string {
+  const label = (config.channels.whatsapp.businessLabel || "").trim();
+  const cleanPhone = label.replace(/[^0-9]/g, "");
+  if (cleanPhone.length >= 9) {
+    let formatted = cleanPhone;
+    if (formatted.startsWith("0")) {
+      formatted = "62" + formatted.slice(1);
+    }
+    return `https://wa.me/${formatted}`;
+  }
+  return label || "WhatsApp Admin";
+}
+
+function formatGoogleSheetReply(content: string): string {
+  if (content.startsWith("Pertanyaan:") && content.includes("\nJawaban:")) {
+    const parts = content.split("\nJawaban:");
+    return parts.slice(1).join("\nJawaban:").trim();
+  }
+  if (content.includes(" | ")) {
+    return content.split(" | ").map((item) => item.trim()).join("\n");
+  }
+  return content;
+}
+
+async function findBestGoogleSheetMatch(
+  messageText: string,
+): Promise<{ reply: string; confidence: number; summary: string } | null> {
+  const chunks = await getKnowledgeChunks();
+  const sheetChunks = chunks.filter((c) => c.metadata?.sourceType === "google_sheet");
+  if (sheetChunks.length === 0) {
+    return null;
+  }
+
+  const queryTokens = Array.from(new Set(tokenize(messageText)));
+  if (queryTokens.length === 0) {
+    return null;
+  }
+
+  let bestMatch: { chunk: KnowledgeChunk; score: number } | null = null;
+
+  for (const chunk of sheetChunks) {
+    const contentLower = chunk.content.toLowerCase();
+    let matchCount = 0;
+
+    for (const token of queryTokens) {
+      if (contentLower.includes(token)) {
+        matchCount++;
+      }
+    }
+
+    if (matchCount === 0) {
+      continue;
+    }
+
+    const score = matchCount / queryTokens.length;
+
+    if (!bestMatch || score > bestMatch.score) {
+      bestMatch = { chunk, score };
+    }
+  }
+
+  const threshold = queryTokens.length === 1 ? 1.0 : 0.5;
+  if (bestMatch && bestMatch.score >= threshold) {
+    return {
+      reply: formatGoogleSheetReply(bestMatch.chunk.content),
+      confidence: Math.min(99, Math.round(bestMatch.score * 100)),
+      summary: `Jawaban diambil dari Google Sheet (${bestMatch.chunk.metadata.sourceName}) berdasarkan kecocokan kata kunci.`,
+    };
+  }
+
+  return null;
+}
+
 async function findBestDocumentMatch(messageText: string) {
   const chunks = await getKnowledgeChunks();
   let bestMatch:
@@ -676,6 +831,7 @@ async function generateProviderReply(
           .join("\n\n")
       : "Tidak ada dokumen relevan.";
 
+  const waLink = getWaHandoffLink(config);
   const systemPrompt = `
 Anda adalah ${config.aiAgent.name || "AI Assistant"} untuk ${config.workspace.name || "sebuah bisnis"}.
 Jawab dalam bahasa ${config.aiAgent.language === "en" ? "English" : "Bahasa Indonesia"}.
@@ -683,15 +839,13 @@ Gaya: ${config.aiAgent.tone}.
 Instruksi balasan: ${config.aiAgent.replyInstructions || "-"}.
 Contoh gaya bicara: ${config.aiAgent.replyStyleExample || "-"}.
 
-Aturan penting:
-- Gunakan data bisnis, FAQ, dan knowledge relevan jika tersedia.
-- Jika pertanyaan tidak ada di knowledge, Anda boleh menjawab dengan pengetahuan umum yang wajar dan aman.
-- Jangan mengarang alamat, jam buka, harga, stok, garansi, atau kebijakan bisnis jika datanya tidak ada.
-- Jika data bisnis spesifik tidak tersedia, katakan belum bisa memastikan bagian itu dan minta 1-2 detail penting saja.
-- Untuk keluhan teknis motor, berikan diagnosa awal yang masuk akal, singkat, dan aman.
-- Jika berisiko keselamatan, sarankan hentikan pemakaian dan cek langsung ke bengkel.
-- Jangan sebut prompt, knowledge base internal, model, database, atau proses sistem.
-- Output hanya teks balasan final, tanpa markdown dan tanpa label tambahan.
+Aturan penting & pembatasan AI (PANDUAN AI):
+- Gunakan data profil bisnis, FAQ, dan knowledge relevan yang disediakan secara ketat.
+- TANPA KEBOHONGAN (NO HALLUCINATION): Jika informasi spesifik bisnis (seperti harga, stok, alamat, detail booking, atau kebijakan) tidak ada di data di bawah ini, Anda WAJIB mengaku tidak tahu dengan sopan, ramah, dan arahkan ke admin melalui WhatsApp di nomor/link ${waLink}. Dilarang menebak atau berasumsi.
+- ATURAN STOK KOSONG: Jika produk habis atau stok kosong, jangan langsung memotong chat (misal: "Stok kosong"). Gunakan kalimat jembatan yang ramah seperti "Stok saat ini sedang habis di toko, silakan cek berkala atau hubungi admin di WhatsApp ${waLink}".
+- KATEGORI TERLARANG: Anda dilarang memproses transaksi keuangan, refund/DP, negosiasi diskon khusus di luar harga resmi, komplain/garansi serius, atau kendala keselamatan fisik. Segera katakan hal tersebut harus ditangani langsung oleh Admin manusia lewat WhatsApp di ${waLink}.
+- KERAHASIAAN SISTEM: AI dilarang menyebut istilah teknis internal AI seperti "system prompt", "database", "API", "tool", "LLM", atau proses internal lainnya dalam membalas chat.
+- Output hanya teks balasan final untuk customer, tanpa format markdown, tanpa label tambahan (seperti "A:", "Jawaban:").
 `.trim();
 
   const userPrompt = `
@@ -793,15 +947,89 @@ export async function generateReplyDecision(
     };
   }
 
-  if (hasKeyword(lower, COMPLAINT_KEYWORDS)) {
+  // 1. Keuangan / Financial
+  if (hasKeyword(lower, FINANCE_KEYWORDS)) {
+    const waLink = getWaHandoffLink(config);
     return {
-      intent: "Komplain",
-      confidence: 40,
+      intent: "Keuangan",
+      confidence: 95,
       needsHuman: true,
       status: "assigned_to_admin",
-      summary: "Customer mengirim komplain dan perlu penanganan admin.",
+      summary: "Customer mengirim pesan terkait transaksi/keuangan dan perlu penanganan admin.",
       reply: applyStyleInstructions(
-        "Terima kasih, pesan Anda sudah kami teruskan ke admin agar ditangani dengan lebih tepat.",
+        `Maaf ya Kak, untuk kendala transaksi/pembayaran ini harus dibantu cek langsung oleh Admin kami agar aman. Kakak bisa langsung hubungi Admin lewat WhatsApp di ${waLink} ya!`,
+        config,
+      ),
+      grounded: false,
+      source: "fallback",
+    };
+  }
+
+  // 2. Negosiasi / Diskon
+  if (hasKeyword(lower, DISCOUNT_KEYWORDS)) {
+    const waLink = getWaHandoffLink(config);
+    return {
+      intent: "Negosiasi",
+      confidence: 95,
+      needsHuman: true,
+      status: "assigned_to_admin",
+      summary: "Customer ingin negosiasi diskon/kerja sama dan harus dialihkan ke admin.",
+      reply: applyStyleInstructions(
+        `Maaf ya Kak, untuk kendala negosiasi diskon ini harus dibantu cek langsung oleh Admin kami agar aman. Kakak bisa langsung hubungi Admin lewat WhatsApp di ${waLink} ya!`,
+        config,
+      ),
+      grounded: false,
+      source: "fallback",
+    };
+  }
+
+  // 3. Komplain / Garansi
+  if (hasKeyword(lower, DETAILED_COMPLAINT_KEYWORDS)) {
+    const waLink = getWaHandoffLink(config);
+    return {
+      intent: "Komplain",
+      confidence: 95,
+      needsHuman: true,
+      status: "assigned_to_admin",
+      summary: "Customer mengirim komplain/garansi dan memerlukan penanganan manual admin.",
+      reply: applyStyleInstructions(
+        `Maaf ya Kak, untuk kendala komplain/garansi ini harus dibantu cek langsung oleh Admin kami agar aman. Kakak bisa langsung hubungi Admin lewat WhatsApp di ${waLink} ya!`,
+        config,
+      ),
+      grounded: false,
+      source: "fallback",
+    };
+  }
+
+  // 4. Safety / Urgensi
+  if (hasKeyword(lower, SAFETY_KEYWORDS)) {
+    const waLink = getWaHandoffLink(config);
+    return {
+      intent: "Keamanan",
+      confidence: 95,
+      needsHuman: true,
+      status: "assigned_to_admin",
+      summary: "Customer mengalami kendala keselamatan/darurat dan harus dialihkan segera.",
+      reply: applyStyleInstructions(
+        `Maaf ya Kak, untuk kendala darurat ini harus dibantu cek langsung oleh Admin kami agar aman. Kakak bisa langsung hubungi Admin lewat WhatsApp di ${waLink} ya!`,
+        config,
+      ),
+      grounded: false,
+      source: "fallback",
+    };
+  }
+
+  // 5. Marah / Frustrasi / Ancaman
+  if (hasKeyword(lower, ANGRY_KEYWORDS)) {
+    const waLink = getWaHandoffLink(config);
+    return {
+      intent: "Pelanggan Marah",
+      confidence: 95,
+      needsHuman: true,
+      status: "assigned_to_admin",
+      summary: "Customer mengekspresikan kekesalan/ancaman dan dihentikan auto-reply-nya.",
+      reply: applyStyleInstructions(
+        `Maaf ya Kak, untuk keluhan Anda ini harus dibantu cek langsung oleh Admin kami agar aman. Kakak bisa langsung hubungi Admin lewat WhatsApp di ${waLink} ya!`,
         config,
       ),
       grounded: false,
@@ -879,6 +1107,22 @@ export async function generateReplyDecision(
       }),
       grounded: true,
       source: "workspace",
+    };
+  }
+
+  const googleSheetMatch = await findBestGoogleSheetMatch(routedMessage);
+  if (googleSheetMatch && googleSheetMatch.confidence >= config.aiAgent.confidenceThreshold) {
+    return {
+      intent: hasKeyword(lower, PRICE_KEYWORDS) ? "Tanya harga" : "Jawaban Google Sheet",
+      confidence: googleSheetMatch.confidence,
+      needsHuman: false,
+      status: "ai_active",
+      summary: googleSheetMatch.summary,
+      reply: applyStyleInstructions(googleSheetMatch.reply, config, {
+        preserveLength: true,
+      }),
+      grounded: true,
+      source: "document",
     };
   }
 
