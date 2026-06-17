@@ -1,883 +1,863 @@
-AI Omnichannel CRM Dashboard Flow
+# Flow Revisi Website Balesin AI
 
-Intinya:
+Dokumen ini merapikan alur produk dan struktur dashboard agar selaras dengan revisi website yang sekarang.
+Fokus utamanya adalah membuat produk terasa sederhana di permukaan, tetapi tetap kuat untuk operasional AI, omnichannel, CRM, booking, ticketing, dan automation.
 
-Customer chat masuk
-↓
-Sistem tangkap pesan dari WA / IG DM / IG Comment / Website
-↓
-AI analisis intent
-↓
-AI ambil data dari database / knowledge / Google Sheets
-↓
-AI jawab otomatis jika aman
-↓
-Jika tidak yakin, AI teruskan ke admin
-↓
-Admin jawab manual
-↓
-AI berhenti membalas chat itu
-↓
-Semua histori, data customer, ticket, dan laporan masuk dashboard
-1. Struktur Dashboard Utama
+---
 
-Dashboard Anda sebaiknya jangan dibuat terlalu rumit. Buat menu utama seperti ini:
+## 1. Arah Produk
 
-1. Inbox
-2. Customer
-3. AI Knowledge
-4. Produk & Layanan
-5. Booking
-6. Ticket / Handoff Admin
-7. Automation Flow
-8. Broadcast
-9. Analytics
-10. Settings
-Rekomendasi tampilan sidebar
-Dashboard
-├── Inbox
-│   ├── Semua Chat
-│   ├── WhatsApp
-│   ├── Instagram DM
-│   ├── Komentar IG
-│   ├── Butuh Admin
-│   └── Selesai
-│
-├── Customer
-│   ├── Data Customer
-│   ├── Riwayat Chat
-│   ├── Tag Customer
-│   └── Segmentasi
-│
-├── AI Center
-│   ├── Knowledge Base
-│   ├── Prompt AI
-│   ├── Rules AI
-│   ├── Intent Setting
-│   └── Test AI
-│
-├── Produk & Layanan
-│   ├── Produk
-│   ├── Sparepart
-│   ├── Jasa Servis
-│   └── Paket Layanan
-│
-├── Ticket
-│   ├── Masuk
-│   ├── Diproses
-│   ├── Selesai
-│   └── Komplain
-│
-├── Automation
-│   ├── Flow Chatbot
-│   ├── Handoff Rules
-│   ├── Auto Reply
-│   ├── Auto Tagging
-│   └── Error Log
-│
-└── Report
-    ├── Jumlah Chat
-    ├── Leads
-    ├── Booking
-    ├── Closing
-    └── Performa Admin
-2. Flow Utama Sistem
-Flow besar
-Customer
-↓
-Channel API
-WhatsApp / IG DM / IG Comment / Website Chat
-↓
-Webhook
-↓
-Message Normalizer
-↓
-Database Logging
-↓
-Contact Matching
-↓
-Conversation Status Check
-↓
-AI Intent Classification
-↓
-Data Retrieval
-↓
-AI Response Generator
-↓
-Guardrail Check
-↓
-Send Reply / Handoff Admin
-↓
-Update Dashboard
-3. Flow Teknis Lengkap
-Step 1 — Pesan Customer Masuk
+Posisi produk:
 
-Channel yang bisa masuk:
+**Balesin AI adalah AI omnichannel dashboard** untuk mengelola chat customer, knowledge base, booking, ticket, broadcast, dan automation dari satu tempat.
 
-WhatsApp
-Instagram DM
-Instagram Comment
-Facebook Messenger
-Website Live Chat
-Telegram
+Prinsip revisi website:
 
-Data yang ditangkap:
+- Menu utama tidak boleh terlalu banyak.
+- User harus cepat paham fungsi tiap halaman.
+- Fitur besar ditampilkan sebagai modul utama.
+- Fitur tambahan ditempatkan sebagai subflow, bukan menambah menu baru.
+- Semua pengaturan bisnis sebaiknya bisa dikontrol dari dashboard.
 
-{
-  "channel": "instagram_dm",
-  "customer_id": "ig_12345",
-  "name": "Budi",
-  "username": "@budi_motor",
-  "message": "Kak service CVT berapa?",
-  "message_type": "text",
-  "timestamp": "2026-06-14 10:00:00"
-}
-Step 2 — Normalisasi Pesan
+---
 
-Karena format data WA, IG, Telegram, dan website berbeda, semua pesan harus disamakan dulu.
+## 2. Struktur Menu Utama Website
 
-Format final internal:
+Menu utama yang dipakai pada revisi sekarang:
 
-{
-  "source": "instagram_dm",
-  "external_user_id": "ig_12345",
-  "display_name": "Budi",
-  "message_text": "Kak service CVT berapa?",
-  "message_type": "text",
-  "conversation_id": "conv_001",
-  "raw_payload": {}
-}
+1. Dashboard
+2. Inbox
+3. Customers
+4. AI Agent
+5. Knowledge Base
+6. Products & Services
+7. Booking
+8. Tickets
+9. Automation
+10. Broadcast
+11. Channels
+12. Analytics
+13. Settings
 
-Tujuannya agar dashboard Anda tidak pusing membaca banyak format API.
+Struktur ini mengikuti halaman yang memang ada di aplikasi saat ini dan menjadi fondasi utama website/dashboard.
 
-4. Flow AI Classification
+---
 
-Setelah pesan masuk, AI jangan langsung jawab. AI harus klasifikasi dulu.
+## 3. Struktur Halaman per Modul
 
-Intent yang perlu dibuat
-1. Tanya harga
-2. Tanya stok
-3. Tanya produk
-4. Tanya layanan servis
-5. Booking
-6. FAQ umum
-7. Keluhan ringan
-8. Keluhan berat
-9. Komplain
-10. Follow up order
-11. Spam
-12. Komentar negatif
-13. Tidak jelas
-14. Butuh admin
-Output AI classifier
-{
-  "intent": "tanya_harga_layanan",
-  "confidence": 0.91,
-  "risk_level": "low",
-  "needs_human": false,
-  "detected_topic": "service_cvt",
-  "customer_sentiment": "neutral"
-}
-5. Logic Utama AI
+### Dashboard
 
-Gunakan aturan ini:
+Fungsi:
 
-Jika confidence >= 0.80 dan risk low:
-AI boleh jawab otomatis
+- Ringkasan performa bisnis
+- Status channel
+- Status AI
+- Jumlah conversation aktif
+- Booking, ticket, dan broadcast summary
+- Quick action ke modul penting
 
-Jika confidence 0.60 - 0.79:
-AI boleh jawab dengan hati-hati atau buat draft untuk admin
+### Inbox
 
-Jika confidence < 0.60:
-AI tidak boleh jawab langsung
+Fungsi:
 
-Jika risk high:
-Wajib handoff ke admin
+- Semua percakapan dari seluruh channel masuk ke satu tempat
+- Operator dan AI bekerja dari halaman ini
 
-Jika chat sudah diambil admin:
-AI berhenti membalas
+Subflow penting:
 
-Jika data produk/harga tidak ditemukan:
-AI tidak boleh mengarang
-6. Flow Reply Otomatis
-Contoh flow tanya harga
-Customer:
-"Kak service CVT berapa?"
-
-↓
-AI Classification:
-Intent = Tanya harga layanan
-Confidence = 91%
-Risk = Low
-
-↓
-Query Database:
-Cari layanan: service CVT
-
-↓
-Data ditemukan:
-Service CVT mulai dari Rp xxx
-
-↓
-AI Generate Jawaban:
-"Kak, untuk service CVT mulai dari Rp xxx ya. Kalau mau lebih akurat, boleh info tipe motornya dulu?"
-
-↓
-Send Reply
-↓
-Log ke dashboard
-7. Flow Jika Data Tidak Ditemukan
-Customer:
-"Kak ada knalpot racing buat motor X tahun 2026?"
-
-↓
-AI cari di database produk
-↓
-Data tidak ditemukan
-↓
-AI tidak boleh mengarang
-↓
-Balasan aman:
-"Untuk stok item itu saya cek dulu ke admin ya kak, supaya informasinya tidak salah."
-↓
-Create Ticket
-↓
-Assign Admin
-↓
-AI paused
-8. Flow Human Handoff
-
-Ini bagian paling penting supaya AI tidak asal balas.
-
-Flow handoff
-AI tidak yakin / kasus berat / data tidak ada
-↓
-Sistem buat ticket
-↓
-Conversation status berubah:
-ai_active → assigned_to_admin
-↓
-Admin dapat notifikasi
-↓
-Admin buka dashboard
-↓
-Admin jawab manual
-↓
-Pesan terkirim ke customer
-↓
-AI tetap pause
-↓
-Admin klik "Selesaikan"
-↓
-Conversation status berubah:
-assigned_to_admin → resolved
-Status conversation yang wajib ada
-ai_active
-ai_paused
-assigned_to_admin
-waiting_customer
-resolved
-blocked
-spam
-9. Flow Ketika Admin Sudah Balas Manual
-
-Ini solusi agar AI tidak ikut membalas lagi.
-
-Admin membalas dari dashboard
-↓
-Sistem simpan message sender = admin
-↓
-Conversation status = assigned_to_admin
-↓
-AI Reply Engine otomatis skip conversation ini
-↓
-AI tidak boleh membalas
-↓
-Jika admin klik "Aktifkan AI lagi"
-Baru status berubah ke ai_active
-Logic backend
-if (conversation.status === "assigned_to_admin") {
-  return {
-    action: "skip_ai_reply",
-    reason: "Conversation handled by human admin"
-  };
-}
-10. Flow Untuk Instagram Comment
-
-Komentar IG harus dibedakan dari DM, karena komentar publik lebih sensitif.
-
-Flow komentar
-Komentar masuk
-↓
-Moderation AI
-↓
-Cek kategori:
-- Pertanyaan valid
-- Pujian
-- Minat beli
+- Semua percakapan
+- Ditangani AI
+- Butuh admin
+- Menunggu customer
+- Selesai
 - Spam
-- Kata kasar
-- Komentar negatif
-- Tidak relevan
-↓
-Jika aman:
-Auto reply public
-↓
-Jika minat beli:
-Reply public + kirim DM
-↓
-Jika negatif:
-Hide / delete / teruskan admin
-↓
-Log ke dashboard
-Contoh logic
-Komentar:
-"Harga service CVT berapa min?"
 
-↓
-Aman
-↓
-Balas:
-"Bisa kak, untuk estimasi service CVT mulai dari Rp xxx. Kalau mau lebih akurat, boleh DM tipe motornya ya."
-Komentar:
-"JUDOL GACOR LINK DI BIO"
+Fitur inti:
 
-↓
-Spam
-↓
-Hide/Delete
-↓
-Masuk log spam
-11. Flow Booking
-Customer:
-"Mau booking servis besok"
+- Search chat
+- Filter channel
+- Filter status
+- Balas manual
+- Take over admin
+- Private note
+- Suggested reply AI
+- Delivery status
 
-↓
-AI Classification:
-Intent = booking
+### Customers
 
-↓
-AI minta data:
-Nama
-Tipe motor
-Keluhan
-Tanggal booking
-Jam perkiraan
-Nomor WhatsApp
+Fungsi:
 
-↓
-Simpan ke database booking
-↓
-Kirim notifikasi ke admin
-↓
-Kirim konfirmasi ke customer
-↓
-Status booking = pending_confirmation
-Data booking
-id
-customer_id
-name
-phone
-motor_type
-complaint
-booking_date
-booking_time
-status
-assigned_admin
-created_at
-12. Flow Produk / Sparepart
-Customer:
-"Kak ada V-belt Vario 125?"
+- Menyimpan data customer lintas channel dalam satu profil
+- Menjadi titik awal CRM sederhana
 
-↓
-AI Classification:
-Intent = tanya_produk
+Isi data:
 
-↓
-Search produk:
-keyword = "V-belt Vario 125"
+- Nama
+- Nomor WhatsApp
+- Username sosial
+- Email
+- Segment
+- Tag
+- Riwayat interaksi
+- Booking
+- Ticket
+- Nilai lead / status customer
 
-↓
-Jika ditemukan:
-Ambil nama, stok, harga, kompatibilitas
+### AI Agent
 
-↓
-AI jawab:
-"Ada kak, V-belt untuk Vario 125 tersedia. Harga Rp xxx. Stok saat ini ada. Mau saya bantu lanjutkan order?"
-Sumber data produk
+Fungsi:
 
-Paling bagus:
+- Mengatur perilaku AI
+- Menentukan cara AI menjawab
+- Mengatur prompt, tone, guardrail, dan handoff
 
-PostgreSQL = sumber utama
-Google Sheets = tempat admin update mudah
-n8n = sync Google Sheets ke PostgreSQL
+Subflow penting:
 
-Jadi admin cukup edit Google Sheets, dashboard dan AI tetap ambil dari PostgreSQL.
+- Identitas AI
+- Bahasa utama
+- Gaya bahasa
+- Instruksi balasan
+- Contoh gaya bicara
+- Keyword sapaan
+- Template sapaan
+- Blacklist topik
+- Confidence threshold
+- Fallback message
 
-13. Database Utama
+### Knowledge Base
 
-Minimal pakai tabel ini.
+Fungsi:
 
-contacts
-id
-name
-phone
-instagram_username
-channel
-tags
-last_seen_at
-created_at
-conversations
-id
-contact_id
-channel
-status
-assigned_admin_id
-last_intent
-last_message
-last_message_at
-created_at
-updated_at
-messages
-id
-conversation_id
-sender_type -- customer / ai / admin / system
-message_text
-message_type
-raw_payload
-created_at
-products
-id
-name
-category
-brand
-price
-stock
-description
-motor_compatibility
-image_url
-is_active
-updated_at
-services
-id
-service_name
-category
-price_start
-price_end
-description
-duration_estimate
-notes
-is_active
-updated_at
-knowledge_base
-id
-title
-category
-content
-source
-status
-updated_at
-tickets
-id
-conversation_id
-contact_id
-issue_type
-priority
-status
-assigned_to
-summary
-created_at
-resolved_at
-automation_logs
-id
-workflow_name
-conversation_id
-input_payload
-output_payload
-status
-error_message
-created_at
-14. Flow n8n Yang Perlu Dibuat
-Workflow 1 — Incoming Message Router
-Webhook
-↓
-Normalize Data
-↓
-Save Contact
-↓
-Save Message
-↓
-Check Conversation Status
-↓
-If AI Active
-↓
-Send to AI Classifier
+- Menjadi sumber data utama untuk AI
 
-Node n8n:
+Sumber knowledge:
 
-Webhook
-Code
-PostgreSQL
-IF
-AI Agent / HTTP Request
-Switch
-Execute Workflow
-Workflow 2 — AI Auto Reply
-Input message
-↓
-Classify intent
-↓
-Search data
-↓
-Generate answer
-↓
-Guardrail check
-↓
-Send reply
-↓
-Save log
+- FAQ manual
+- Text manual
+- File upload
+- Website URL
+- Google Sheet
 
-Node n8n:
+Status yang diharapkan:
 
-Execute Workflow Trigger
-AI Chat Model
-PostgreSQL
-IF
-HTTP Request
-PostgreSQL
-Workflow 3 — Human Handoff
-AI confidence rendah
-↓
-Create ticket
-↓
-Assign admin
-↓
-Set conversation = assigned_to_admin
-↓
-Notify admin
-↓
-Stop AI
+- Draft
+- Processing
+- Ready
+- Published
+- Needs review
 
-Node n8n:
+### Products & Services
 
-IF
-PostgreSQL
-Telegram / WhatsApp / Email Notification
-Update Database
-Workflow 4 — Admin Manual Reply Sync
-Admin reply dari dashboard
-↓
-Backend send message ke channel
-↓
-Save message as admin
-↓
-Keep AI paused
-↓
-Update last message
-Workflow 5 — Product Sync
-Admin update Google Sheets
-↓
-n8n scheduled trigger
-↓
-Read Google Sheets
-↓
-Clean data
-↓
-Upsert ke PostgreSQL
-↓
-Update dashboard
-Workflow 6 — Instagram Comment Moderation
-IG Comment webhook
-↓
-Moderation AI
-↓
-Spam/negative?
-↓
-Jika spam: hide/delete
-↓
-Jika pertanyaan: reply
-↓
-Jika minat beli: reply + DM
-↓
-Save log
-Workflow 7 — Daily Analytics
-Setiap malam
-↓
-Hitung jumlah chat
-↓
-Hitung leads
-↓
-Hitung ticket
-↓
-Hitung booking
-↓
-Hitung AI success rate
-↓
-Tampilkan di dashboard
-15. Tampilan Inbox Yang Paling Mudah Dipakai
+Fungsi:
 
-Inbox harus dibuat seperti dashboard CS modern.
+- Menyimpan katalog produk dan layanan resmi
+- Menjadi sumber jawaban AI untuk harga, stok, dan detail jasa
 
-Layout ideal
-Kiri:
-List chat customer
+Data inti:
 
-Tengah:
-Isi percakapan
+- Produk
+- Layanan
+- Harga mulai
+- Harga akhir
+- Deskripsi
+- Durasi
+- Status
+- Ketersediaan
 
-Kanan:
-Detail customer + AI insight + action button
-Panel kiri
-Semua
-Butuh Admin
-Belum Dibalas
-AI Aktif
-Komplain
-Booking
-Spam
-Selesai
-Panel tengah
-Chat history
-Input balasan admin
-Tombol quick reply
-Tombol AI bantu buat jawaban
-Panel kanan
-Nama customer
-Channel
-Nomor / username
-Intent terakhir
-Sentiment
-Status AI
-Tag
-Riwayat order
-Ticket aktif
-Tombol:
-- Ambil alih chat
-- Aktifkan AI
+### Booking
+
+Fungsi:
+
+- Mengelola jadwal layanan, reservasi, dan reminder
+
+Data inti:
+
+- Nama customer
+- Layanan
+- Tanggal
+- Jam
+- Keluhan
+- Motor / unit
+- Status booking
+- Catatan admin
+
+### Tickets
+
+Fungsi:
+
+- Menangani kasus yang tidak boleh ditutup AI
+- Menjadi alur handoff dari AI ke admin
+
+Data inti:
+
+- Nomor ticket
+- Ringkasan masalah
+- Prioritas
+- Status
+- PIC
+- SLA
+- Catatan internal
+
+### Automation
+
+Fungsi:
+
+- Menjalankan trigger, condition, dan action dari event bisnis
+
+Contoh automation:
+
+- Handoff ke admin
+- Reminder booking
+- Reminder follow-up lead
+- Follow-up broadcast
+- Escalation ticket
+
+### Broadcast
+
+Fungsi:
+
+- Mengirim campaign atau pesan massal
+
+Data inti:
+
+- Template
+- Audience
+- Jadwal kirim
+- Channel
+- Status campaign
+- Hasil campaign
+
+### Channels
+
+Fungsi:
+
+- Mengelola integrasi channel
+
+Channel utama:
+
+- WhatsApp
+- Instagram
+- Website Chat
+
+Channel lanjutan:
+
+- Facebook
+- Telegram
+- Email
+- API Channel
+
+### Analytics
+
+Fungsi:
+
+- Menampilkan performa percakapan, AI, agent, dan funnel customer
+
+Metrik inti:
+
+- Total conversation
+- AI handled
+- Human handled
+- Handoff rate
+- Response time
+- Ticket rate
+- Booking rate
+- Broadcast performance
+
+### Settings
+
+Fungsi:
+
+- Mengelola workspace dan konfigurasi sistem
+
+Isi utama:
+
+- Profil bisnis
+- Tim
+- Permission
+- API key
+- Security
+- Working hours
+- Notifikasi
+
+---
+
+## 4. Flow Besar Seluruh Sistem
+
+```text
+Customer / Lead
+-> Masuk dari Channel
+-> Dinormalisasi ke format internal
+-> Dicocokkan ke customer profile
+-> Masuk ke Inbox
+-> Dicek status conversation
+-> Diproses AI atau admin
+-> Ambil data dari knowledge / produk / booking / ticket
+-> Sistem memberi jawaban atau menjalankan aksi
+-> Semua event disimpan
+-> Masuk ke analytics, CRM, dan automation
+```
+
+Ringkasan alur:
+
+1. Customer menghubungi bisnis lewat salah satu channel.
+2. Sistem menerima webhook atau event inbound.
+3. Event diubah ke format standar internal.
+4. Sistem mencari atau membuat contact/customer.
+5. Sistem mencari atau membuat conversation.
+6. Inbox menentukan apakah AI boleh menjawab.
+7. Jika boleh, AI mengambil knowledge dan data bisnis.
+8. Jika tidak aman, sistem handoff ke admin.
+9. Semua aktivitas disimpan untuk analytics dan history.
+
+---
+
+## 5. Flow Pesan Masuk
+
+### 5.1 Event dari Channel
+
+Contoh bentuk event eksternal:
+
+```json
+{
+  "channel": "whatsapp",
+  "event_type": "message.received",
+  "external_message_id": "msg_983721",
+  "external_customer_id": "wa_62812xxxx",
+  "customer_name": "Budi",
+  "message_type": "text",
+  "message": "Harga service CVT Vario 125 berapa?",
+  "timestamp": "2026-06-17T10:30:00+07:00"
+}
+```
+
+### 5.2 Normalisasi Internal
+
+Semua channel harus dipetakan ke format standar:
+
+```json
+{
+  "tenant_id": "business_001",
+  "channel_id": "whatsapp_johan_garage",
+  "channel_type": "whatsapp",
+  "external_customer_id": "wa_62812xxxx",
+  "external_message_id": "msg_983721",
+  "message_type": "text",
+  "content": {
+    "text": "Harga service CVT Vario 125 berapa?"
+  },
+  "received_at": "2026-06-17T10:30:00+07:00"
+}
+```
+
+### 5.3 Validasi Sebelum Diproses
+
+Sistem wajib memeriksa:
+
+- Signature webhook valid
+- Message ID belum pernah diproses
+- Channel aktif
+- Token/channel tidak error
+- Pesan bukan dari bot sendiri
+- Customer tidak diblokir
+- Conversation tidak sedang dibekukan
+- AI masih aktif untuk conversation tersebut
+- Admin belum take over
+
+---
+
+## 6. Flow Inbox
+
+Inbox menjadi pusat operasional utama.
+
+Struktur tampilan ideal:
+
+```text
+Kolom 1: Daftar chat
+Kolom 2: Area percakapan
+Kolom 3: Context customer
+```
+
+### Kolom 1 - Daftar Chat
+
+- Search
+- Filter status
+- Filter channel
+- Filter agent
+- Filter label
+
+### Kolom 2 - Area Percakapan
+
+- Pesan customer
+- Balasan AI
+- Balasan admin
+- Quick reply
+- Suggested reply
+- Private note
+- Attachment
+- Delivery state
+
+### Kolom 3 - Customer Context
+
+- Profil customer
+- Tag
+- Intent terakhir
+- Booking terkait
+- Ticket terkait
+- Riwayat chat
+- Summary AI
+
+### Aturan Penting Inbox
+
+```ts
+if (conversation.status === "human_active") {
+  return { action: "skip_ai" };
+}
+
+if (conversation.ai_enabled === false) {
+  return { action: "skip_ai" };
+}
+
+if (conversation.status === "blocked") {
+  return { action: "ignore" };
+}
+```
+
+Status conversation yang dipakai:
+
+- `new`
+- `unassigned`
+- `ai_active`
+- `queued`
+- `human_active`
+- `waiting_customer`
+- `waiting_internal`
+- `snoozed`
+- `resolved`
+- `closed`
+- `spam`
+- `blocked`
+
+---
+
+## 7. Flow AI Assistant
+
+Flow AI yang disarankan:
+
+```text
+Pesan customer
+-> Intent classification
+-> Entity extraction
+-> Risk classification
+-> Pilih AI agent
+-> Ambil context customer
+-> Ambil knowledge
+-> Ambil data bisnis
+-> Validasi jawaban
+-> Kirim jawaban atau handoff
+```
+
+Jenis agent yang bisa berkembang:
+
+- Sales Agent
+- Customer Service Agent
+- Product Agent
+- Booking Agent
+- Technical Agent
+- Complaint Agent
+- Billing Agent
+
+Aturan confidence:
+
+- `>= 0.85`: AI boleh jawab otomatis jika datanya ada
+- `0.65 - 0.84`: AI boleh meminta satu data tambahan yang penting
+- `< 0.65`: AI tidak boleh mengarang dan harus handoff
+
+Risk level tinggi harus selalu handoff, walaupun confidence tinggi.
+
+---
+
+## 8. Flow Knowledge Base
+
+Knowledge Base adalah sumber kebenaran untuk AI.
+
+Flow data:
+
+```text
+Admin input FAQ / file / website / Google Sheet
+-> Sistem ingest dan parsing
+-> Sistem membuat chunk / knowledge item
+-> Status processing
+-> Ready / published
+-> Dipakai AI saat menjawab
+```
+
+Struktur knowledge item:
+
+```json
+{
+  "title": "Harga Service CVT",
+  "category": "service",
+  "content": "Service CVT untuk motor tertentu dimulai dari ...",
+  "keywords": ["service cvt", "servis cvt", "cvt berisik"],
+  "source_type": "google_sheet",
+  "status": "published",
+  "version": 3
+}
+```
+
+Aturan penting:
+
+- Harga resmi harus berasal dari data bisnis resmi
+- AI tidak boleh mengarang harga
+- Data expired harus ditandai
+- Pertanyaan yang gagal dijawab harus masuk antrean improvement
+
+---
+
+## 9. Flow Products & Services
+
+Flow untuk pertanyaan harga atau layanan:
+
+```text
+Customer tanya harga / jasa
+-> AI baca intent
+-> Cari ke data services / products
+-> Data ditemukan?
+   -> Ya: jawab sesuai data
+   -> Tidak: minta detail tambahan atau handoff
+```
+
+Data layanan minimal:
+
+- Nama layanan
+- Kategori
+- Harga minimum
+- Harga maksimum
+- Estimasi durasi
+- Kompatibilitas motor
+- Deskripsi
+- Status aktif
+
+Catatan revisi:
+
+Jika data harga final belum ada, AI harus jujur bahwa harga perlu dicek admin. Jangan pernah menebak nominal.
+
+---
+
+## 10. Flow Booking
+
+Flow booking:
+
+```text
+Customer minta booking
+-> AI identifikasi layanan
+-> Minta tipe motor dan keluhan
+-> Cek slot
+-> Tawarkan pilihan waktu
+-> Customer pilih
+-> Buat booking
+-> Kirim konfirmasi
+-> Kirim reminder
+```
+
+Status booking:
+
+- `requested`
+- `pending_confirmation`
+- `confirmed`
+- `rescheduled`
+- `checked_in`
+- `in_progress`
+- `completed`
+- `no_show`
+- `cancelled`
+
+---
+
+## 11. Flow Ticket dan Handoff
+
+Ticket dibuat saat:
+
+- Customer komplain
+- Customer minta admin
+- AI confidence rendah
+- Data bisnis tidak ditemukan
+- Masalah pembayaran
+- Diagnosis teknis berisiko
+- Tool/API gagal
+
+Flow handoff:
+
+```text
+AI mendeteksi handoff
+-> Buat ringkasan
+-> Kumpulkan data penting
+-> Create ticket
+-> Assign team / agent
+-> Conversation menjadi queued
+-> Admin menerima
+-> Conversation menjadi human_active
+-> AI berhenti membalas
+```
+
+Data summary untuk admin sebaiknya mencakup:
+
+- kebutuhan customer
+- issue yang terdeteksi
+- motor / produk / layanan terkait
+- aksi yang sudah dilakukan AI
+- data yang masih kurang
+- alasan handoff
+
+---
+
+## 12. Flow Automation
+
+Automation builder memakai pola:
+
+```text
+Trigger
+-> Condition
+-> Action
+-> Delay / Wait
+-> Branch
+-> Output
+```
+
+Trigger utama:
+
+- Message received
+- Comment received
+- Booking created
+- Ticket created
+- Payment received
+- Campaign replied
+- Schedule reached
+
+Action utama:
+
+- Send message
+- Assign agent
+- Add tag
+- Create ticket
+- Create booking
+- Create order
+- Call AI agent
+- Call API
+- Send webhook
+- Notify admin
 - Pause AI
-- Buat ticket
-- Tandai selesai
-16. Fitur Agar Dashboard Lebih Mudah Digunakan
 
-Ini yang akan membuat sistem Anda lebih unggul dari dashboard yang terlalu kompleks.
+Contoh automation wajib:
 
-1. Tombol “Ambil Alih”
+1. Tanya harga atau stok
+2. Booking masuk
+3. Komplain
+4. Admin take over
+5. AI gagal menjawab
+6. Follow-up lead
+7. SLA escalation
+8. CSAT setelah percakapan selesai
 
-Admin cukup klik:
+---
 
-Ambil Alih
+## 13. Flow Broadcast
 
-Efeknya:
+Flow campaign:
 
-AI otomatis pause
-Chat assigned ke admin
-Admin bisa jawab manual
-2. Tombol “Aktifkan AI Lagi”
+```text
+Pilih channel
+-> Pilih audience
+-> Pilih template
+-> Isi variable
+-> Atur jadwal
+-> Preview
+-> Approval
+-> Send
+-> Tracking hasil
+```
 
-Setelah masalah selesai:
+Status campaign:
 
-Aktifkan AI Lagi
+- `draft`
+- `pending_approval`
+- `approved`
+- `scheduled`
+- `running`
+- `paused`
+- `completed`
+- `cancelled`
+- `failed`
 
-Efeknya:
+Metrik utama:
 
-Status kembali ai_active
-AI boleh balas lagi
-3. AI Summary Otomatis
+- Sent
+- Delivered
+- Read
+- Replied
+- Failed
+- Booking
+- Order
+- Conversion rate
 
-Setiap chat yang masuk ke admin harus punya ringkasan:
+---
 
-Ringkasan:
-Customer tanya harga service CVT untuk Vario 125.
-Belum diberi harga pasti karena tipe layanan belum jelas.
-Rekomendasi: minta detail keluhan dan arahkan booking.
-4. AI Suggested Reply
+## 14. Flow Channels
 
-Admin tidak perlu mengetik dari nol.
+Semua channel tidak boleh terhubung langsung ke logic bisnis.
+Gunakan adapter per channel.
 
-AI menyarankan:
-"Siap kak, untuk service CVT Vario 125 bisa kami bantu cek dulu ya. Biasanya estimasi tergantung kondisi CVT dan part yang perlu diganti."
+Adapter:
 
-Admin tinggal klik:
+- WhatsApp Adapter
+- Instagram Adapter
+- Website Chat Adapter
+- Telegram Adapter
+- Email Adapter
 
-Kirim
-Edit
-Tolak
-5. Confidence Badge
+Semua adapter harus menghasilkan event internal yang sama agar backend tetap konsisten.
 
-Tampilkan status AI:
+Status koneksi channel:
 
-AI Confidence: 92% Aman
-AI Confidence: 65% Perlu cek
-AI Confidence: 38% Wajib admin
-6. Auto Tagging
+- `connected`
+- `degraded`
+- `token_expiring`
+- `disconnected`
+- `configuration_error`
+- `webhook_error`
+- `rate_limited`
 
-AI otomatis memberi tag:
+---
 
-Hot Lead
-Tanya Harga
-Booking
-Komplain
-Spam
-Butuh Follow Up
-Customer Lama
-7. Quick Reply Template
+## 15. Flow Analytics dan Customer Journey
 
-Admin bisa pilih template:
+Analytics harus membaca event, bukan hanya teks chat.
 
-Info Harga
-Minta Tipe Motor
-Minta Foto/Video
-Arahkan Booking
-Stok Kosong
-Tunggu Admin Teknis
-17. Flow Automation Di Dashboard
+Metrik yang penting:
 
-Di menu Automation, buat bukan seperti n8n yang rumit. Buat versi sederhana:
+- Total incoming conversation
+- Unique customers
+- AI handled
+- Human handled
+- Handoff rate
+- Response time
+- Resolution time
+- Booking created
+- Ticket created
+- Broadcast conversion
+- CSAT
 
-Tampilan rule sederhana
-Jika customer bertanya tentang harga
-→ Cari data produk/layanan
-→ Jawab otomatis jika data ditemukan
-→ Jika tidak ditemukan, teruskan ke admin
-Jika komentar mengandung kata spam
-→ Hide comment
-→ Simpan ke spam log
-Jika customer minta booking
-→ Minta data booking
-→ Simpan
-→ Notifikasi admin
-18. Data Yang Diambil Sistem
-Kebutuhan	Sumber Data
-Chat customer	WhatsApp API, IG Graph API, website chat
-Nama customer	Channel API + CRM
-Riwayat chat	Database messages
-Produk	PostgreSQL / Google Sheets
-Harga	PostgreSQL / Google Sheets
-Stok	PostgreSQL / Google Sheets
-Layanan bengkel	Database services
-FAQ	Knowledge Base
-Diagnosa ringan	Knowledge Base teknis
-Booking	Database booking / Google Calendar
-Admin	Database users
-Ticket	Database tickets
-Report	Logs + analytics
-19. Rule Keamanan Jawaban AI
+Flow customer journey:
 
-AI wajib mengikuti aturan ini:
+```text
+Landing page visited
+-> Channel conversation started
+-> Contact created
+-> AI replied
+-> Admin assigned
+-> Booking / order / ticket created
+-> Follow-up
+-> CSAT
+-> Repeat purchase
+```
 
-1. Jangan mengarang harga.
-2. Jangan mengarang stok.
-3. Jangan memberi diagnosa berat secara pasti.
-4. Jangan menjawab jika data tidak ditemukan.
-5. Jangan membalas jika chat sudah diambil admin.
-6. Jangan hapus komentar kecuali masuk rule spam/negatif.
-7. Selalu simpan log jawaban AI.
-8. Untuk komplain, prioritaskan admin.
-9. Untuk pertanyaan teknis berat, arahkan cek langsung.
-10. Untuk produk/harga, wajib ambil dari database.
-20. Flow Final Yang Bisa Anda Terapkan
+---
 
-Ini versi final paling rapi:
+## 16. Arsitektur Teknis yang Disarankan
 
-Customer Message
-↓
-Webhook Receiver
-↓
-Normalize Message
-↓
-Save Contact & Message
-↓
-Check Conversation Status
-├── assigned_to_admin → Stop AI
-├── blocked → Ignore
-├── spam → Log Only
-└── ai_active → Continue
-↓
-Moderation Check
-├── Spam → Hide/Delete/Ignore
-├── Negative → Handoff Admin
-└── Safe → Continue
-↓
-AI Intent Classification
-↓
-Confidence Check
-├── Low Confidence → Handoff Admin
-├── High Risk → Handoff Admin
-└── Safe → Continue
-↓
-Retrieve Data
-├── Product DB
-├── Service DB
-├── Knowledge Base
-├── Booking DB
-└── Chat History
-↓
-Data Validation
-├── Data Found → Generate Reply
-└── Data Not Found → Handoff Admin
-↓
-AI Response Guardrail
-├── Safe → Send Reply
-└── Unsafe → Handoff Admin
-↓
-Save AI Reply
-↓
-Update Dashboard
-↓
-Analytics Log
-21. MVP Yang Sebaiknya Anda Bangun Dulu
+Struktur teknis revisi:
 
-Jangan langsung buat terlalu besar. Urutan terbaik:
+```text
+Frontend Dashboard
+Next.js + TypeScript + Tailwind
+-> Backend API
+Next.js Route Handlers / service layer
+-> Database
+Supabase PostgreSQL
+-> Queue / Worker
+Worker endpoint + scheduled execution
+-> Knowledge Storage
+knowledge documents + chunks
+-> AI Provider
+OpenRouter / OpenAI / Gemini
+-> Channel Adapters
+WhatsApp / Instagram / Web Chat
+```
 
-Phase 1 — Core Inbox
-- Login admin
-- Inbox semua chat
-- Detail conversation
+Prinsip tanggung jawab:
+
+- Backend: source of truth dan state bisnis
+- AI: memahami pesan dan menyusun jawaban
+- Database: menyimpan data resmi
+- Dashboard: pusat kontrol manusia
+- Automation: trigger dan orkestrasi proses
+
+---
+
+## 17. Prioritas Pengembangan Revisi
+
+### Fase 1 - Core Dashboard
+
+- Authentication
+- Workspace config
+- Channels
+- Customers
+- Inbox
 - Manual reply
-- Status ai_active / assigned_to_admin / resolved
-Phase 2 — AI Auto Reply
-- Intent classification
-- Knowledge base
-- Auto reply FAQ
-- Auto handoff jika tidak yakin
-Phase 3 — Produk & Layanan
-- Database produk
-- Database layanan
-- Query harga/stok
-- Google Sheets sync
-Phase 4 — Instagram Comment
-- Auto reply komentar aman
-- Hide/delete spam
-- DM untuk leads
-Phase 5 — Analytics
-- Jumlah chat
-- Jumlah leads
-- Ticket masuk
-- Booking masuk
-- AI success rate
-- Admin response time
-22. Kesimpulan Flow Terbaik
+- Assignment
 
-Dashboard Anda sebaiknya dibuat dengan prinsip ini:
+### Fase 2 - AI Layer
 
-AI bukan pusat sistem.
-Database adalah sumber kebenaran.
-Dashboard adalah pusat kontrol.
-n8n adalah mesin automation.
-Admin adalah fallback untuk kasus sulit.
+- AI Agent
+- Knowledge Base
+- AI reply
+- Suggested reply
+- Summary
+- Handoff
 
-Flow yang paling bagus:
+### Fase 3 - Operasional
 
-Omnichannel Inbox
-+
-AI Intent Classifier
-+
-Knowledge Base
-+
-Product/Service Database
-+
-Human Handoff
-+
-Ticketing
-+
-Analytics
+- Products & Services
+- Booking
+- Tickets
+- Analytics
+
+### Fase 4 - Automation
+
+- Trigger condition action
+- Scheduled worker
+- Execution log
+- Retry handling
+
+### Fase 5 - Campaign dan Scale
+
+- Broadcast
+- Audience segment
+- Approval flow
+- Performance report
+
+---
+
+## 18. Kesimpulan Flow Final
+
+Flow final revisi website:
+
+```text
+Channel
+-> Customer Identity
+-> Unified Inbox
+-> AI Decision Layer
+-> Knowledge / Business Data
+-> AI Reply atau Human Handoff
+-> Booking / Ticket / Broadcast / CRM Action
+-> Automation
+-> Analytics dan Optimization
+```
+
+Inti revisi website ini:
+
+- Tampilan harus tetap sederhana.
+- User harus cepat paham alur kerja.
+- Semua data penting bisnis dikontrol dari dashboard.
+- AI hanya boleh menjawab jika punya dasar data yang cukup.
+- Jika tidak aman, sistem harus handoff dengan rapi ke admin.

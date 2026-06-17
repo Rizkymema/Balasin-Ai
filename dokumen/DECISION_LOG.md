@@ -50,3 +50,20 @@ Use Tailwind CSS v4 plus CSS variables for design tokens.
 
 - Visual consistency should come from tokens and primitives
 - Avoid scattered one-off styling patterns
+
+## 2026-06-17 - Keep Inbox backend contract stable while upgrading the UI
+
+### Decision
+
+Refactor the Unified Inbox page into dedicated presentation components and keep all existing inbox route handlers and service contracts unchanged.
+
+### Reason
+
+- The inbox screen already had working reply and status actions that should not be destabilized.
+- The requested revision focused on making the feature closer to the `dokumen/Inbox.md` operational model without rewriting backend behavior.
+- Splitting the page reduces maintenance risk and makes future enhancements like assignment, snooze, and realtime sockets easier to add.
+
+### Consequence
+
+- UI now maps richer operational labels from the existing status model instead of introducing new backend enums immediately.
+- Future backend enhancements can plug into the current panel structure without another large page rewrite.
