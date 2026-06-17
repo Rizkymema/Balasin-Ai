@@ -37,3 +37,4 @@ Balesin AI provides a professional omnichannel AI customer service platform. It 
 - Text contrast must exceed 4.5:1.
 - Clear outline or ring indicator on keyboard focus states.
 - Animations must be minimal and respect `prefers-reduced-motion`.
+

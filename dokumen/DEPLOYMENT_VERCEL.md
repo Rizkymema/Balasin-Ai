@@ -1,5 +1,5 @@
 # Deployment Guide - Vercel
-
+sekarang buatkan agar data yang ada pada 
 ## Setup untuk Vercel
 
 Proyek Balesin Desk sudah dikonfigurasi untuk deploy ke Vercel dengan file konfigurasi berikut:

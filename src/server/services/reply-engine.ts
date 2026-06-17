@@ -34,6 +34,10 @@ const HOURS_KEYWORDS = [
   "close",
 ];
 
+const EMAIL_KEYWORDS = ["email", "surel", "kontak email", "hubungi lewat email"];
+const DESCRIPTION_KEYWORDS = ["siapa", "profil", "tentang", "about", "apa itu", "deskripsi"];
+const NAME_KEYWORDS = ["nama bisnis", "nama toko", "nama bengkel", "bengkel apa", "toko apa"];
+
 const PRICE_KEYWORDS = ["harga", "berapa", "biaya", "tarif", "ongkos", "estimasi"];
 const OPENING_PHRASES = [
   "boleh tanya",
@@ -637,6 +641,7 @@ async function findBestGoogleSheetMatch(
 
 async function findBestDocumentMatch(messageText: string) {
   const chunks = await getKnowledgeChunks();
+  const nonSheetChunks = chunks.filter((c) => c.metadata?.sourceType !== "google_sheet");
   let bestMatch:
     | {
         content: string;
@@ -647,7 +652,7 @@ async function findBestDocumentMatch(messageText: string) {
       }
     | null = null;
 
-  for (const chunk of chunks) {
+  for (const chunk of nonSheetChunks) {
     const questionScore = chunk.metadata.question
       ? scoreCandidate(messageText, chunk.metadata.question)
       : 0;
@@ -693,8 +698,9 @@ async function findBestDocumentMatch(messageText: string) {
 
 async function buildRelevantDocumentContext(messageText: string) {
   const chunks = await getKnowledgeChunks();
+  const nonSheetChunks = chunks.filter((c) => c.metadata?.sourceType !== "google_sheet");
 
-  return chunks
+  return nonSheetChunks
     .map((chunk) => {
       const questionScore = chunk.metadata.question
         ? scoreCandidate(messageText, chunk.metadata.question)
@@ -1105,6 +1111,53 @@ export async function generateReplyDecision(
       reply: applyStyleInstructions(config.workspace.businessHours, config, {
         preserveLength: true,
       }),
+      grounded: true,
+      source: "workspace",
+    };
+  }
+
+  if (hasKeyword(lower, EMAIL_KEYWORDS) && config.workspace.supportEmail.trim()) {
+    return {
+      intent: "Tanya email",
+      confidence: 97,
+      needsHuman: false,
+      status: "ai_active",
+      summary: "Jawaban email diambil dari profil bisnis.",
+      reply: applyStyleInstructions(
+        `Anda dapat menghubungi kami melalui email di ${config.workspace.supportEmail}`,
+        config,
+      ),
+      grounded: true,
+      source: "workspace",
+    };
+  }
+
+  if (hasKeyword(lower, DESCRIPTION_KEYWORDS) && config.workspace.description.trim()) {
+    return {
+      intent: "Tanya profil bisnis",
+      confidence: 95,
+      needsHuman: false,
+      status: "ai_active",
+      summary: "Jawaban profil bisnis diambil dari deskripsi bisnis.",
+      reply: applyStyleInstructions(config.workspace.description, config, {
+        preserveLength: true,
+      }),
+      grounded: true,
+      source: "workspace",
+    };
+  }
+
+  if (hasKeyword(lower, NAME_KEYWORDS) && config.workspace.name.trim()) {
+    return {
+      intent: "Tanya nama bisnis",
+      confidence: 98,
+      needsHuman: false,
+      status: "ai_active",
+      summary: "Jawaban nama bisnis diambil dari profil bisnis.",
+      reply: applyStyleInstructions(
+        `Bisnis kami bernama ${config.workspace.name}`,
+        config,
+      ),
       grounded: true,
       source: "workspace",
     };
