@@ -155,21 +155,24 @@ export async function sendChannelMessage(input: SendMessageInput) {
       };
     }
 
+    // Instagram Messaging API menggunakan graph.instagram.com
+    // Endpoint: POST /{ig-user-id}/messages
+    const igBaseUrl = "https://graph.instagram.com";
+    const igApiVersion = serverEnv.whatsappApiVersion;
+    const sendUrl = `${igBaseUrl}/${igApiVersion}/${accountId}/messages`;
+
     try {
-      const igResponse = await fetch(
-        `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/${accountId}/messages`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${igAccessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            recipient: { id: input.recipientId },
-            message: { text: input.message },
-          }),
+      const igResponse = await fetch(sendUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${igAccessToken}`,
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          recipient: { id: input.recipientId },
+          message: { text: input.message },
+        }),
+      });
 
       const igBody = await igResponse.text();
       let parsedBody: Record<string, unknown> | null = null;
@@ -179,15 +182,26 @@ export async function sendChannelMessage(input: SendMessageInput) {
         // Body bukan JSON
       }
 
+      if (!igResponse.ok) {
+        const tokenHint = igAccessToken.length < 20
+          ? "Token terlalu pendek, pastikan Anda menggunakan Page Access Token yang valid."
+          : "";
+
+        return {
+          ok: false,
+          provider: "instagram",
+          status: igResponse.status,
+          body: parsedBody,
+          note: `Instagram API error (${sendUrl}): ${igBody.slice(0, 300)}${tokenHint ? ` — ${tokenHint}` : ""}`,
+        };
+      }
+
       return {
-        ok: igResponse.ok,
+        ok: true,
         provider: "instagram",
         status: igResponse.status,
         body: parsedBody,
         messageId: (parsedBody as { message_id?: string })?.message_id,
-        note: igResponse.ok
-          ? undefined
-          : `Instagram API error: ${igBody.slice(0, 200)}`,
       };
     } catch (error) {
       return {
