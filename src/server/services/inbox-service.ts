@@ -6,6 +6,7 @@ import {
   getDashboardOperationsRecord,
   saveDashboardOperationsRecord,
 } from "@/server/repositories/dashboard-repository";
+import { formatClockTime } from "@/lib/time";
 import { generateReplyDecision, type ReplyDecision } from "@/server/services/reply-engine";
 import {
   sendChannelMessage,
@@ -64,6 +65,7 @@ function appendMessage(
     status?: ConversationMessage["status"];
     externalId?: string;
   },
+  timezone?: string | null,
 ) {
   return {
     ...conversation,
@@ -76,10 +78,7 @@ function appendMessage(
         id: randomUUID(),
         sender: message.sender,
         text: message.text,
-        timestamp: new Date().toLocaleTimeString("id-ID", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        timestamp: formatClockTime(timezone),
         externalId: message.externalId,
         status: message.status,
         type: message.type,
@@ -210,6 +209,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       type: input.messageType === "comment" ? "comment" : "text",
       externalId: input.externalMessageId,
     },
+    config.workspace.timezone,
   );
 
   conversation = {
@@ -266,6 +266,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
         }),
         externalId: delivery.messageId,
       },
+      config.workspace.timezone,
     );
 
     if (!delivery.ok) {
@@ -277,7 +278,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
           status: delivery.status,
         }),
         type: "system",
-      });
+      }, config.workspace.timezone);
     }
   }
 

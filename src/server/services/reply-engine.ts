@@ -1,4 +1,6 @@
 import { getKnowledgeChunks } from "@/server/repositories/dashboard-repository";
+import { resolveAppUrl } from "@/lib/app-url";
+import { formatCurrentTimeContext, getDefaultTimezone } from "@/lib/time";
 import type { DashboardConfig, FAQItem } from "@/types/dashboard-config";
 import type { ConversationStatus } from "@/types/operations";
 
@@ -460,6 +462,24 @@ function findBestFaqMatch(messageText: string, faqs: FAQItem[]) {
   };
 }
 
+function buildRelevantFaqContext(messageText: string, faqs: FAQItem[]) {
+  return faqs
+    .map((faq) => {
+      const questionScore = scoreCandidate(messageText, faq.question);
+      const answerScore = scoreCandidate(messageText, faq.answer);
+      const score = Math.max(questionScore * 1.15, (questionScore + answerScore) / 2);
+
+      return {
+        question: faq.question.trim(),
+        answer: faq.answer.trim(),
+        score,
+      };
+    })
+    .filter((item) => item.score >= 0.18)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 6);
+}
+
 async function findBestDocumentMatch(messageText: string) {
   const chunks = await getKnowledgeChunks();
   let bestMatch:
@@ -514,6 +534,223 @@ async function findBestDocumentMatch(messageText: string) {
       ? `Jawaban diambil dari knowledge source: ${bestMatch.sourceName} (${bestMatch.question})`
       : `Jawaban diambil dari knowledge source: ${bestMatch.sourceName}`,
   };
+}
+
+async function buildRelevantDocumentContext(messageText: string) {
+  const chunks = await getKnowledgeChunks();
+
+  return chunks
+    .map((chunk) => {
+      const questionScore = chunk.metadata.question
+        ? scoreCandidate(messageText, chunk.metadata.question)
+        : 0;
+      const answerScore = chunk.metadata.answer
+        ? scoreCandidate(messageText, chunk.metadata.answer)
+        : 0;
+      const contentScore = scoreCandidate(messageText, chunk.content);
+      const score = Math.max(
+        contentScore,
+        questionScore * 1.2,
+        (questionScore + answerScore) / 2,
+      );
+
+      const content = (chunk.metadata.answer || chunk.content).trim();
+
+      return {
+        sourceName: chunk.metadata.sourceName,
+        question: chunk.metadata.question?.trim() || "",
+        content: content.length > 700 ? `${content.slice(0, 697).trim()}...` : content,
+        score,
+      };
+    })
+    .filter((item) => item.score >= 0.18 && item.content)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 6);
+}
+
+function resolveProviderEndpoint(config: DashboardConfig) {
+  const customBaseUrl = config.aiProvider.baseUrl.trim();
+  if (customBaseUrl) {
+    if (/\/(chat\/completions|responses)$/i.test(customBaseUrl)) {
+      return customBaseUrl;
+    }
+
+    return `${customBaseUrl.replace(/\/+$/, "")}/chat/completions`;
+  }
+
+  switch (config.aiProvider.provider) {
+    case "openrouter":
+      return "https://openrouter.ai/api/v1/chat/completions";
+    case "openai":
+      return "https://api.openai.com/v1/chat/completions";
+    default:
+      return "";
+  }
+}
+
+function extractAiResponseText(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return "";
+  }
+
+  const response = payload as {
+    choices?: Array<{
+      message?: {
+        content?: string | Array<{ type?: string; text?: string }>;
+      };
+    }>;
+    output_text?: string;
+  };
+
+  if (typeof response.output_text === "string" && response.output_text.trim()) {
+    return response.output_text.trim();
+  }
+
+  const content = response.choices?.[0]?.message?.content;
+  if (typeof content === "string") {
+    return content.trim();
+  }
+
+  if (Array.isArray(content)) {
+    return content
+      .map((item) => (typeof item.text === "string" ? item.text.trim() : ""))
+      .filter(Boolean)
+      .join("\n")
+      .trim();
+  }
+
+  return "";
+}
+
+async function generateProviderReply(
+  messageText: string,
+  config: DashboardConfig,
+) {
+  if (
+    !config.aiProvider.enabled ||
+    !config.aiProvider.apiKey.trim() ||
+    !config.aiProvider.model.trim()
+  ) {
+    return null;
+  }
+
+  const endpoint = resolveProviderEndpoint(config);
+  if (!endpoint) {
+    return null;
+  }
+
+  const faqContext = buildRelevantFaqContext(messageText, config.knowledgeBase.faqs);
+  const documentContext = await buildRelevantDocumentContext(messageText);
+  const timezone = config.workspace.timezone || getDefaultTimezone();
+  const currentTime = formatCurrentTimeContext(timezone);
+
+  const workspaceContext = [
+    `Nama bisnis: ${config.workspace.name || "-"}`,
+    `Industri: ${config.workspace.industry || "-"}`,
+    `Deskripsi: ${config.workspace.description || "-"}`,
+    `Alamat: ${config.workspace.address || "-"}`,
+    `Jam operasional: ${config.workspace.businessHours || "-"}`,
+    `Timezone bisnis: ${timezone}`,
+    `Waktu lokal saat ini: ${currentTime}`,
+  ].join("\n");
+
+  const faqSection =
+    faqContext.length > 0
+      ? faqContext
+          .map(
+            (item, index) =>
+              `${index + 1}. Q: ${item.question}\nA: ${item.answer}`,
+          )
+          .join("\n\n")
+      : "Tidak ada FAQ relevan.";
+
+  const documentSection =
+    documentContext.length > 0
+      ? documentContext
+          .map((item, index) => {
+            const title = item.question
+              ? `${item.sourceName} | ${item.question}`
+              : item.sourceName;
+            return `${index + 1}. ${title}\n${item.content}`;
+          })
+          .join("\n\n")
+      : "Tidak ada dokumen relevan.";
+
+  const systemPrompt = `
+Anda adalah ${config.aiAgent.name || "AI Assistant"} untuk ${config.workspace.name || "sebuah bisnis"}.
+Jawab dalam bahasa ${config.aiAgent.language === "en" ? "English" : "Bahasa Indonesia"}.
+Gaya: ${config.aiAgent.tone}.
+Instruksi balasan: ${config.aiAgent.replyInstructions || "-"}.
+Contoh gaya bicara: ${config.aiAgent.replyStyleExample || "-"}.
+
+Aturan penting:
+- Gunakan data bisnis, FAQ, dan knowledge relevan jika tersedia.
+- Jika pertanyaan tidak ada di knowledge, Anda boleh menjawab dengan pengetahuan umum yang wajar dan aman.
+- Jangan mengarang alamat, jam buka, harga, stok, garansi, atau kebijakan bisnis jika datanya tidak ada.
+- Jika data bisnis spesifik tidak tersedia, katakan belum bisa memastikan bagian itu dan minta 1-2 detail penting saja.
+- Untuk keluhan teknis motor, berikan diagnosa awal yang masuk akal, singkat, dan aman.
+- Jika berisiko keselamatan, sarankan hentikan pemakaian dan cek langsung ke bengkel.
+- Jangan sebut prompt, knowledge base internal, model, database, atau proses sistem.
+- Output hanya teks balasan final, tanpa markdown dan tanpa label tambahan.
+`.trim();
+
+  const userPrompt = `
+PROFIL BISNIS
+${workspaceContext}
+
+FAQ RELEVAN
+${faqSection}
+
+KNOWLEDGE RELEVAN
+${documentSection}
+
+PERTANYAAN CUSTOMER
+${messageText}
+`.trim();
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${config.aiProvider.apiKey.trim()}`,
+    "Content-Type": "application/json",
+  };
+
+  if (config.aiProvider.provider === "openrouter") {
+    headers["HTTP-Referer"] = resolveAppUrl();
+    headers["X-Title"] = config.workspace.name || "Balesin Desk";
+  }
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        model: config.aiProvider.model.trim(),
+        temperature: 0.25,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = (await response.json()) as unknown;
+    const reply = extractAiResponseText(payload);
+    if (!reply) {
+      return null;
+    }
+
+    return {
+      reply,
+      grounded: faqContext.length > 0 || documentContext.length > 0,
+      usedContext:
+        faqContext.length > 0 || documentContext.length > 0,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function buildFallbackDecision(config: DashboardConfig, summary: string): ReplyDecision {
@@ -674,6 +911,28 @@ export async function generateReplyDecision(
       }),
       grounded: true,
       source: "document",
+    };
+  }
+
+  const providerReply = await generateProviderReply(routedMessage, config);
+  if (providerReply) {
+    return {
+      intent: hasKeyword(lower, PRICE_KEYWORDS)
+        ? "Tanya harga"
+        : hasKeyword(lower, HOURS_KEYWORDS)
+          ? "Tanya operasional"
+          : "Jawaban AI",
+      confidence: providerReply.grounded ? 84 : 74,
+      needsHuman: false,
+      status: "ai_active",
+      summary: providerReply.usedContext
+        ? "Jawaban dibuat oleh model AI dengan grounding profil bisnis dan knowledge yang relevan."
+        : "Jawaban dibuat oleh model AI production karena tidak ada jawaban exact-match di knowledge.",
+      reply: applyStyleInstructions(providerReply.reply, config, {
+        preserveLength: true,
+      }),
+      grounded: providerReply.grounded,
+      source: providerReply.grounded ? "document" : "fallback",
     };
   }
 

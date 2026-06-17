@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { getDashboardConfigRecord, getDashboardOperationsRecord, saveDashboardOperationsRecord } from "@/server/repositories/dashboard-repository";
 import { sendChannelMessage } from "@/server/services/channel-adapters";
+import { formatClockTime } from "@/lib/time";
 import type {
   ConversationMessage,
   ConversationRecord,
@@ -15,11 +16,8 @@ import type {
 
 const AI_REPLY_STATUSES: ConversationStatus[] = ["ai_active", "waiting_customer"];
 
-function formatMessageTimestamp() {
-  return new Date().toLocaleTimeString("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function formatMessageTimestamp(timezone?: string | null) {
+  return formatClockTime(timezone);
 }
 
 function resolveOutgoingMessageStatus(
@@ -250,7 +248,7 @@ export async function sendInboxReply(input: {
     id: randomUUID(),
     sender,
     text: input.message,
-    timestamp: formatMessageTimestamp(),
+    timestamp: formatMessageTimestamp(config.workspace.timezone),
     externalId: delivery.messageId,
     status: resolveOutgoingMessageStatus(conversation.channel, delivery.ok),
     type: "text",
@@ -280,7 +278,7 @@ export async function sendInboxReply(input: {
         note: delivery.note,
         status: delivery.status,
       }),
-      timestamp: formatMessageTimestamp(),
+      timestamp: formatMessageTimestamp(config.workspace.timezone),
       type: "system",
     });
     nextConversation.lastMessage = nextConversation.messages.at(-1)?.text ?? input.message;

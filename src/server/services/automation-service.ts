@@ -4,6 +4,7 @@ import {
   saveDashboardOperationsRecord,
 } from "@/server/repositories/dashboard-repository";
 import { sendChannelMessage } from "@/server/services/channel-adapters";
+import { formatClockTime } from "@/lib/time";
 
 async function processLeadFollowup(payload: Record<string, unknown>) {
   const current = await getDashboardOperationsRecord();
@@ -25,7 +26,7 @@ async function processLeadFollowup(payload: Record<string, unknown>) {
     id: crypto.randomUUID(),
     sender: "system",
     text: "Follow-up otomatis dikirim oleh worker.",
-    timestamp: new Date().toISOString(),
+    timestamp: formatClockTime(),
     type: "system",
   });
   target.lastMessage = "Follow-up otomatis dikirim oleh worker.";

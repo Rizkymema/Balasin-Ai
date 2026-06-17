@@ -4,16 +4,14 @@ import type {
   LeadStatus,
   TicketStatus,
 } from "@/types/operations";
+import { formatOperatorTimestamp } from "@/lib/time";
 
 export function createRecordId(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 export function createOperatorTimestamp() {
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date());
+  return formatOperatorTimestamp();
 }
 
 export function normalizeLookupKey(value: string) {
