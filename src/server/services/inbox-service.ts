@@ -152,7 +152,6 @@ function buildDeliveryFailureNote(input: {
 export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   const config = await getDashboardConfigRecord();
   const current = await getDashboardOperationsRecord();
-  const decision: ReplyDecision = await generateReplyDecision(input.messageText, config);
 
   let customer =
     current.customers.find(
@@ -195,6 +194,15 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       ticketId: null,
       channelContext: input.channelContext,
     } satisfies ConversationRecord);
+
+  const decision: ReplyDecision = await generateReplyDecision(input.messageText, config, {
+    recentMessages: conversation.messages.map((message) => ({
+      sender: message.sender,
+      text: message.text,
+    })),
+    lastIntent: conversation.lastIntent,
+    summary: conversation.summary,
+  });
 
   conversation = appendMessage(
     {
