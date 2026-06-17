@@ -1,6 +1,11 @@
 "use client";
 
-import { Clock3, Dot, Search } from "lucide-react";
+import {
+  Clock3,
+  MessageSquarePlus,
+  MoreVertical,
+  Search,
+} from "lucide-react";
 
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -94,15 +99,37 @@ export function ConversationListPanel({
   onSelectConversation,
 }: ConversationListPanelProps) {
   return (
-    <aside className="flex min-h-[42rem] flex-col overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)]">
-      <div className="border-b border-[var(--color-border)] p-4 sm:p-5">
+    <aside className="flex min-h-[42rem] flex-col overflow-hidden rounded-[28px] border border-[#243138] bg-[#111b21]">
+      <div className="border-b border-[#243138] px-4 py-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-[2rem] font-semibold tracking-[-0.03em] text-white">
+            WhatsApp
+          </h2>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-300 transition hover:bg-white/[0.06] hover:text-white"
+              title="Mulai chat baru"
+            >
+              <MessageSquarePlus className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-300 transition hover:bg-white/[0.06] hover:text-white"
+              title="Menu"
+            >
+              <MoreVertical className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-muted)]" />
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             value={searchQuery}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Cari customer, pesan, tag, atau ticket..."
-            className="h-12 rounded-2xl border-[var(--color-border)] bg-white/[0.03] pl-11 text-sm"
+            placeholder="Cari atau mulai obrolan baru"
+            className="h-14 rounded-full border-transparent bg-[#202c33] pl-11 text-sm text-white placeholder:text-slate-400 focus:border-transparent focus:ring-0"
           />
         </div>
 
@@ -110,6 +137,7 @@ export function ConversationListPanel({
           {QUICK_FILTERS.map((filter) => {
             const count = quickFilterCount(summary, filter.id);
             const active = filter.id === quickFilter;
+            const isUnreadFilter = filter.id === "unhandled";
 
             return (
               <button
@@ -117,27 +145,31 @@ export function ConversationListPanel({
                 type="button"
                 onClick={() => onQuickFilterChange(filter.id)}
                 className={cn(
-                  "inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-[11px] font-semibold transition",
+                  "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-[11px] font-semibold transition",
                   active
-                    ? "border-[var(--color-brand)] bg-[var(--color-brand)]/10 text-[var(--color-brand)]"
-                    : "border-[var(--color-border)] bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]",
+                    ? "border-[#1f5f4a] bg-[#103529] text-[#d6ffe9]"
+                    : "border-[#2a3942] bg-transparent text-slate-300 hover:bg-white/[0.04]",
                 )}
               >
                 <span>{filter.label}</span>
-                <span
-                  className={cn(
-                    "rounded-full px-2 py-0.5 text-[10px]",
-                    active ? "bg-[var(--color-brand)]/15" : "bg-white/5 text-slate-400",
-                  )}
-                >
-                  {count}
-                </span>
+                {count > 0 || isUnreadFilter ? (
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-[10px]",
+                      active
+                        ? "bg-[#184c3b] text-[#d6ffe9]"
+                        : "bg-white/5 text-slate-400",
+                    )}
+                  >
+                    {count}
+                  </span>
+                ) : null}
               </button>
             );
           })}
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <Select
             value={channelFilter}
             onChange={(event) =>
@@ -145,7 +177,7 @@ export function ConversationListPanel({
                 event.target.value as "all" | ConversationRecord["channel"],
               )
             }
-            className="h-11 rounded-2xl bg-white/[0.03] text-xs"
+            className="h-10 rounded-full border-[#2a3942] bg-transparent text-[11px] text-slate-300"
           >
             {channelOptions.map((option) => (
               <option key={option} value={option}>
@@ -161,7 +193,7 @@ export function ConversationListPanel({
                 event.target.value as "all" | ConversationStatus,
               )
             }
-            className="h-11 rounded-2xl bg-white/[0.03] text-xs"
+            className="h-10 rounded-full border-[#2a3942] bg-transparent text-[11px] text-slate-300"
           >
             <option value="all">Semua Status</option>
             <option value="ai_active">AI Aktif</option>
@@ -176,7 +208,7 @@ export function ConversationListPanel({
           <Select
             value={assignmentFilter}
             onChange={(event) => onAssignmentFilterChange(event.target.value)}
-            className="h-11 rounded-2xl bg-white/[0.03] text-xs"
+            className="h-10 rounded-full border-[#2a3942] bg-transparent text-[11px] text-slate-300"
           >
             {assignmentOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -188,7 +220,7 @@ export function ConversationListPanel({
           <Select
             value={sortBy}
             onChange={(event) => onSortChange(event.target.value)}
-            className="h-11 rounded-2xl bg-white/[0.03] text-xs"
+            className="h-10 rounded-full border-[#2a3942] bg-transparent text-[11px] text-slate-300"
           >
             <option value="latest">Urutkan: Terbaru</option>
             <option value="unread">Urutkan: Unread terbanyak</option>
@@ -198,8 +230,8 @@ export function ConversationListPanel({
           </Select>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-[var(--color-border)] bg-white/[0.03] p-3">
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="rounded-2xl bg-[#1f2c34] p-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">
               Butuh Admin
             </p>
@@ -207,7 +239,7 @@ export function ConversationListPanel({
               {summary.needAdminCount}
             </p>
           </div>
-          <div className="rounded-2xl border border-[var(--color-border)] bg-white/[0.03] p-3">
+          <div className="rounded-2xl bg-[#1f2c34] p-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">
               SLA Terlambat
             </p>
@@ -218,7 +250,7 @@ export function ConversationListPanel({
         </div>
       </div>
 
-      <div className="custom-scrollbar flex-1 overflow-y-auto p-3">
+      <div className="custom-scrollbar flex-1 overflow-y-auto">
         {conversations.length === 0 ? (
           <EmptyState
             title="Filter tidak menemukan hasil"
@@ -226,7 +258,7 @@ export function ConversationListPanel({
             className="min-h-[18rem] border-none bg-transparent p-4"
           />
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-[#1f2c34]">
             {conversations.map((conversation) => {
               const active = selectedId === conversation.id;
               const statusMeta = getConversationStatusMeta(conversation);
@@ -234,6 +266,7 @@ export function ConversationListPanel({
               const priorityMeta = getPriorityMeta(conversation);
               const ChannelIcon = channelMeta.icon;
               const StatusIcon = statusMeta.icon;
+              const unread = conversation.unreadCount > 0;
 
               return (
                 <button
@@ -241,17 +274,20 @@ export function ConversationListPanel({
                   type="button"
                   onClick={() => onSelectConversation(conversation.id)}
                   className={cn(
-                    "w-full rounded-[24px] border p-4 text-left transition",
+                    "w-full px-4 py-3 text-left transition",
                     active
-                      ? "border-[var(--color-brand)]/30 bg-[var(--color-brand)]/7 shadow-[0_0_0_1px_rgba(34,211,238,0.12)]"
-                      : "border-[var(--color-border)] bg-white/[0.02] hover:bg-white/[0.05]",
+                      ? "bg-[#202c33]"
+                      : "bg-transparent hover:bg-white/[0.03]",
                   )}
                 >
                   <div className="flex items-start gap-3">
                     <div className="relative">
-                      <Avatar fallback={conversation.name} className="h-11 w-11" />
+                      <Avatar
+                        fallback={conversation.name}
+                        className="h-12 w-12 border-transparent bg-[#233138] text-slate-200"
+                      />
                       {conversation.unreadCount > 0 ? (
-                        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-brand)] px-1 text-[10px] font-bold text-slate-950">
+                        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#25d366] px-1 text-[10px] font-bold text-[#0b141a]">
                           {conversation.unreadCount}
                         </span>
                       ) : null}
@@ -261,54 +297,78 @@ export function ConversationListPanel({
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <h3 className="truncate text-sm font-semibold text-white">
+                            <h3
+                              className={cn(
+                                "truncate text-sm text-white",
+                                unread ? "font-semibold" : "font-medium",
+                              )}
+                            >
                               {conversation.name}
                             </h3>
-                            {conversation.unreadCount > 0 ? (
-                              <span className="h-2 w-2 rounded-full bg-cyan-400" />
-                            ) : null}
                           </div>
-                          <div className="mt-1 flex items-center gap-1 text-[11px] text-slate-400">
-                            <ChannelIcon className="h-3.5 w-3.5" />
+                          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
+                            <ChannelIcon className="h-3 w-3" />
                             <span>{channelMeta.label}</span>
-                            <Dot className="h-3 w-3" />
-                            <span>{conversation.timestamp}</span>
+                            <span className="h-1 w-1 rounded-full bg-slate-600" />
+                            <span>{conversation.assignedTo}</span>
                           </div>
                         </div>
 
-                        <Badge className={cn("px-2 py-1 text-[10px]", priorityMeta.toneClassName)}>
-                          {priorityMeta.label}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-2">
+                          <span
+                            className={cn(
+                              "text-[11px]",
+                              unread ? "font-semibold text-[#25d366]" : "text-slate-400",
+                            )}
+                          >
+                            {conversation.timestamp}
+                          </span>
+                          {unread ? (
+                            <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#25d366] px-1.5 py-0.5 text-[10px] font-bold text-[#0b141a]">
+                              {conversation.unreadCount}
+                            </span>
+                          ) : (
+                            <Badge
+                              className={cn(
+                                "px-2 py-0.5 text-[9px]",
+                                priorityMeta.toneClassName,
+                              )}
+                            >
+                              {priorityMeta.label}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
 
-                      <p className="mt-3 line-clamp-2 text-[12px] leading-5 text-slate-300">
+                      <p
+                        className={cn(
+                          "mt-2 line-clamp-1 text-[12px] leading-5",
+                          unread ? "text-slate-300" : "text-slate-400",
+                        )}
+                      >
                         {conversation.lastMessage}
                       </p>
 
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <Badge className={cn("px-2 py-1 text-[10px]", statusMeta.toneClassName)}>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <Badge className={cn("px-2 py-0.5 text-[9px]", statusMeta.toneClassName)}>
                           <StatusIcon className="mr-1 h-3.5 w-3.5" />
                           {statusMeta.shortLabel}
                         </Badge>
-                        <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] text-slate-300">
+                        <span className="rounded-full bg-[#1f2c34] px-2 py-0.5 text-[9px] text-slate-300">
                           {conversation.lastIntent}
                         </span>
                         {conversation.tags.slice(0, 1).map((tag) => (
                           <span
                             key={tag}
-                            className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] text-slate-400"
+                            className="rounded-full bg-[#1f2c34] px-2 py-0.5 text-[9px] text-slate-400"
                           >
                             {tag}
                           </span>
                         ))}
                       </div>
-
-                      <div className="mt-3 flex items-center justify-between gap-3 text-[10px] text-slate-400">
-                        <span className="truncate">{conversation.assignedTo}</span>
-                        <span className="inline-flex items-center gap-1">
-                          <Clock3 className="h-3.5 w-3.5" />
-                          {formatSlaLabel(conversation)}
-                        </span>
+                      <div className="mt-2 flex items-center justify-end gap-1 text-[10px] text-slate-500">
+                        <Clock3 className="h-3 w-3" />
+                        {formatSlaLabel(conversation)}
                       </div>
                     </div>
                   </div>
@@ -321,4 +381,3 @@ export function ConversationListPanel({
     </aside>
   );
 }
-

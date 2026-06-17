@@ -6,6 +6,7 @@ import { MessageSquare, PanelRight, RefreshCcw } from "lucide-react";
 import { Toast } from "@/components/ui/toast";
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import { useDashboardOperations } from "@/hooks/use-dashboard-operations";
+import { cn } from "@/lib/utils";
 import type { ConversationRecord, ConversationStatus } from "@/types/operations";
 
 import { ConversationListPanel } from "./conversation-list-panel";
@@ -35,7 +36,7 @@ export function InboxWorkspace() {
   const [mobileView, setMobileView] = useState<"list" | "detail" | "context">(
     "list",
   );
-  const [showContextPanel, setShowContextPanel] = useState(true);
+  const [showContextPanel, setShowContextPanel] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSaved, setNoteSaved] = useState(false);
@@ -305,29 +306,37 @@ export function InboxWorkspace() {
   }
 
   return (
-    <div className="space-y-4">
-      <section className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+    <div className="space-y-3">
+      <section className="rounded-[28px] border border-[#243138] bg-[#111b21] px-4 py-3 shadow-[0_14px_30px_rgba(0,0,0,0.22)]">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold text-white">
-                Unified Inbox
-              </h1>
-              <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] font-semibold text-slate-300">
-                Real-time ops desk
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl font-semibold text-white">Unified Inbox</h1>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300">
+                chat workspace
               </span>
             </div>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-              Pusat operasional percakapan lintas channel untuk memantau AI,
-              takeover admin, histori pesan, dan konteks customer dari satu layar.
-            </p>
+            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-400">
+              <span className="rounded-full bg-[#1f2c34] px-3 py-1">
+                Semua {summary.allCount}
+              </span>
+              <span className="rounded-full bg-[#1f2c34] px-3 py-1">
+                Belum dibaca {summary.unhandledCount}
+              </span>
+              <span className="rounded-full bg-[#1f2c34] px-3 py-1">
+                Butuh Admin {summary.needAdminCount}
+              </span>
+              <span className="rounded-full bg-[#1f2c34] px-3 py-1">
+                AI Aktif {summary.aiActiveCount}
+              </span>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => void refreshData()}
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-[var(--color-border)] bg-white/[0.03] px-4 text-sm font-semibold text-white transition hover:bg-white/[0.06]"
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-[#1f2c34] px-4 text-sm font-semibold text-white transition hover:bg-[#25343d]"
             >
               <RefreshCcw className="h-4 w-4" />
               Refresh
@@ -335,62 +344,12 @@ export function InboxWorkspace() {
             <button
               type="button"
               onClick={() => setShowContextPanel((current) => !current)}
-              className="hidden h-11 items-center gap-2 rounded-full border border-[var(--color-border)] bg-white/[0.03] px-4 text-sm font-semibold text-white transition hover:bg-white/[0.06] xl:inline-flex"
+              className="hidden h-10 items-center gap-2 rounded-full bg-[#1f2c34] px-4 text-sm font-semibold text-white transition hover:bg-[#25343d] xl:inline-flex"
             >
               <PanelRight className="h-4 w-4" />
-              {showContextPanel ? "Sembunyikan Context" : "Tampilkan Context"}
+              {showContextPanel ? "Tutup Detail" : "Lihat Detail"}
             </button>
           </div>
-        </div>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-[22px] border border-[var(--color-border)] bg-white/[0.03] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">
-              Semua Conversation
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-white">
-              {summary.allCount}
-            </p>
-          </div>
-          <div className="rounded-[22px] border border-[var(--color-border)] bg-white/[0.03] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">
-              Belum Ditangani
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-white">
-              {summary.unhandledCount}
-            </p>
-          </div>
-          <div className="rounded-[22px] border border-[var(--color-border)] bg-white/[0.03] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">
-              Butuh Admin
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-white">
-              {summary.needAdminCount}
-            </p>
-          </div>
-          <div className="rounded-[22px] border border-[var(--color-border)] bg-white/[0.03] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">
-              AI Aktif
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-white">
-              {summary.aiActiveCount}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-slate-400">
-          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
-            Ditangani Saya: {summary.mineCount}
-          </span>
-          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
-            Menunggu Customer: {summary.waitingCustomerCount}
-          </span>
-          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
-            SLA Terlambat: {summary.slaLateCount}
-          </span>
-          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
-            Updated: {new Date(data.lastUpdatedAt).toLocaleString("id-ID")}
-          </span>
         </div>
       </section>
 
@@ -413,7 +372,14 @@ export function InboxWorkspace() {
           </div>
         </section>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-[0.95fr_1.4fr_0.95fr]">
+        <div
+          className={cn(
+            "grid gap-3",
+            showContextPanel
+              ? "xl:grid-cols-[25rem_minmax(0,1fr)_21rem]"
+              : "xl:grid-cols-[25rem_minmax(0,1fr)]",
+          )}
+        >
           <div className={mobileView === "list" ? "block" : "hidden xl:block"}>
             <ConversationListPanel
               conversations={filteredConversations}
@@ -503,7 +469,9 @@ export function InboxWorkspace() {
           </div>
 
           <div
-            className={showContextPanel || mobileView === "context" ? "block" : "hidden"}
+            className={
+              showContextPanel || mobileView === "context" ? "block" : "hidden"
+            }
           >
             <CustomerContextPanel
               conversation={activeConversation}
