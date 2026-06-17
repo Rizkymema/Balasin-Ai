@@ -344,7 +344,7 @@ export function InboxWorkspace() {
             <button
               type="button"
               onClick={() => setShowContextPanel((current) => !current)}
-              className="hidden h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.08] xl:inline-flex"
+              className="hidden h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.08] lg:inline-flex"
             >
               <PanelRight className="h-4 w-4" />
               {showContextPanel ? "Tutup Detail" : "Lihat Detail"}
@@ -372,8 +372,8 @@ export function InboxWorkspace() {
           </div>
         </section>
       ) : (
-        <div className={cn("grid gap-3", "xl:grid-cols-[19rem_minmax(0,1fr)_18rem]")}>
-          <div className={mobileView === "list" ? "block" : "hidden xl:block"}>
+        <div className={cn("grid gap-3", "lg:grid-cols-[16rem_minmax(0,1fr)_15rem]")}>
+          <div className={mobileView === "list" ? "block" : "hidden lg:block"}>
             <ConversationListPanel
               conversations={filteredConversations}
               selectedId={activeConversation?.id ?? ""}
@@ -405,7 +405,7 @@ export function InboxWorkspace() {
             />
           </div>
 
-          <div className={mobileView === "detail" ? "block" : "hidden xl:block"}>
+          <div className={mobileView === "detail" ? "block" : "hidden lg:block"}>
             <ConversationThreadPanel
               conversation={activeConversation}
               config={config}
@@ -463,7 +463,7 @@ export function InboxWorkspace() {
 
           <div
             className={
-              showContextPanel || mobileView === "context" ? "block" : "hidden xl:block"
+              showContextPanel || mobileView === "context" ? "block" : "hidden lg:block"
             }
           >
             <CustomerContextPanel
