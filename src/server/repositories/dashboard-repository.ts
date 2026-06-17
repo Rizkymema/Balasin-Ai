@@ -158,6 +158,10 @@ function mergePersistedDashboardConfig(
           existing.channels.instagram.accessToken,
           incoming.channels.instagram.accessToken,
         ),
+        verifyToken: keepExistingString(
+          existing.channels.instagram.verifyToken,
+          incoming.channels.instagram.verifyToken,
+        ),
       },
     },
   } satisfies DashboardConfig;
@@ -313,7 +317,21 @@ function buildSpreadsheetChunks(params: {
   const chunks: KnowledgeChunk[] = [];
 
   for (const row of params.rows) {
+    const statusVal = findRowValue(row, ["status"]);
+    if (statusVal) {
+      const lowerStatus = statusVal.toLowerCase().trim();
+      if (
+        lowerStatus === "nonaktif" ||
+        lowerStatus === "non-active" ||
+        lowerStatus === "inactive" ||
+        lowerStatus === "non aktif"
+      ) {
+        continue;
+      }
+    }
+
     const question = findRowValue(row, QUESTION_KEYS);
+
     const answer = findRowValue(row, ANSWER_KEYS);
 
     if (question && answer) {

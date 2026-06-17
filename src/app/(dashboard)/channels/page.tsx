@@ -69,6 +69,7 @@ export default function ChannelsPage() {
   const [igUsername, setIgUsername] = useState(config.channels.instagram.username);
   const [igAccountId, setIgAccountId] = useState(config.channels.instagram.accountId);
   const [igAccessToken, setIgAccessToken] = useState(config.channels.instagram.accessToken);
+  const [igVerifyToken, setIgVerifyToken] = useState(config.channels.instagram.verifyToken || "");
   const [igAutoReplyDm, setIgAutoReplyDm] = useState(
     config.channels.instagram.autoReplyDm,
   );
@@ -110,6 +111,7 @@ export default function ChannelsPage() {
     setIgUsername(config.channels.instagram.username);
     setIgAccountId(config.channels.instagram.accountId);
     setIgAccessToken(config.channels.instagram.accessToken);
+    setIgVerifyToken(config.channels.instagram.verifyToken || "");
     setIgAutoReplyDm(config.channels.instagram.autoReplyDm);
     setIgCommentGuard(config.channels.instagram.commentGuard);
     setIgCommentToDm(config.channels.instagram.commentToDm);
@@ -235,9 +237,10 @@ export default function ChannelsPage() {
 
   const persistInstagram = (event: FormEvent) => {
     event.preventDefault();
-
+    const trimmedVerifyToken = igVerifyToken.trim();
     const nextStatus = igAccountId && igAccessToken ? "connected" : "draft";
     setIgStatus(nextStatus);
+    setIgVerifyToken(trimmedVerifyToken);
 
     patchConfig((current) => ({
       ...current,
@@ -247,9 +250,10 @@ export default function ChannelsPage() {
           ...current.channels.instagram,
           enabled: nextStatus === "connected",
           status: nextStatus,
-          username: igUsername,
-          accountId: igAccountId,
-          accessToken: igAccessToken,
+          username: igUsername.trim(),
+          accountId: igAccountId.trim(),
+          accessToken: igAccessToken.trim(),
+          verifyToken: trimmedVerifyToken,
           autoReplyDm: igAutoReplyDm,
           commentGuard: igCommentGuard,
           commentToDm: igCommentToDm,
@@ -767,20 +771,48 @@ export default function ChannelsPage() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Meta access token</label>
-                <Input
-                  type="password"
-                  value={igAccessToken}
-                  onChange={(event) => setIgAccessToken(event.target.value)}
-                />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300">Meta access token</label>
+                  <Input
+                    type="password"
+                    value={igAccessToken}
+                    onChange={(event) => setIgAccessToken(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300">Verify token</label>
+                  <Input
+                    value={igVerifyToken}
+                    onChange={(event) => setIgVerifyToken(event.target.value)}
+                    placeholder="Contoh: MANADO123"
+                  />
+                </div>
               </div>
 
               <div className="rounded-lg border border-white/8 bg-white/4 p-4 text-[11px] leading-normal text-slate-400">
-                <p className="font-bold text-slate-300">Webhook Instagram</p>
-                <code className="mt-2 block rounded bg-[#020611] p-2 font-mono text-cyan-300">
-                  {instagramWebhookUrl}
-                </code>
+                <p className="flex items-center gap-1 font-bold text-slate-300">
+                  <AlertCircle className="h-4 w-4 text-cyan-400" />
+                  Gunakan data ini pada Meta Developer webhook setup (Instagram)
+                </p>
+                <div className="mt-2 space-y-2">
+                  <div>
+                    <span className="block text-[10px] font-semibold uppercase text-slate-500">
+                      Callback URL
+                    </span>
+                    <code className="mt-0.5 block rounded bg-[#020611] p-1.5 font-mono text-cyan-300">
+                      {instagramWebhookUrl}
+                    </code>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-semibold uppercase text-slate-500">
+                      Verify Token
+                    </span>
+                    <code className="mt-0.5 block rounded bg-[#020611] p-1.5 font-mono text-cyan-300">
+                      {igVerifyToken || "MANADO123"}
+                    </code>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-3">

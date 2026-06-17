@@ -1,6 +1,30 @@
+import { getDashboardConfigRecord } from "@/server/repositories/dashboard-repository";
 import { recordWebhookEvent } from "@/server/repositories/webhook-repository";
 import { processIncomingMessage } from "@/server/services/inbox-service";
 import { jsonError, jsonOk } from "@/server/http";
+
+export async function GET(request: Request) {
+  try {
+    const config = await getDashboardConfigRecord();
+    const { searchParams } = new URL(request.url);
+    const mode = searchParams.get("hub.mode");
+    const token = searchParams.get("hub.verify_token");
+    const challenge = searchParams.get("hub.challenge");
+
+    const expectedToken =
+      config.channels.instagram.verifyToken ||
+      config.channels.whatsapp.verifyToken ||
+      "MANADO123";
+
+    if (mode === "subscribe" && token === expectedToken) {
+      return new Response(challenge ?? "OK", { status: 200 });
+    }
+
+    return new Response("Forbidden", { status: 403 });
+  } catch {
+    return new Response("Internal Server Error", { status: 500 });
+  }
+}
 
 export async function POST(request: Request) {
   try {

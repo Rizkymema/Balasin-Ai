@@ -664,6 +664,16 @@ async function findBestGoogleSheetMatch(
   let bestMatch: { chunk: KnowledgeChunk; score: number; isTriggerMatch: boolean } | null = null;
 
   for (const chunk of sheetChunks) {
+    const contentLower = chunk.content.toLowerCase();
+    if (
+      contentLower.includes("status: nonaktif") ||
+      contentLower.includes("status: non-active") ||
+      contentLower.includes("status: inactive") ||
+      contentLower.includes("status: non aktif")
+    ) {
+      continue;
+    }
+
     const triggers = extractTriggersFromContent(chunk.content);
     let triggerScore = 0;
     let hasTriggerMatch = false;
@@ -693,7 +703,6 @@ async function findBestGoogleSheetMatch(
     }
 
     // Fallback to token overlap
-    const contentLower = chunk.content.toLowerCase();
     let matchCount = 0;
 
     for (const token of queryTokens) {
@@ -791,9 +800,17 @@ async function findBestDocumentMatch(messageText: string) {
 
 async function buildRelevantDocumentContext(messageText: string) {
   const chunks = await getKnowledgeChunks();
-  const nonSheetChunks = chunks.filter((c) => c.metadata?.sourceType !== "google_sheet");
+  const activeChunks = chunks.filter((c) => {
+    const contentLower = c.content.toLowerCase();
+    return !(
+      contentLower.includes("status: nonaktif") ||
+      contentLower.includes("status: non-active") ||
+      contentLower.includes("status: inactive") ||
+      contentLower.includes("status: non aktif")
+    );
+  });
 
-  return nonSheetChunks
+  return activeChunks
     .map((chunk) => {
       const questionScore = chunk.metadata.question
         ? scoreCandidate(messageText, chunk.metadata.question)
@@ -1017,6 +1034,26 @@ function buildFallbackDecision(config: DashboardConfig, summary: string): ReplyD
     grounded: false,
     source: "fallback",
   };
+}
+
+function isInstructionOnly(text: string): boolean {
+  const lower = text.toLowerCase();
+  return (
+    lower.startsWith("pertanyaan seputar") ||
+    lower.startsWith("pertanyaan ") ||
+    lower.startsWith("keluhan ") ||
+    lower.startsWith("keluhan:") ||
+    lower.includes("minta tipe motor") ||
+    lower.includes("jangan beri") ||
+    lower.includes("jangan rekomendasikan") ||
+    lower.includes("jangan memastikan") ||
+    lower.includes("jangan mengarang") ||
+    lower.includes("arahkan ke admin") ||
+    lower.includes("arahkan admin") ||
+    lower.includes("wajib handoff") ||
+    lower.includes("wajib arahkan") ||
+    lower.includes("jangan langsung")
+  );
 }
 
 export async function generateReplyDecision(
@@ -1257,7 +1294,11 @@ export async function generateReplyDecision(
   }
 
   const googleSheetMatch = await findBestGoogleSheetMatch(routedMessage);
-  if (googleSheetMatch && googleSheetMatch.confidence >= config.aiAgent.confidenceThreshold) {
+  if (
+    googleSheetMatch &&
+    googleSheetMatch.confidence >= config.aiAgent.confidenceThreshold &&
+    !isInstructionOnly(googleSheetMatch.reply)
+  ) {
     return {
       intent: hasKeyword(lower, PRICE_KEYWORDS) ? "Tanya harga" : "Jawaban Google Sheet",
       confidence: googleSheetMatch.confidence,

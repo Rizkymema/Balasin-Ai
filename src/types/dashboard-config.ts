@@ -115,6 +115,7 @@ export type DashboardConfig = {
       username: string;
       accountId: string;
       accessToken: string;
+      verifyToken: string;
       autoReplyDm: boolean;
       commentGuard: boolean;
       commentToDm: boolean;

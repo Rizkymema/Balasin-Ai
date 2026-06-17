@@ -75,6 +75,7 @@ export const defaultDashboardConfig: DashboardConfig = {
       username: "",
       accountId: "",
       accessToken: "",
+      verifyToken: "",
       autoReplyDm: true,
       commentGuard: true,
       commentToDm: true,
