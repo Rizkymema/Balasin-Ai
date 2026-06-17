@@ -1,13 +1,32 @@
 import { randomUUID } from "node:crypto";
 
 import { getDatabase } from "@/server/db";
+import { getSupabaseServerClient, isSupabaseEnabled } from "@/server/supabase";
 
-export function recordWebhookEvent(input: {
+export async function recordWebhookEvent(input: {
   source: string;
   payload: Record<string, unknown>;
   normalized?: Record<string, unknown>;
   status: string;
 }) {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseServerClient();
+    const { error } = await supabase.from("webhook_events").insert({
+      id: randomUUID(),
+      source: input.source,
+      payload_json: input.payload,
+      normalized_json: input.normalized ?? null,
+      status: input.status,
+      created_at: new Date().toISOString(),
+    });
+
+    if (error) {
+      throw new Error(`Supabase webhook_events insert failed: ${error.message}`);
+    }
+
+    return;
+  }
+
   const database = getDatabase();
   database
     .prepare(

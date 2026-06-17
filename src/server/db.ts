@@ -5,6 +5,7 @@ import BetterSqlite3 from "better-sqlite3";
 
 import { defaultDashboardConfig } from "@/lib/dashboard-config";
 import { defaultDashboardOperations } from "@/lib/dashboard-operations";
+import { getSupabaseServerClient, isSupabaseEnabled } from "@/server/supabase";
 
 const IS_EPHEMERAL_RUNTIME = process.env.VERCEL === "1";
 const DATA_DIR =
@@ -18,6 +19,33 @@ type JsonRow = {
   data_json: string;
   updated_at: string;
 };
+
+type SupabaseJsonRow = {
+  id: string;
+  data_json: unknown;
+  updated_at: string;
+};
+
+type SupabaseKnowledgeChunkRow = {
+  id: string;
+  document_id: string;
+  chunk_index: number;
+  content: string;
+  metadata_json: unknown;
+  created_at: string;
+};
+
+const SUPABASE_JSON_TABLES = new Set([
+  "knowledge_faqs",
+  "knowledge_documents",
+  "conversations",
+  "customers",
+  "bookings",
+  "tickets",
+  "products",
+  "services",
+  "broadcasts",
+]);
 
 const LEGACY_DEMO_IDS = {
   faqs: ["faq-1", "faq-2"],
@@ -388,4 +416,289 @@ export function deleteJsonRow(tableName: string, id: string) {
 export function getUploadDirectory() {
   ensureDataDir();
   return UPLOAD_DIR;
+}
+
+function parseStoredJson<T>(value: unknown) {
+  if (typeof value === "string") {
+    return JSON.parse(value) as T;
+  }
+
+  return value as T;
+}
+
+function ensureSupabaseJsonTable(tableName: string) {
+  if (!SUPABASE_JSON_TABLES.has(tableName)) {
+    throw new Error(`Supabase table ${tableName} belum didukung.`);
+  }
+}
+
+export async function readAppConfigRecord<T>() {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("app_config")
+      .select("data_json")
+      .eq("id", 1)
+      .maybeSingle<{ data_json: unknown }>();
+
+    if (error) {
+      throw new Error(`Supabase app_config read failed: ${error.message}`);
+    }
+
+    return data ? parseStoredJson<T>(data.data_json) : null;
+  }
+
+  const row = getDatabase()
+    .prepare("SELECT data_json FROM app_config WHERE id = 1")
+    .get() as { data_json: string } | undefined;
+
+  return row ? (JSON.parse(row.data_json) as T) : null;
+}
+
+export async function writeAppConfigRecord(value: unknown) {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseServerClient();
+    const { error } = await supabase.from("app_config").upsert(
+      {
+        id: 1,
+        data_json: value,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+
+    if (error) {
+      throw new Error(`Supabase app_config write failed: ${error.message}`);
+    }
+
+    return;
+  }
+
+  getDatabase()
+    .prepare("UPDATE app_config SET data_json = ?, updated_at = ? WHERE id = 1")
+    .run(JSON.stringify(value), new Date().toISOString());
+}
+
+export async function listJsonRowsAsync<T>(tableName: string) {
+  if (isSupabaseEnabled()) {
+    ensureSupabaseJsonTable(tableName);
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from(tableName)
+      .select("id, data_json, updated_at")
+      .order("updated_at", { ascending: false })
+      .returns<SupabaseJsonRow[]>();
+
+    if (error) {
+      throw new Error(`Supabase list ${tableName} failed: ${error.message}`);
+    }
+
+    return (data ?? []).map((row) => parseStoredJson<T>(row.data_json));
+  }
+
+  return listJsonRows<T>(tableName);
+}
+
+export async function replaceJsonRowsAsync<T extends { id: string }>(
+  tableName: string,
+  items: T[],
+) {
+  if (isSupabaseEnabled()) {
+    ensureSupabaseJsonTable(tableName);
+    const supabase = getSupabaseServerClient();
+    const { error: deleteError } = await supabase
+      .from(tableName)
+      .delete()
+      .neq("id", "__never__");
+
+    if (deleteError) {
+      throw new Error(`Supabase clear ${tableName} failed: ${deleteError.message}`);
+    }
+
+    if (items.length === 0) {
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const { error: insertError } = await supabase.from(tableName).upsert(
+      items.map((item) => ({
+        id: item.id,
+        data_json: item,
+        updated_at: now,
+      })),
+      { onConflict: "id" },
+    );
+
+    if (insertError) {
+      throw new Error(`Supabase replace ${tableName} failed: ${insertError.message}`);
+    }
+
+    return;
+  }
+
+  replaceJsonRows(tableName, items);
+}
+
+export async function upsertJsonRowAsync<T extends { id: string }>(
+  tableName: string,
+  item: T,
+) {
+  if (isSupabaseEnabled()) {
+    ensureSupabaseJsonTable(tableName);
+    const supabase = getSupabaseServerClient();
+    const { error } = await supabase.from(tableName).upsert(
+      {
+        id: item.id,
+        data_json: item,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+
+    if (error) {
+      throw new Error(`Supabase upsert ${tableName} failed: ${error.message}`);
+    }
+
+    return;
+  }
+
+  upsertJsonRow(tableName, item);
+}
+
+export async function getJsonRowAsync<T>(tableName: string, id: string) {
+  if (isSupabaseEnabled()) {
+    ensureSupabaseJsonTable(tableName);
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from(tableName)
+      .select("data_json")
+      .eq("id", id)
+      .maybeSingle<{ data_json: unknown }>();
+
+    if (error) {
+      throw new Error(`Supabase get ${tableName} failed: ${error.message}`);
+    }
+
+    return data ? parseStoredJson<T>(data.data_json) : null;
+  }
+
+  return getJsonRow<T>(tableName, id);
+}
+
+export async function deleteJsonRowAsync(tableName: string, id: string) {
+  if (isSupabaseEnabled()) {
+    ensureSupabaseJsonTable(tableName);
+    const supabase = getSupabaseServerClient();
+    const { error } = await supabase.from(tableName).delete().eq("id", id);
+
+    if (error) {
+      throw new Error(`Supabase delete ${tableName} failed: ${error.message}`);
+    }
+
+    return;
+  }
+
+  deleteJsonRow(tableName, id);
+}
+
+export async function listKnowledgeChunkRowsAsync() {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("knowledge_chunks")
+      .select("id, document_id, chunk_index, content, metadata_json, created_at")
+      .order("created_at", { ascending: false })
+      .returns<SupabaseKnowledgeChunkRow[]>();
+
+    if (error) {
+      throw new Error(`Supabase knowledge_chunks list failed: ${error.message}`);
+    }
+
+    return (data ?? []).map((row) => ({
+      id: row.id,
+      document_id: row.document_id,
+      chunk_index: row.chunk_index,
+      content: row.content,
+      metadata_json: parseStoredJson<unknown>(row.metadata_json),
+      created_at: row.created_at,
+    }));
+  }
+
+  const database = getDatabase();
+  return database
+    .prepare(
+      "SELECT id, document_id, chunk_index, content, metadata_json, created_at FROM knowledge_chunks ORDER BY created_at DESC",
+    )
+    .all() as Array<{
+    id: string;
+    document_id: string;
+    chunk_index: number;
+    content: string;
+    metadata_json: string;
+    created_at: string;
+  }>;
+}
+
+export async function replaceKnowledgeChunkRowsAsync(
+  chunks: Array<{
+    id: string;
+    document_id: string;
+    chunk_index: number;
+    content: string;
+    metadata_json: unknown;
+    created_at: string;
+  }>,
+) {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseServerClient();
+    const { error: deleteError } = await supabase
+      .from("knowledge_chunks")
+      .delete()
+      .neq("id", "__never__");
+
+    if (deleteError) {
+      throw new Error(`Supabase knowledge_chunks clear failed: ${deleteError.message}`);
+    }
+
+    if (chunks.length === 0) {
+      return;
+    }
+
+    const { error: insertError } = await supabase
+      .from("knowledge_chunks")
+      .upsert(chunks, { onConflict: "id" });
+
+    if (insertError) {
+      throw new Error(
+        `Supabase knowledge_chunks replace failed: ${insertError.message}`,
+      );
+    }
+
+    return;
+  }
+
+  const database = getDatabase();
+  database.prepare("DELETE FROM knowledge_chunks").run();
+  const insertChunk = database.prepare(
+    "INSERT INTO knowledge_chunks (id, document_id, chunk_index, content, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+  );
+
+  database.exec("BEGIN");
+
+  try {
+    for (const item of chunks) {
+      insertChunk.run(
+        item.id,
+        item.document_id,
+        item.chunk_index,
+        item.content,
+        JSON.stringify(item.metadata_json),
+        item.created_at,
+      );
+    }
+    database.exec("COMMIT");
+  } catch (error) {
+    database.exec("ROLLBACK");
+    throw error;
+  }
 }

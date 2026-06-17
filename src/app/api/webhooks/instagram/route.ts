@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       body.comment?.from?.id ?? body.sender?.id ?? displayName;
 
     if (!text) {
-      recordWebhookEvent({
+      await recordWebhookEvent({
         source: "instagram",
         payload: body as Record<string, unknown>,
         status: "ignored",
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       rawPayload: body as Record<string, unknown>,
     };
 
-    recordWebhookEvent({
+    await recordWebhookEvent({
       source: "instagram",
       payload: body as Record<string, unknown>,
       normalized,

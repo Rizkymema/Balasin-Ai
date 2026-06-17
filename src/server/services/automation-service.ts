@@ -103,11 +103,11 @@ const jobHandlers: Record<
 };
 
 export async function runDueJobs(limit = 20) {
-  const dueJobs = listDueJobs(limit);
+  const dueJobs = await listDueJobs(limit);
   const results: Array<Record<string, unknown>> = [];
 
   for (const job of dueJobs) {
-    markJobProcessing(job.id);
+    await markJobProcessing(job.id);
 
     try {
       const handler = jobHandlers[job.type];
@@ -116,7 +116,7 @@ export async function runDueJobs(limit = 20) {
       }
 
       const result = await handler(job.payload);
-      markJobCompleted(job.id);
+      await markJobCompleted(job.id);
       results.push({
         id: job.id,
         type: job.type,
@@ -125,7 +125,7 @@ export async function runDueJobs(limit = 20) {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown worker error";
-      markJobFailed(job.id, message);
+      await markJobFailed(job.id, message);
       results.push({
         id: job.id,
         type: job.type,
@@ -143,7 +143,7 @@ export async function scheduleOperationalJobs() {
 
   for (const booking of current.bookings) {
     if (booking.status === "Confirmed" || booking.status === "Waiting Payment") {
-      enqueueJob({
+      await enqueueJob({
         type: "booking_reminder",
         payload: { bookingId: booking.id },
         runAt: new Date(Date.now() + 1000 * 60 * 60 * 2).toISOString(),
@@ -153,20 +153,20 @@ export async function scheduleOperationalJobs() {
 
   for (const broadcast of current.broadcasts) {
     if (broadcast.status === "scheduled") {
-      enqueueJob({
+      await enqueueJob({
         type: "broadcast_send",
         payload: { broadcastId: broadcast.id },
       });
     }
   }
 
-  enqueueJob({
+  await enqueueJob({
     type: "analytics_rollup",
     payload: {},
     runAt: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
   });
 }
 
-export function getWorkerJobs(limit?: number) {
+export async function getWorkerJobs(limit?: number) {
   return listJobs(limit);
 }

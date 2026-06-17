@@ -72,7 +72,7 @@ export async function POST(request: Request) {
           timestamp: statusEvent.timestamp,
         });
 
-        recordWebhookEvent({
+        await recordWebhookEvent({
           source: "whatsapp",
           payload: body as Record<string, unknown>,
           normalized: {
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
           rawPayload: body as Record<string, unknown>,
         };
 
-        recordWebhookEvent({
+        await recordWebhookEvent({
           source: "whatsapp",
           payload: body as Record<string, unknown>,
           normalized,
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
     }
 
     if (receivedCount === 0 && statusUpdateCount === 0) {
-      recordWebhookEvent({
+      await recordWebhookEvent({
         source: "whatsapp",
         payload: body as Record<string, unknown>,
         status: "ignored",

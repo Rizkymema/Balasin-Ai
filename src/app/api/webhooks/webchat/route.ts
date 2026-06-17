@@ -95,7 +95,7 @@ export async function POST(request: Request) {
       rawPayload: body as Record<string, unknown>,
     };
 
-    recordWebhookEvent({
+    await recordWebhookEvent({
       source: "webchat",
       payload: body as Record<string, unknown>,
       normalized,

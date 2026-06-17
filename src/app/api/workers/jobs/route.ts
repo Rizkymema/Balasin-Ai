@@ -7,5 +7,5 @@ export async function GET() {
     return response;
   }
 
-  return jsonOk(getWorkerJobs());
+  return jsonOk(await getWorkerJobs());
 }

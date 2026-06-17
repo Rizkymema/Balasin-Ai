@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       rawPayload: body as Record<string, unknown>,
     };
 
-    recordWebhookEvent({
+    await recordWebhookEvent({
       source: getSourceName(body.channel),
       payload: body as Record<string, unknown>,
       normalized,

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { jsonError, jsonOk, requireApiSession } from "@/server/http";
-import { listJsonRows, upsertJsonRow } from "@/server/db";
+import { listJsonRowsAsync, upsertJsonRowAsync } from "@/server/db";
 
 const RESOURCE_TABLES = {
   conversations: "conversations",
@@ -39,7 +39,7 @@ export async function GET(
     return jsonError("Unknown resource.", 404);
   }
 
-  return jsonOk(listJsonRows(tableName));
+  return jsonOk(await listJsonRowsAsync(tableName));
 }
 
 export async function POST(
@@ -64,7 +64,7 @@ export async function POST(
       id: String(body.id ?? randomUUID()),
     };
 
-    upsertJsonRow(tableName, next as { id: string });
+    await upsertJsonRowAsync(tableName, next as { id: string });
     return jsonOk(next, { status: 201 });
   } catch {
     return jsonError("Gagal membuat resource.", 500);

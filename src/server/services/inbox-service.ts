@@ -299,7 +299,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   );
 
   if (decision.status === "assigned_to_admin") {
-    enqueueJob({
+    await enqueueJob({
       type: "handoff_notify",
       payload: {
         conversationId: conversation.id,
@@ -309,7 +309,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   }
 
   if (decision.status === "waiting_customer") {
-    enqueueJob({
+    await enqueueJob({
       type: "lead_followup",
       payload: {
         conversationId: conversation.id,

@@ -1,4 +1,8 @@
-import { deleteJsonRow, getJsonRow, upsertJsonRow } from "@/server/db";
+import {
+  deleteJsonRowAsync,
+  getJsonRowAsync,
+  upsertJsonRowAsync,
+} from "@/server/db";
 import { jsonError, jsonOk, requireApiSession } from "@/server/http";
 
 const RESOURCE_TABLES = {
@@ -34,7 +38,7 @@ export async function GET(
     return jsonError("Unknown resource.", 404);
   }
 
-  const item = getJsonRow(tableName, id);
+  const item = await getJsonRowAsync(tableName, id);
   if (!item) {
     return jsonError("Resource not found.", 404);
   }
@@ -57,7 +61,7 @@ export async function PATCH(
     return jsonError("Unknown resource.", 404);
   }
 
-  const existing = getJsonRow<Record<string, unknown>>(tableName, id);
+  const existing = await getJsonRowAsync<Record<string, unknown>>(tableName, id);
   if (!existing) {
     return jsonError("Resource not found.", 404);
   }
@@ -70,7 +74,7 @@ export async function PATCH(
       id,
     };
 
-    upsertJsonRow(tableName, next as { id: string });
+    await upsertJsonRowAsync(tableName, next as { id: string });
     return jsonOk(next);
   } catch {
     return jsonError("Gagal memperbarui resource.", 500);
@@ -92,6 +96,6 @@ export async function DELETE(
     return jsonError("Unknown resource.", 404);
   }
 
-  deleteJsonRow(tableName, id);
+  await deleteJsonRowAsync(tableName, id);
   return jsonOk({ deleted: true, id });
 }

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { listJsonRows, upsertJsonRow } from "@/server/db";
+import { listJsonRowsAsync, upsertJsonRowAsync } from "@/server/db";
 import { jsonError, jsonOk, requireApiSession } from "@/server/http";
 import type { FAQItem } from "@/types/dashboard-config";
 
@@ -10,7 +10,7 @@ export async function GET() {
     return response;
   }
 
-  return jsonOk(listJsonRows<FAQItem>("knowledge_faqs"));
+  return jsonOk(await listJsonRowsAsync<FAQItem>("knowledge_faqs"));
 }
 
 export async function POST(request: Request) {
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       answer: body.answer,
     };
 
-    upsertJsonRow("knowledge_faqs", item);
+    await upsertJsonRowAsync("knowledge_faqs", item);
     return jsonOk(item, { status: 201 });
   } catch {
     return jsonError("Gagal menyimpan FAQ.", 500);

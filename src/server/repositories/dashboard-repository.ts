@@ -15,13 +15,17 @@ import {
   readPrivateJsonBlob,
   writePrivateJsonBlob,
 } from "@/server/blob-state";
+import { isSupabaseEnabled } from "@/server/supabase";
 import {
-  deleteJsonRow,
-  getDatabase,
   getUploadDirectory,
-  listJsonRows,
-  replaceJsonRows,
-  upsertJsonRow,
+  deleteJsonRowAsync,
+  listJsonRowsAsync,
+  readAppConfigRecord,
+  replaceJsonRowsAsync,
+  replaceKnowledgeChunkRowsAsync,
+  upsertJsonRowAsync,
+  writeAppConfigRecord,
+  listKnowledgeChunkRowsAsync,
 } from "@/server/db";
 import type {
   DashboardConfig,
@@ -62,27 +66,8 @@ const KNOWLEDGE_CHUNKS_BLOB_PATH = "state/knowledge-chunks.json";
 const QUESTION_KEYS = ["question", "pertanyaan", "q", "ask", "faq"];
 const ANSWER_KEYS = ["answer", "jawaban", "a", "response", "balasan"];
 
-function readLocalBaseConfig() {
-  const database = getDatabase();
-  const row = database
-    .prepare("SELECT data_json FROM app_config WHERE id = 1")
-    .get() as { data_json: string } | undefined;
-
-  if (!row) {
-    return defaultDashboardConfig;
-  }
-
-  return mergeDashboardConfig(
-    defaultDashboardConfig,
-    JSON.parse(row.data_json) as Partial<DashboardConfig>,
-  );
-}
-
-function saveLocalBaseConfig(config: DashboardConfig) {
-  const database = getDatabase();
-  database
-    .prepare("UPDATE app_config SET data_json = ?, updated_at = ? WHERE id = 1")
-    .run(JSON.stringify(config), new Date().toISOString());
+function shouldUseBlobState() {
+  return isBlobStateEnabled() && !isSupabaseEnabled();
 }
 
 function finalizeDashboardConfig(
@@ -179,7 +164,7 @@ function mergePersistedDashboardConfig(
 }
 
 export async function getDashboardConfigRecord(): Promise<DashboardConfig> {
-  if (isBlobStateEnabled()) {
+  if (shouldUseBlobState()) {
     const stored =
       (await readPrivateJsonBlob<Partial<DashboardConfig>>(
         DASHBOARD_CONFIG_BLOB_PATH,
@@ -197,16 +182,19 @@ export async function getDashboardConfigRecord(): Promise<DashboardConfig> {
     );
   }
 
-  const base = readLocalBaseConfig();
+  const base = mergeDashboardConfig(
+    defaultDashboardConfig,
+    (await readAppConfigRecord<Partial<DashboardConfig>>()) ?? undefined,
+  );
   return finalizeDashboardConfig(
     base,
-    listJsonRows<FAQItem>("knowledge_faqs"),
-    listJsonRows<KnowledgeDocument>("knowledge_documents"),
+    await listJsonRowsAsync<FAQItem>("knowledge_faqs"),
+    await listJsonRowsAsync<KnowledgeDocument>("knowledge_documents"),
   );
 }
 
 export async function saveDashboardConfigRecord(config: DashboardConfig) {
-  if (isBlobStateEnabled()) {
+  if (shouldUseBlobState()) {
     const current = await getDashboardConfigRecord();
     const nextConfig = mergePersistedDashboardConfig(current, config);
     await writePrivateJsonBlob(DASHBOARD_CONFIG_BLOB_PATH, nextConfig);
@@ -214,13 +202,16 @@ export async function saveDashboardConfigRecord(config: DashboardConfig) {
     return;
   }
 
-  saveLocalBaseConfig(config);
-  replaceJsonRows("knowledge_faqs", config.knowledgeBase.faqs);
-  replaceJsonRows("knowledge_documents", config.knowledgeBase.documents);
+  await writeAppConfigRecord(config);
+  await replaceJsonRowsAsync("knowledge_faqs", config.knowledgeBase.faqs);
+  await replaceJsonRowsAsync(
+    "knowledge_documents",
+    config.knowledgeBase.documents,
+  );
 }
 
 export async function getDashboardOperationsRecord(): Promise<DashboardOperationsData> {
-  if (isBlobStateEnabled()) {
+  if (shouldUseBlobState()) {
     const stored = await readPrivateJsonBlob<DashboardOperationsData>(
       DASHBOARD_OPERATIONS_BLOB_PATH,
     );
@@ -228,19 +219,19 @@ export async function getDashboardOperationsRecord(): Promise<DashboardOperation
   }
 
   return {
-    conversations: listJsonRows<ConversationRecord>("conversations"),
-    customers: listJsonRows<CustomerRecord>("customers"),
-    bookings: listJsonRows<BookingRecord>("bookings"),
-    tickets: listJsonRows<TicketRecord>("tickets"),
-    products: listJsonRows<ProductRecord>("products"),
-    services: listJsonRows<ServiceRecord>("services"),
-    broadcasts: listJsonRows<BroadcastRecord>("broadcasts"),
+    conversations: await listJsonRowsAsync<ConversationRecord>("conversations"),
+    customers: await listJsonRowsAsync<CustomerRecord>("customers"),
+    bookings: await listJsonRowsAsync<BookingRecord>("bookings"),
+    tickets: await listJsonRowsAsync<TicketRecord>("tickets"),
+    products: await listJsonRowsAsync<ProductRecord>("products"),
+    services: await listJsonRowsAsync<ServiceRecord>("services"),
+    broadcasts: await listJsonRowsAsync<BroadcastRecord>("broadcasts"),
     lastUpdatedAt: new Date().toISOString(),
   };
 }
 
 export async function saveDashboardOperationsRecord(data: DashboardOperationsData) {
-  if (isBlobStateEnabled()) {
+  if (shouldUseBlobState()) {
     await writePrivateJsonBlob(DASHBOARD_OPERATIONS_BLOB_PATH, {
       ...data,
       lastUpdatedAt: new Date().toISOString(),
@@ -248,13 +239,13 @@ export async function saveDashboardOperationsRecord(data: DashboardOperationsDat
     return;
   }
 
-  replaceJsonRows("conversations", data.conversations);
-  replaceJsonRows("customers", data.customers);
-  replaceJsonRows("bookings", data.bookings);
-  replaceJsonRows("tickets", data.tickets);
-  replaceJsonRows("products", data.products);
-  replaceJsonRows("services", data.services);
-  replaceJsonRows("broadcasts", data.broadcasts);
+  await replaceJsonRowsAsync("conversations", data.conversations);
+  await replaceJsonRowsAsync("customers", data.customers);
+  await replaceJsonRowsAsync("bookings", data.bookings);
+  await replaceJsonRowsAsync("tickets", data.tickets);
+  await replaceJsonRowsAsync("products", data.products);
+  await replaceJsonRowsAsync("services", data.services);
+  await replaceJsonRowsAsync("broadcasts", data.broadcasts);
 }
 
 function normalizeSpreadsheetKey(key: string) {
@@ -390,66 +381,43 @@ function parseSpreadsheetBuffer(buffer: Buffer) {
 }
 
 async function readAllKnowledgeChunks() {
-  if (isBlobStateEnabled()) {
+  if (shouldUseBlobState()) {
     return (
       (await readPrivateJsonBlob<KnowledgeChunk[]>(KNOWLEDGE_CHUNKS_BLOB_PATH)) ?? []
     );
   }
 
-  const database = getDatabase();
-  const rows = database
-    .prepare(
-      "SELECT id, document_id, chunk_index, content, metadata_json, created_at FROM knowledge_chunks ORDER BY created_at DESC",
-    )
-    .all() as Array<{
-    id: string;
-    document_id: string;
-    chunk_index: number;
-    content: string;
-    metadata_json: string;
-    created_at: string;
-  }>;
+  const rows = await listKnowledgeChunkRowsAsync();
 
   return rows.map((row) => ({
     id: row.id,
     documentId: row.document_id,
     chunkIndex: row.chunk_index,
     content: row.content,
-    metadata: JSON.parse(row.metadata_json) as KnowledgeChunk["metadata"],
+    metadata:
+      typeof row.metadata_json === "string"
+        ? (JSON.parse(row.metadata_json) as KnowledgeChunk["metadata"])
+        : (row.metadata_json as KnowledgeChunk["metadata"]),
     createdAt: row.created_at,
   }));
 }
 
 async function writeAllKnowledgeChunks(chunks: KnowledgeChunk[]) {
-  if (isBlobStateEnabled()) {
+  if (shouldUseBlobState()) {
     await writePrivateJsonBlob(KNOWLEDGE_CHUNKS_BLOB_PATH, chunks);
     return;
   }
 
-  const database = getDatabase();
-  database.prepare("DELETE FROM knowledge_chunks").run();
-  const insertChunk = database.prepare(
-    "INSERT INTO knowledge_chunks (id, document_id, chunk_index, content, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+  await replaceKnowledgeChunkRowsAsync(
+    chunks.map((item) => ({
+      id: item.id,
+      document_id: item.documentId,
+      chunk_index: item.chunkIndex,
+      content: item.content,
+      metadata_json: item.metadata,
+      created_at: item.createdAt,
+    })),
   );
-
-  database.exec("BEGIN");
-
-  try {
-    for (const item of chunks) {
-      insertChunk.run(
-        item.id,
-        item.documentId,
-        item.chunkIndex,
-        item.content,
-        JSON.stringify(item.metadata),
-        item.createdAt,
-      );
-    }
-    database.exec("COMMIT");
-  } catch (error) {
-    database.exec("ROLLBACK");
-    throw error;
-  }
 }
 
 async function replaceKnowledgeChunksForDocument(
@@ -469,7 +437,7 @@ async function deleteKnowledgeChunksForDocument(documentId: string) {
 }
 
 async function upsertKnowledgeDocumentRecord(document: KnowledgeDocument) {
-  if (isBlobStateEnabled()) {
+  if (shouldUseBlobState()) {
     const currentConfig = await getDashboardConfigRecord();
     const nextDocuments = currentConfig.knowledgeBase.documents.some(
       (item) => item.id === document.id,
@@ -489,7 +457,7 @@ async function upsertKnowledgeDocumentRecord(document: KnowledgeDocument) {
     return;
   }
 
-  upsertJsonRow("knowledge_documents", document);
+  await upsertJsonRowAsync("knowledge_documents", document);
 }
 
 function chunkText(
@@ -733,9 +701,9 @@ export async function ingestKnowledgeDocument(params: {
 }
 
 export async function deleteKnowledgeDocument(documentId: string) {
-  const documents = isBlobStateEnabled()
+  const documents = shouldUseBlobState()
     ? (await getDashboardConfigRecord()).knowledgeBase.documents
-    : listJsonRows<KnowledgeDocument>("knowledge_documents");
+    : await listJsonRowsAsync<KnowledgeDocument>("knowledge_documents");
   const target = documents.find((item) => item.id === documentId);
   if (target) {
     const filePath = join(getUploadDirectory(), `${documentId}-${target.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`);
@@ -744,7 +712,7 @@ export async function deleteKnowledgeDocument(documentId: string) {
     }
   }
 
-  if (isBlobStateEnabled()) {
+  if (shouldUseBlobState()) {
     const currentConfig = await getDashboardConfigRecord();
     await saveDashboardConfigRecord({
       ...currentConfig,
@@ -756,16 +724,16 @@ export async function deleteKnowledgeDocument(documentId: string) {
       },
     });
   } else {
-    deleteJsonRow("knowledge_documents", documentId);
+    await deleteJsonRowAsync("knowledge_documents", documentId);
   }
 
   await deleteKnowledgeChunksForDocument(documentId);
 }
 
 export async function readKnowledgeDocumentContent(documentId: string) {
-  const documents = isBlobStateEnabled()
+  const documents = shouldUseBlobState()
     ? (await getDashboardConfigRecord()).knowledgeBase.documents
-    : listJsonRows<KnowledgeDocument>("knowledge_documents");
+    : await listJsonRowsAsync<KnowledgeDocument>("knowledge_documents");
   const target = documents.find((item) => item.id === documentId);
   if (!target) {
     return null;

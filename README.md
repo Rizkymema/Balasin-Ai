@@ -6,7 +6,7 @@ Dokumen [fitur.md](/d:/Project%20Apk-Web/chatbotAI/fitur.md) sekarang menjadi bl
 
 ## Status Saat Ini
 
-- Backend API sudah nyata dan persisten dengan SQLite lokal.
+- Backend API sudah nyata dan persisten dengan Supabase atau SQLite fallback lokal.
 - Unified inbox, customer, booking, ticket, produk/layanan, knowledge, broadcast, dan worker queue sudah punya baseline operasional.
 - Webhook inbound tersedia untuk WhatsApp, Instagram DM/komentar, dan website chat.
 - Dashboard channels sudah bisa dipakai untuk simulasi inbound/outbound test.
@@ -70,6 +70,9 @@ Isi minimal file `.env.local` dengan nilai berikut:
 ```env
 NEXT_PUBLIC_APP_NAME=Balesin Desk
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 SESSION_COOKIE_NAME=balesin_session
 SESSION_SECRET=change-this-demo-session-secret
 WORKER_SECRET=change-this-worker-secret
@@ -80,6 +83,19 @@ WHATSAPP_API_VERSION=v21.0
 Catatan:
 - Kredensial WhatsApp Business, verify token, dan access token channel diisi dari dashboard.
 - `SESSION_SECRET` dan `WORKER_SECRET` wajib diganti saat masuk environment non-local.
+- Jika `NEXT_PUBLIC_SUPABASE_URL` dan `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` diisi, aplikasi akan memakai Supabase sebagai database utama.
+- `SUPABASE_SERVICE_ROLE_KEY` sangat direkomendasikan untuk production agar akses server-side tidak bergantung pada policy publik.
+
+## Setup Supabase
+
+1. Buka Supabase SQL Editor.
+2. Jalankan file [supabase/schema.sql](/d:/Project%20Apk-Web/chatbotAI/supabase/schema.sql).
+3. Tambahkan env Supabase ke `.env.local` dan ke Vercel Project Settings.
+4. Redeploy aplikasi.
+
+Catatan keamanan:
+- Schema bawaan di repo mengizinkan akses `anon/authenticated` agar publishable key yang Anda berikan bisa langsung dipakai.
+- Untuk production yang lebih aman, tambahkan `SUPABASE_SERVICE_ROLE_KEY` di environment server dan batasi policy tabel sesuai kebutuhan workspace Anda.
 
 ## Menjalankan Worker
 
@@ -126,7 +142,13 @@ Team & Settings
 
 ## Penyimpanan Data
 
-Data runtime disimpan di folder lokal berikut:
+Mode penyimpanan sekarang:
+
+- Supabase jika env Supabase diisi.
+- Vercel Blob jika env Blob diisi tetapi Supabase tidak aktif.
+- SQLite lokal sebagai fallback development.
+
+Fallback lokal menggunakan folder berikut:
 
 - `data/balesin.sqlite`
 - `data/knowledge/*`
@@ -156,7 +178,8 @@ Folder `data/` sudah diabaikan oleh Git.
 
 ## Area Penting
 
-- `src/server/db.ts`: inisialisasi SQLite dan schema runtime.
+- `src/server/db.ts`: fallback SQLite dan adapter async untuk storage.
+- `src/server/supabase.ts`: client Supabase server-side.
 - `src/server/services/inbox-service.ts`: normalisasi pesan masuk, intent dasar, dan auto-reply/handoff.
 - `src/server/services/operations-service.ts`: action backend untuk reply, notes, status, dan ticket inbox.
 - `src/server/services/automation-service.ts`: scheduler dan executor queue.
