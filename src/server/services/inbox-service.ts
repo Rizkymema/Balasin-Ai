@@ -13,6 +13,7 @@ import {
 } from "@/server/services/channel-adapters";
 import type {
   ChannelKind,
+  ConversationChannelContext,
   ConversationMessage,
   ConversationRecord,
   ConversationStatus,
@@ -30,6 +31,7 @@ export type NormalizedIncomingMessage = {
   externalMessageId?: string;
   username?: string;
   phone?: string;
+  channelContext?: ConversationChannelContext;
   rawPayload: Record<string, unknown>;
 };
 
@@ -192,6 +194,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       aiConfidence: 80,
       riskLevel: "low",
       ticketId: null,
+      channelContext: input.channelContext,
     } satisfies ConversationRecord);
 
   conversation = appendMessage(
@@ -224,6 +227,11 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
         : decision.status === "waiting_customer"
           ? "medium"
           : "low",
+    channelContext: {
+      ...conversation.channelContext,
+      ...input.channelContext,
+      externalUserId: input.externalUserId,
+    },
   };
 
   if (decision.reply && decision.status !== "spam") {
@@ -231,6 +239,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       try {
         await sendWhatsAppReadTypingIndicator({
           incomingMessageId: input.externalMessageId,
+          phoneNumberIdOverride: input.channelContext?.whatsappPhoneNumberId,
         });
         await wait(900);
       } catch {
@@ -242,6 +251,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       channel: input.channel,
       recipientId: input.phone ?? input.externalUserId,
       message: decision.reply,
+      phoneNumberIdOverride: input.channelContext?.whatsappPhoneNumberId,
     });
 
     conversation = appendMessage(

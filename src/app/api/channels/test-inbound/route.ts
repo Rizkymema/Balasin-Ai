@@ -56,6 +56,15 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString(),
       username: body.username?.trim() || undefined,
       phone: body.phone?.trim() || undefined,
+      channelContext:
+        body.channel === "WhatsApp"
+          ? {
+              externalUserId:
+                body.phone?.trim() ||
+                body.username?.trim() ||
+                body.displayName.trim(),
+            }
+          : undefined,
       rawPayload: body as Record<string, unknown>,
     };
 

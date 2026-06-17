@@ -35,6 +35,12 @@ export type ConversationMessage = {
   type?: MessageType;
 };
 
+export type ConversationChannelContext = {
+  externalUserId?: string;
+  whatsappPhoneNumberId?: string;
+  whatsappDisplayPhoneNumber?: string;
+};
+
 export type ConversationRecord = {
   id: string;
   customerId: string;
@@ -60,6 +66,7 @@ export type ConversationRecord = {
   aiConfidence: number;
   riskLevel: RiskLevel;
   ticketId?: string | null;
+  channelContext?: ConversationChannelContext;
 };
 
 export type LeadStatus =

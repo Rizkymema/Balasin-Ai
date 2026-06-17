@@ -6,6 +6,7 @@ type SendMessageInput = {
   channel: ChannelKind;
   recipientId?: string;
   message: string;
+  phoneNumberIdOverride?: string;
 };
 
 type WhatsAppGraphResponse = {
@@ -86,7 +87,9 @@ export async function sendChannelMessage(input: SendMessageInput) {
   const config = await getDashboardConfigRecord();
 
   if (input.channel === "WhatsApp") {
-    const phoneNumberId = config.channels.whatsapp.phoneNumberId.trim();
+    const phoneNumberId =
+      input.phoneNumberIdOverride?.trim() ||
+      config.channels.whatsapp.phoneNumberId.trim();
     const accessToken = config.channels.whatsapp.accessToken.trim();
 
     if (!phoneNumberId || !accessToken) {
@@ -140,10 +143,13 @@ export async function sendChannelMessage(input: SendMessageInput) {
 
 export async function sendWhatsAppReadTypingIndicator(input: {
   incomingMessageId: string;
+  phoneNumberIdOverride?: string;
 }) {
   const config = await getDashboardConfigRecord();
   const accessToken = config.channels.whatsapp.accessToken.trim();
-  const phoneNumberId = config.channels.whatsapp.phoneNumberId.trim();
+  const phoneNumberId =
+    input.phoneNumberIdOverride?.trim() ||
+    config.channels.whatsapp.phoneNumberId.trim();
 
   if (!accessToken || !phoneNumberId) {
     return {

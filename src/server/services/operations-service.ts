@@ -243,6 +243,7 @@ export async function sendInboxReply(input: {
     channel: conversation.channel,
     recipientId,
     message: input.message,
+    phoneNumberIdOverride: conversation.channelContext?.whatsappPhoneNumberId,
   });
 
   const outgoingMessage: ConversationMessage = {

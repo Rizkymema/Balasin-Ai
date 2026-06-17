@@ -10,6 +10,10 @@ type WhatsAppWebhookBody = {
   entry?: Array<{
     changes?: Array<{
       value?: {
+        metadata?: {
+          phone_number_id?: string;
+          display_phone_number?: string;
+        };
         messages?: Array<{
           id?: string;
           from?: string;
@@ -58,6 +62,7 @@ export async function POST(request: Request) {
       const contact = value?.contacts?.[0];
       const messages = value?.messages ?? [];
       const statuses = value?.statuses ?? [];
+      const metadata = value?.metadata;
 
       for (const statusEvent of statuses) {
         if (!statusEvent.id || !statusEvent.status) {
@@ -107,6 +112,12 @@ export async function POST(request: Request) {
           timestamp: new Date().toISOString(),
           externalMessageId: message.id,
           phone: message.from,
+          channelContext: {
+            externalUserId:
+              contact.wa_id ?? message.from ?? contact.profile.name,
+            whatsappPhoneNumberId: metadata?.phone_number_id,
+            whatsappDisplayPhoneNumber: metadata?.display_phone_number,
+          },
           rawPayload: body as Record<string, unknown>,
         };
 

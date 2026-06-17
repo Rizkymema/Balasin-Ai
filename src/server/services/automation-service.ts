@@ -18,6 +18,7 @@ async function processLeadFollowup(payload: Record<string, unknown>) {
     recipientId: target.phone ?? target.username ?? target.customerId,
     message:
       "Halo, kami follow-up ya. Jika masih ingin lanjut, cukup balas detail kebutuhan atau jadwal yang diinginkan.",
+    phoneNumberIdOverride: target.channelContext?.whatsappPhoneNumberId,
   });
 
   target.messages.push({
