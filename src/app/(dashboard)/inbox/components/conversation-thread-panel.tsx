@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowLeft,
   Bot,
@@ -432,25 +432,97 @@ export function ConversationThreadPanel({
         </div>
       </div>
 
-      {/* Composer Area */}
-      <div className="custom-scrollbar shrink-0 overflow-y-auto border-t border-white/[0.06] bg-[#0a0e1c] p-4 lg:max-h-[40%]">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div className="inline-flex rounded-xl bg-white/[0.04] p-1">
+      {/* Composer Area — always pinned at bottom */}
+      <div className="shrink-0 border-t border-white/[0.06] bg-[#0a0e1c]">
+        {/* Collapsible AI Suggestion */}
+        {composerMode === "reply" && (
+          <AiSuggestionPanel
+            suggestionText={suggestionText}
+            onUseSuggestion={onUseSuggestion}
+            onSuggestionVariantChange={onSuggestionVariantChange}
+            onSuggestionVersionChange={onSuggestionVersionChange}
+          />
+        )}
+
+        {/* Main composer input */}
+        <div className="px-4 pb-3 pt-2">
+          {composerMode === "reply" ? (
+            <div className="flex items-end gap-2">
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-slate-400"
+                title="Lampiran"
+              >
+                <Paperclip className="h-4 w-4" />
+              </button>
+              <Textarea
+                value={replyText}
+                onChange={(event) => onReplyTextChange(event.target.value)}
+                rows={1}
+                placeholder={`Ketik balasan untuk ${conversation.name}...`}
+                className="min-h-[40px] max-h-[100px] flex-1 resize-none rounded-xl border-white/[0.08] bg-white/[0.04] px-4 py-2.5 text-[13px] leading-5 text-slate-200 placeholder:text-slate-500"
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+                    event.preventDefault();
+                    onSendReply();
+                  }
+                }}
+                disabled={isSubmitting || isReplyTyping}
+              />
+              <button
+                type="button"
+                onClick={onSendReply}
+                disabled={!replyText.trim() || isSubmitting || isReplyTyping}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#00d2ff] text-[#050814] transition hover:bg-[#4de0ff] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
+                title="Kirim"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Textarea
+                value={noteDraft}
+                onChange={(event) => onNoteDraftChange(event.target.value)}
+                rows={2}
+                placeholder="Tulis catatan internal..."
+                className="min-h-[60px] max-h-[120px] resize-none rounded-xl border-purple-500/20 bg-white/[0.04] px-4 py-2.5 text-[13px] leading-5 text-slate-200"
+                disabled={isSubmitting}
+              />
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] text-purple-400">
+                  {noteSaved ? "✓ Catatan tersimpan" : "Catatan hanya terlihat oleh tim internal."}
+                </p>
+                <Button
+                  type="button"
+                  className="h-8 rounded-lg border-transparent bg-purple-500 px-3 text-[11px] text-white hover:bg-purple-600"
+                  onClick={onSaveNote}
+                  disabled={isSubmitting}
+                >
+                  Simpan
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom toolbar */}
+        <div className="flex items-center justify-between border-t border-white/[0.04] px-4 py-1.5">
+          <div className="inline-flex rounded-lg bg-white/[0.04] p-0.5">
             {[
               { id: "reply", label: "Reply" },
               { id: "note", label: "Notes" },
             ].map((tab) => {
               const active = composerMode === tab.id;
-
               return (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => onComposerModeChange(tab.id as "reply" | "note")}
                   className={cn(
-                    "rounded-lg px-3 py-2 text-[11px] font-semibold transition",
+                    "rounded-md px-2.5 py-1 text-[10px] font-semibold transition",
                     active
-                      ? "bg-white/[0.08] text-[#00d2ff] shadow-sm"
+                      ? "bg-white/[0.08] text-[#00d2ff]"
                       : "text-slate-500 hover:text-slate-300",
                   )}
                 >
@@ -460,180 +532,103 @@ export function ConversationThreadPanel({
             })}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+          <div className="flex items-center gap-2 text-[10px] text-slate-500">
+            <span>Ctrl+Enter kirim</span>
             <Link
               href="/tickets"
-              className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-3 py-1.5 text-slate-400 transition hover:bg-white/[0.1]"
+              className="rounded-md bg-white/[0.04] px-2 py-1 text-slate-400 hover:bg-white/[0.08]"
             >
-              <Ticket className="h-3.5 w-3.5" />
               Tickets
             </Link>
             <Link
               href="/customers"
-              className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-3 py-1.5 text-slate-400 transition hover:bg-white/[0.1]"
+              className="rounded-md bg-white/[0.04] px-2 py-1 text-slate-400 hover:bg-white/[0.08]"
             >
-              <Users className="h-3.5 w-3.5" />
               CRM
             </Link>
           </div>
         </div>
 
-        {composerMode === "reply" ? (
-          <div className="space-y-3">
-            {/* AI Suggestion */}
-            <div className="rounded-xl border border-[#00d2ff]/20 bg-[#00d2ff]/[0.06] px-4 py-3">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#00d2ff]">
-                    AI Suggested Reply
-                  </p>
-                  <p className="mt-1 line-clamp-2 text-[13px] leading-6 text-slate-300">
-                    {suggestionText}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onUseSuggestion(suggestionText)}
-                    className="rounded-lg border border-[#00d2ff]/30 bg-[#00d2ff]/10 px-3 py-2 text-[11px] font-semibold text-[#00d2ff] transition hover:bg-[#00d2ff]/20"
-                  >
-                    Gunakan
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onSuggestionVariantChange("short")}
-                    className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[11px] font-semibold text-slate-400 transition hover:bg-white/[0.08]"
-                  >
-                    Singkat
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onSuggestionVariantChange("warm")}
-                    className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[11px] font-semibold text-slate-400 transition hover:bg-white/[0.08]"
-                  >
-                    Ramah
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSuggestionVariantChange("default");
-                      onSuggestionVersionChange((current) => current + 1);
-                    }}
-                    className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[11px] font-semibold text-slate-400 transition hover:bg-white/[0.08]"
-                  >
-                    Ulangi
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Reply Input */}
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-slate-400"
-                  title="Lampiran"
-                >
-                  <Paperclip className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onUseSuggestion(suggestionText)}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#00d2ff]/30 bg-[#00d2ff]/10 px-3 py-2 text-[11px] font-semibold text-[#00d2ff]"
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Pakai Saran AI
-                </button>
-              </div>
-
-              <div className="flex items-end gap-3">
-                <Textarea
-                  value={replyText}
-                  onChange={(event) => onReplyTextChange(event.target.value)}
-                  rows={1}
-                  placeholder={`Ketik balasan untuk ${conversation.name}...`}
-                  className="min-h-[56px] flex-1 resize-none rounded-xl border-white/[0.08] bg-white/[0.04] px-4 py-3 text-[13px] leading-6 text-slate-200 placeholder:text-slate-500"
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
-                      event.preventDefault();
-                      onSendReply();
-                    }
-                  }}
-                  disabled={isSubmitting || isReplyTyping}
-                />
-                <button
-                  type="button"
-                  onClick={onSendReply}
-                  disabled={!replyText.trim() || isSubmitting || isReplyTyping}
-                  className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#00d2ff] text-[#050814] transition hover:bg-[#4de0ff] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
-                  title="Kirim"
-                >
-                  <Send className="h-[18px] w-[18px]" />
-                </button>
-              </div>
-
-              <p className="mt-2 text-[11px] leading-5 text-slate-500">
-                Gunakan Ctrl+Enter untuk mengirim lebih cepat.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-purple-500/20 bg-purple-500/[0.06] p-4">
-            <div className="mb-3 flex items-start gap-3">
-              <StickyNote className="mt-0.5 h-5 w-5 text-purple-400" />
-              <div>
-                <p className="text-sm font-semibold text-purple-300">
-                  Catatan internal
-                </p>
-                <p className="mt-1 text-xs leading-6 text-slate-500">
-                  Catatan ini hanya terlihat oleh tim internal dan tidak akan
-                  terkirim ke customer.
-                </p>
-              </div>
-            </div>
-
-            <Textarea
-              value={noteDraft}
-              onChange={(event) => onNoteDraftChange(event.target.value)}
-              rows={4}
-              placeholder="Tulis konteks internal, follow-up, atau approval..."
-              className="min-h-[7rem] resize-none rounded-xl border-purple-500/20 bg-white/[0.04] px-4 py-3 text-[13px] leading-6 text-slate-200"
-              disabled={isSubmitting}
-            />
-
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[11px] leading-5 text-purple-400">
-                {noteSaved
-                  ? "Catatan berhasil disimpan."
-                  : "Simpan ringkasan internal atau instruksi follow-up tim."}
-              </p>
-              <Button
-                type="button"
-                className="h-10 rounded-lg border-transparent bg-purple-500 px-4 text-[11px] text-white hover:bg-purple-600"
-                onClick={onSaveNote}
-                disabled={isSubmitting}
-              >
-                <StickyNote className="mr-2 h-4 w-4" />
-                Simpan Catatan
-              </Button>
-            </div>
-          </div>
-        )}
-
         {showExpiredBanner ? (
-          <div className="mt-3 flex flex-col gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-[12px] text-red-300 sm:flex-row sm:items-center sm:justify-between">
-            <p>
-              Percakapan WhatsApp sudah melewati window 24 jam. Jika perlu lanjut,
-              kirim template terlebih dulu.
-            </p>
-            <span className="inline-flex items-center gap-1 rounded-lg bg-white/[0.04] px-3 py-2 font-semibold text-red-400">
-              <CheckCheck className="h-3.5 w-3.5" />
-              HSM required
+          <div className="flex items-center justify-between border-t border-red-500/20 bg-red-500/10 px-4 py-2 text-[11px] text-red-300">
+            <p>WhatsApp window 24 jam expired. Kirim template dulu.</p>
+            <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-2 py-1 font-semibold text-red-400">
+              <CheckCheck className="h-3 w-3" />
+              HSM
             </span>
           </div>
         ) : null}
       </div>
     </section>
+  );
+}
+
+/* ---------- Collapsible AI Suggestion Sub-component ---------- */
+function AiSuggestionPanel({
+  suggestionText,
+  onUseSuggestion,
+  onSuggestionVariantChange,
+  onSuggestionVersionChange,
+}: {
+  suggestionText: string;
+  onUseSuggestion: (value: string) => void;
+  onSuggestionVariantChange: (value: "default" | "short" | "warm") => void;
+  onSuggestionVersionChange: (updater: (current: number) => number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="border-b border-white/[0.04]">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-2 text-left transition hover:bg-white/[0.03]"
+      >
+        <span className="inline-flex items-center gap-2 text-[11px] font-semibold text-[#00d2ff]">
+          <Sparkles className="h-3.5 w-3.5" />
+          AI Suggested Reply
+        </span>
+        <span className="text-[10px] text-slate-500">{open ? "Tutup ▲" : "Buka ▼"}</span>
+      </button>
+
+      {open && (
+        <div className="px-4 pb-3">
+          <p className="text-[12px] leading-5 text-slate-300">{suggestionText}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => onUseSuggestion(suggestionText)}
+              className="rounded-md border border-[#00d2ff]/30 bg-[#00d2ff]/10 px-2.5 py-1 text-[10px] font-semibold text-[#00d2ff] transition hover:bg-[#00d2ff]/20"
+            >
+              Gunakan
+            </button>
+            <button
+              type="button"
+              onClick={() => onSuggestionVariantChange("short")}
+              className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold text-slate-400 transition hover:bg-white/[0.08]"
+            >
+              Singkat
+            </button>
+            <button
+              type="button"
+              onClick={() => onSuggestionVariantChange("warm")}
+              className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold text-slate-400 transition hover:bg-white/[0.08]"
+            >
+              Ramah
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSuggestionVariantChange("default");
+                onSuggestionVersionChange((c) => c + 1);
+              }}
+              className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold text-slate-400 transition hover:bg-white/[0.08]"
+            >
+              Ulangi
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
