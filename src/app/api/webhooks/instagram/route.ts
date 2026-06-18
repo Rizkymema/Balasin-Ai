@@ -69,6 +69,14 @@ type InstagramWebhookBody = {
   comment?: { text?: string; from?: { username?: string; id?: string } };
 };
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+}
+
 export async function GET(request: Request) {
   try {
     const config = await getDashboardConfigRecord();
@@ -141,14 +149,32 @@ export async function POST(request: Request) {
             rawPayload: body as Record<string, unknown>,
           };
 
-          await recordWebhookEvent({
-            source: "instagram",
-            payload: body as Record<string, unknown>,
-            normalized,
-            status: "received",
-          });
+          try {
+            await recordWebhookEvent({
+              source: "instagram",
+              payload: body as Record<string, unknown>,
+              normalized,
+              status: "received",
+            });
+          } catch (error) {
+            console.error("[instagram-webhook] failed to record dm event", {
+              error: getErrorMessage(error),
+              externalMessageId: event.message?.mid,
+              externalUserId: senderId,
+            });
+            throw error;
+          }
 
-          await processIncomingMessage(normalized);
+          try {
+            await processIncomingMessage(normalized);
+          } catch (error) {
+            console.error("[instagram-webhook] failed to process dm event", {
+              error: getErrorMessage(error),
+              externalMessageId: event.message?.mid,
+              externalUserId: senderId,
+            });
+            throw error;
+          }
           receivedCount += 1;
         }
 
@@ -177,14 +203,32 @@ export async function POST(request: Request) {
             rawPayload: body as Record<string, unknown>,
           };
 
-          await recordWebhookEvent({
-            source: "instagram",
-            payload: body as Record<string, unknown>,
-            normalized,
-            status: "received",
-          });
+          try {
+            await recordWebhookEvent({
+              source: "instagram",
+              payload: body as Record<string, unknown>,
+              normalized,
+              status: "received",
+            });
+          } catch (error) {
+            console.error("[instagram-webhook] failed to record comment event", {
+              error: getErrorMessage(error),
+              externalUserId: senderId,
+              senderUsername,
+            });
+            throw error;
+          }
 
-          await processIncomingMessage(normalized);
+          try {
+            await processIncomingMessage(normalized);
+          } catch (error) {
+            console.error("[instagram-webhook] failed to process comment event", {
+              error: getErrorMessage(error),
+              externalUserId: senderId,
+              senderUsername,
+            });
+            throw error;
+          }
           receivedCount += 1;
         }
       }
@@ -232,16 +276,38 @@ export async function POST(request: Request) {
       rawPayload: body as Record<string, unknown>,
     };
 
-    await recordWebhookEvent({
-      source: "instagram",
-      payload: body as Record<string, unknown>,
-      normalized,
-      status: "received",
-    });
+    try {
+      await recordWebhookEvent({
+        source: "instagram",
+        payload: body as Record<string, unknown>,
+        normalized,
+        status: "received",
+      });
+    } catch (error) {
+      console.error("[instagram-webhook] failed to record fallback event", {
+        error: getErrorMessage(error),
+        externalUserId,
+        displayName,
+      });
+      throw error;
+    }
 
-    const result = await processIncomingMessage(normalized);
+    let result;
+    try {
+      result = await processIncomingMessage(normalized);
+    } catch (error) {
+      console.error("[instagram-webhook] failed to process fallback event", {
+        error: getErrorMessage(error),
+        externalUserId,
+        displayName,
+      });
+      throw error;
+    }
     return jsonOk(result, { status: 201 });
-  } catch {
+  } catch (error) {
+    console.error("[instagram-webhook] unhandled webhook error", {
+      error: getErrorMessage(error),
+    });
     return jsonError("Gagal memproses webhook Instagram.", 500);
   }
 }

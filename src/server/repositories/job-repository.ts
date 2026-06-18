@@ -17,6 +17,25 @@ export type JobRecord = {
   updatedAt: string;
 };
 
+function isIgnorableJobStorageError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+
+  return (
+    (message.includes("jobs") || message.includes("payload_hash")) &&
+    (
+      message.includes("does not exist") ||
+      message.includes("relation") ||
+      message.includes("schema cache") ||
+      message.includes("could not find") ||
+      message.includes("column")
+    )
+  );
+}
+
 function getPayloadHash(payload: Record<string, unknown>) {
   return createHash("sha1").update(JSON.stringify(payload)).digest("hex");
 }
@@ -39,7 +58,25 @@ export async function enqueueJob(input: {
       .maybeSingle<{ id: string }>();
 
     if (existingError) {
-      throw new Error(`Supabase jobs lookup failed: ${existingError.message}`);
+      const wrapped = new Error(`Supabase jobs lookup failed: ${existingError.message}`);
+      if (isIgnorableJobStorageError(wrapped)) {
+        console.warn("[job-repository] jobs table unavailable during lookup; skipping queue dedupe");
+        return {
+          id: randomUUID(),
+          type: input.type,
+          payload: input.payload,
+          status: "pending" as const,
+          runAt: input.runAt ?? new Date().toISOString(),
+          attempts: 0,
+          lastError: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          deduplicated: true,
+          skippedPersistence: true,
+        };
+      }
+
+      throw wrapped;
     }
 
     if (existing) {
@@ -84,7 +121,16 @@ export async function enqueueJob(input: {
     });
 
     if (error) {
-      throw new Error(`Supabase jobs insert failed: ${error.message}`);
+      const wrapped = new Error(`Supabase jobs insert failed: ${error.message}`);
+      if (isIgnorableJobStorageError(wrapped)) {
+        console.warn("[job-repository] jobs table unavailable during insert; skipping queue persistence");
+        return {
+          ...job,
+          skippedPersistence: true,
+        };
+      }
+
+      throw wrapped;
     }
 
     return job;

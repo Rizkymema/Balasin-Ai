@@ -68,6 +68,54 @@ const KNOWLEDGE_CHUNKS_BLOB_PATH = "state/knowledge-chunks.json";
 const QUESTION_KEYS = ["question", "pertanyaan", "q", "ask", "faq"];
 const ANSWER_KEYS = ["answer", "jawaban", "a", "response", "balasan"];
 
+function isOptionalCrmTableError(error: unknown, tableName: "crm_deals" | "crm_tasks") {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+
+  return (
+    message.includes(tableName) &&
+    (
+      message.includes("does not exist") ||
+      message.includes("relation") ||
+      message.includes("schema cache") ||
+      message.includes("could not find") ||
+      message.includes("not supported")
+    )
+  );
+}
+
+async function listOptionalCrmRows<T>(tableName: "crm_deals" | "crm_tasks") {
+  try {
+    return await listJsonRowsAsync<T>(tableName);
+  } catch (error) {
+    if (isOptionalCrmTableError(error, tableName)) {
+      console.warn(`[dashboard-repository] optional table ${tableName} unavailable; using empty fallback`);
+      return [];
+    }
+
+    throw error;
+  }
+}
+
+async function replaceOptionalCrmRows<T extends { id: string }>(
+  tableName: "crm_deals" | "crm_tasks",
+  items: T[],
+) {
+  try {
+    await replaceJsonRowsAsync(tableName, items);
+  } catch (error) {
+    if (isOptionalCrmTableError(error, tableName)) {
+      console.warn(`[dashboard-repository] optional table ${tableName} unavailable; skipping persistence`);
+      return;
+    }
+
+    throw error;
+  }
+}
+
 function shouldUseBlobState() {
   return isBlobStateEnabled() && !isSupabaseEnabled();
 }
@@ -232,8 +280,8 @@ export async function getDashboardOperationsRecord(): Promise<DashboardOperation
     products: await listJsonRowsAsync<ProductRecord>("products"),
     services: await listJsonRowsAsync<ServiceRecord>("services"),
     broadcasts: await listJsonRowsAsync<BroadcastRecord>("broadcasts"),
-    crmDeals: await listJsonRowsAsync<CrmDealEntry>("crm_deals"),
-    crmTasks: await listJsonRowsAsync<CrmTaskEntry>("crm_tasks"),
+    crmDeals: await listOptionalCrmRows<CrmDealEntry>("crm_deals"),
+    crmTasks: await listOptionalCrmRows<CrmTaskEntry>("crm_tasks"),
     lastUpdatedAt: new Date().toISOString(),
   };
 }
@@ -254,8 +302,8 @@ export async function saveDashboardOperationsRecord(data: DashboardOperationsDat
   await replaceJsonRowsAsync("products", data.products);
   await replaceJsonRowsAsync("services", data.services);
   await replaceJsonRowsAsync("broadcasts", data.broadcasts);
-  await replaceJsonRowsAsync("crm_deals", data.crmDeals);
-  await replaceJsonRowsAsync("crm_tasks", data.crmTasks);
+  await replaceOptionalCrmRows("crm_deals", data.crmDeals);
+  await replaceOptionalCrmRows("crm_tasks", data.crmTasks);
 }
 
 function normalizeSpreadsheetKey(key: string) {

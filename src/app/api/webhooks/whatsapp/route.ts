@@ -35,6 +35,14 @@ type WhatsAppWebhookBody = {
   }>;
 };
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+}
+
 export async function GET(request: Request) {
   const config = await getDashboardConfigRecord();
   const { searchParams } = new URL(request.url);
@@ -77,18 +85,27 @@ export async function POST(request: Request) {
           timestamp: statusEvent.timestamp,
         });
 
-        await recordWebhookEvent({
-          source: "whatsapp",
-          payload: body as Record<string, unknown>,
-          normalized: {
-            type: "status",
+        try {
+          await recordWebhookEvent({
+            source: "whatsapp",
+            payload: body as Record<string, unknown>,
+            normalized: {
+              type: "status",
+              externalMessageId: statusEvent.id,
+              status: statusEvent.status,
+              recipientId: statusEvent.recipient_id ?? null,
+              result,
+            },
+            status: result.updated ? "status_updated" : "ignored",
+          });
+        } catch (error) {
+          console.error("[whatsapp-webhook] failed to record status event", {
+            error: getErrorMessage(error),
             externalMessageId: statusEvent.id,
             status: statusEvent.status,
-            recipientId: statusEvent.recipient_id ?? null,
-            result,
-          },
-          status: result.updated ? "status_updated" : "ignored",
-        });
+          });
+          throw error;
+        }
 
         if (result.updated) {
           statusUpdateCount += 1;
@@ -121,14 +138,33 @@ export async function POST(request: Request) {
           rawPayload: body as Record<string, unknown>,
         };
 
-        await recordWebhookEvent({
-          source: "whatsapp",
-          payload: body as Record<string, unknown>,
-          normalized,
-          status: "received",
-        });
+        try {
+          await recordWebhookEvent({
+            source: "whatsapp",
+            payload: body as Record<string, unknown>,
+            normalized,
+            status: "received",
+          });
+        } catch (error) {
+          console.error("[whatsapp-webhook] failed to record inbound message", {
+            error: getErrorMessage(error),
+            externalMessageId: message.id,
+            externalUserId: normalized.externalUserId,
+          });
+          throw error;
+        }
 
-        await processIncomingMessage(normalized);
+        try {
+          await processIncomingMessage(normalized);
+        } catch (error) {
+          console.error("[whatsapp-webhook] failed to process inbound message", {
+            error: getErrorMessage(error),
+            externalMessageId: message.id,
+            externalUserId: normalized.externalUserId,
+            phoneNumberId: metadata?.phone_number_id,
+          });
+          throw error;
+        }
         receivedCount += 1;
       }
     }
@@ -150,7 +186,10 @@ export async function POST(request: Request) {
       },
       { status: receivedCount > 0 ? 201 : 200 },
     );
-  } catch {
+  } catch (error) {
+    console.error("[whatsapp-webhook] unhandled webhook error", {
+      error: getErrorMessage(error),
+    });
     return jsonError("Gagal memproses webhook WhatsApp.", 500);
   }
 }

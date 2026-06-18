@@ -3,6 +3,24 @@ import { randomUUID } from "node:crypto";
 import { getDatabase } from "@/server/db";
 import { getSupabaseServerClient, isSupabaseEnabled } from "@/server/supabase";
 
+function isIgnorableWebhookStorageError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+
+  return (
+    message.includes("webhook_events") &&
+    (
+      message.includes("does not exist") ||
+      message.includes("relation") ||
+      message.includes("schema cache") ||
+      message.includes("could not find")
+    )
+  );
+}
+
 export async function recordWebhookEvent(input: {
   source: string;
   payload: Record<string, unknown>;
@@ -21,7 +39,13 @@ export async function recordWebhookEvent(input: {
     });
 
     if (error) {
-      throw new Error(`Supabase webhook_events insert failed: ${error.message}`);
+      const wrapped = new Error(`Supabase webhook_events insert failed: ${error.message}`);
+      if (isIgnorableWebhookStorageError(wrapped)) {
+        console.warn("[webhook-repository] webhook_events table unavailable; skipping event persistence");
+        return;
+      }
+
+      throw wrapped;
     }
 
     return;

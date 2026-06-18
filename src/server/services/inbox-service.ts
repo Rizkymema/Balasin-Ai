@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { enqueueJob } from "@/server/repositories/job-repository";
+import type { DashboardConfig } from "@/types/dashboard-config";
 import {
   getDashboardConfigRecord,
   getDashboardOperationsRecord,
@@ -149,6 +150,19 @@ function buildDeliveryFailureNote(input: {
   return `${prefix} Periksa kredensial channel dan koneksi provider.`;
 }
 
+function buildSafeFallbackDecision(config: DashboardConfig): ReplyDecision {
+  return {
+    intent: "Fallback Aman",
+    confidence: 40,
+    needsHuman: false,
+    status: "ai_active",
+    summary: "Engine AI fallback karena terjadi error internal saat memproses pesan masuk.",
+    reply: `${config.workspace.name || "Tim kami"} sudah menerima pesan Anda. Mohon tunggu sebentar, kami bantu cek dan balas secepatnya ya.`,
+    grounded: false,
+    source: "fallback",
+  };
+}
+
 export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   const config = await getDashboardConfigRecord();
   const current = await getDashboardOperationsRecord();
@@ -195,14 +209,21 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       channelContext: input.channelContext,
     } satisfies ConversationRecord);
 
-  const decision: ReplyDecision = await generateReplyDecision(input.messageText, config, {
-    recentMessages: conversation.messages.map((message) => ({
-      sender: message.sender,
-      text: message.text,
-    })),
-    lastIntent: conversation.lastIntent,
-    summary: conversation.summary,
-  });
+  let decision: ReplyDecision;
+
+  try {
+    decision = await generateReplyDecision(input.messageText, config, {
+      recentMessages: conversation.messages.map((message) => ({
+        sender: message.sender,
+        text: message.text,
+      })),
+      lastIntent: conversation.lastIntent,
+      summary: conversation.summary,
+    });
+  } catch (error) {
+    console.error("generateReplyDecision failed", error);
+    decision = buildSafeFallbackDecision(config);
+  }
 
   conversation = appendMessage(
     {
@@ -318,23 +339,31 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   );
 
   if (decision.status === "assigned_to_admin") {
-    await enqueueJob({
-      type: "handoff_notify",
-      payload: {
-        conversationId: conversation.id,
-        customerId: customer.id,
-      },
-    });
+    try {
+      await enqueueJob({
+        type: "handoff_notify",
+        payload: {
+          conversationId: conversation.id,
+          customerId: customer.id,
+        },
+      });
+    } catch (error) {
+      console.error("enqueueJob handoff_notify failed", error);
+    }
   }
 
   if (decision.status === "waiting_customer") {
-    await enqueueJob({
-      type: "lead_followup",
-      payload: {
-        conversationId: conversation.id,
-      },
-      runAt: new Date(Date.now() + 1000 * 60 * 60 * config.automation.followUpDelayHours).toISOString(),
-    });
+    try {
+      await enqueueJob({
+        type: "lead_followup",
+        payload: {
+          conversationId: conversation.id,
+        },
+        runAt: new Date(Date.now() + 1000 * 60 * 60 * config.automation.followUpDelayHours).toISOString(),
+      });
+    } catch (error) {
+      console.error("enqueueJob lead_followup failed", error);
+    }
   }
 
   await saveDashboardOperationsRecord(current);
