@@ -171,7 +171,7 @@ export function ConversationThreadPanel({
   return (
     <section className="flex min-h-[42rem] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full lg:min-h-0">
       {/* Header */}
-      <div className="border-b border-white/[0.06]">
+      <div className="shrink-0 border-b border-white/[0.06]">
         <div className="flex flex-col gap-4 px-4 py-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1">
             <div className="mb-2 flex items-center gap-2 lg:hidden">
@@ -433,7 +433,7 @@ export function ConversationThreadPanel({
       </div>
 
       {/* Composer Area */}
-      <div className="sticky bottom-0 shrink-0 border-t border-white/[0.06] bg-[#0a0e1c] p-4">
+      <div className="custom-scrollbar shrink-0 overflow-y-auto border-t border-white/[0.06] bg-[#0a0e1c] p-4 lg:max-h-[40%]">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="inline-flex rounded-xl bg-white/[0.04] p-1">
             {[
@@ -487,7 +487,7 @@ export function ConversationThreadPanel({
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#00d2ff]">
                     AI Suggested Reply
                   </p>
-                  <p className="mt-1 text-[13px] leading-6 text-slate-300">
+                  <p className="mt-1 line-clamp-2 text-[13px] leading-6 text-slate-300">
                     {suggestionText}
                   </p>
                 </div>
