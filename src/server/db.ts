@@ -45,6 +45,8 @@ const SUPABASE_JSON_TABLES = new Set([
   "products",
   "services",
   "broadcasts",
+  "crm_deals",
+  "crm_tasks",
 ]);
 
 const LEGACY_DEMO_IDS = {
@@ -57,6 +59,8 @@ const LEGACY_DEMO_IDS = {
   products: ["prod-1", "prod-2", "prod-3"],
   services: ["svc-1", "svc-2", "svc-3"],
   broadcasts: ["broadcast-1", "broadcast-2", "broadcast-3"],
+  crmDeals: [],
+  crmTasks: [],
 } as const;
 
 function createDatabase(filePath: string) {
@@ -153,6 +157,18 @@ function initializeSchema(database: SqliteDatabase) {
     );
 
     CREATE TABLE IF NOT EXISTS broadcasts (
+      id TEXT PRIMARY KEY,
+      data_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS crm_deals (
+      id TEXT PRIMARY KEY,
+      data_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS crm_tasks (
       id TEXT PRIMARY KEY,
       data_json TEXT NOT NULL,
       updated_at TEXT NOT NULL

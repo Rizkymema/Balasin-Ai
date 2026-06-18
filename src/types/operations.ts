@@ -184,6 +184,49 @@ export type BroadcastRecord = {
   sentCount: number;
 };
 
+export type CrmDealStage =
+  | "New Lead"
+  | "Qualified"
+  | "Booking"
+  | "Won"
+  | "Lost";
+
+export type CrmTaskStatus = "Open" | "In Progress" | "Completed" | "Overdue";
+
+export type CrmTaskPriority = "Low" | "Medium" | "High";
+
+export type CrmDealEntry = {
+  id: string;
+  title: string;
+  contactId: string;
+  contactName: string;
+  stage: CrmDealStage;
+  valueLabel: string;
+  probability: number;
+  owner: string;
+  source: ChannelKind;
+  expectedClose: string;
+  productOrService: string;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CrmTaskEntry = {
+  id: string;
+  contactId: string;
+  contactName: string;
+  title: string;
+  type: string;
+  status: CrmTaskStatus;
+  dueLabel: string;
+  priority: CrmTaskPriority;
+  owner: string;
+  outcome: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type DashboardOperationsData = {
   conversations: ConversationRecord[];
   customers: CustomerRecord[];
@@ -192,6 +235,8 @@ export type DashboardOperationsData = {
   products: ProductRecord[];
   services: ServiceRecord[];
   broadcasts: BroadcastRecord[];
+  crmDeals: CrmDealEntry[];
+  crmTasks: CrmTaskEntry[];
   lastUpdatedAt: string;
 };
 

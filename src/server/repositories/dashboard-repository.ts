@@ -37,6 +37,8 @@ import type {
   BroadcastRecord,
   BookingRecord,
   ConversationRecord,
+  CrmDealEntry,
+  CrmTaskEntry,
   CustomerRecord,
   DashboardOperationsData,
   ProductRecord,
@@ -230,6 +232,8 @@ export async function getDashboardOperationsRecord(): Promise<DashboardOperation
     products: await listJsonRowsAsync<ProductRecord>("products"),
     services: await listJsonRowsAsync<ServiceRecord>("services"),
     broadcasts: await listJsonRowsAsync<BroadcastRecord>("broadcasts"),
+    crmDeals: await listJsonRowsAsync<CrmDealEntry>("crm_deals"),
+    crmTasks: await listJsonRowsAsync<CrmTaskEntry>("crm_tasks"),
     lastUpdatedAt: new Date().toISOString(),
   };
 }
@@ -250,6 +254,8 @@ export async function saveDashboardOperationsRecord(data: DashboardOperationsDat
   await replaceJsonRowsAsync("products", data.products);
   await replaceJsonRowsAsync("services", data.services);
   await replaceJsonRowsAsync("broadcasts", data.broadcasts);
+  await replaceJsonRowsAsync("crm_deals", data.crmDeals);
+  await replaceJsonRowsAsync("crm_tasks", data.crmTasks);
 }
 
 function normalizeSpreadsheetKey(key: string) {

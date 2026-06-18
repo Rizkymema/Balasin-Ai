@@ -1,908 +1,431 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
-import {
-  CircleDollarSign,
-  Filter,
-  Phone,
-  Plus,
-  Search,
-  Tags,
-  Trash2,
-  UserRound,
-  Users2,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Loader2, Users2 } from "lucide-react";
 
-import { useDashboardOperations } from "@/hooks/use-dashboard-operations";
-import { createOperatorTimestamp, createRecordId } from "@/lib/dashboard-records";
-import type { ChannelKind, CustomerRecord, LeadStatus } from "@/types/operations";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Input } from "@/components/ui/input";
-import { Modal } from "@/components/ui/modal";
-import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { useDashboardOperations } from "@/hooks/use-dashboard-operations";
+import { createOperatorTimestamp, createRecordId } from "@/lib/dashboard-records";
+import type {
+  ConversationRecord,
+  CrmDealEntry,
+  CrmTaskEntry,
+  CustomerRecord,
+} from "@/types/operations";
+
+import { CrmActionModals } from "./components/crm-action-modals";
+import { ContactDetailPanel } from "./components/contact-detail-panel";
+import { ContactsTablePanel } from "./components/contacts-table-panel";
+import { CreateContactModal } from "./components/create-contact-modal";
+import { CrmPageHeader } from "./components/crm-page-header";
+import { DealsPanel } from "./components/deals-panel";
+import { SegmentsPanel } from "./components/segments-panel";
+import { TasksPanel } from "./components/tasks-panel";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  deriveContactDetail,
+  deriveContactRows,
+  deriveDeals,
+  deriveOwnerOptions,
+  deriveQuickFilterSummary,
+  deriveSegments,
+  deriveSegmentOptions,
+  deriveTagOptions,
+  deriveTasks,
+  type CrmFilters,
+  type CrmViewId,
+} from "./components/crm-view-model";
 
-const leadStatusClasses: Record<LeadStatus, string> = {
-  "New Lead": "text-cyan-300 border-cyan-400/20 bg-cyan-950/30",
-  Interested: "text-emerald-300 border-emerald-400/20 bg-emerald-950/30",
-  "Hot Lead": "text-orange-300 border-orange-400/20 bg-orange-950/30",
-  "Asked Price": "text-amber-300 border-amber-400/20 bg-amber-950/30",
-  Booking: "text-violet-300 border-violet-400/20 bg-violet-950/30",
-  Paid: "text-sky-300 border-sky-400/20 bg-sky-950/30",
-  Complaint: "text-rose-300 border-rose-400/20 bg-rose-950/30",
-  Spam: "text-slate-300 border-white/10 bg-white/5",
+const initialFilters: CrmFilters = {
+  search: "",
+  segment: "all",
+  tag: "all",
+  owner: "all",
+  channel: "all",
+  quickFilter: "all",
 };
-
-type CustomerDraft = {
-  name: string;
-  channel: ChannelKind;
-  leadStatus: LeadStatus;
-  assignedTo: string;
-  revenueHint: string;
-  segment: string;
-  phone: string;
-  email: string;
-  username: string;
-  tags: string;
-  note: string;
-};
-
-const initialDraft: CustomerDraft = {
-  name: "",
-  channel: "WhatsApp",
-  leadStatus: "New Lead",
-  assignedTo: "AI Agent",
-  revenueHint: "Rp0",
-  segment: "General",
-  phone: "",
-  email: "",
-  username: "",
-  tags: "Lead baru, Manual entry",
-  note: "",
-};
-
-function parseTags(value: string) {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
 
 export default function CustomersPage() {
-  const { data, patchData } = useDashboardOperations();
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
-  const [selectedId, setSelectedId] = useState<string>(data.customers[0]?.id ?? "");
+  const { data, isLoading, patchData } = useDashboardOperations();
+  const [activeView, setActiveView] = useState<CrmViewId>("contacts");
+  const [filters, setFilters] = useState<CrmFilters>(initialFilters);
+  const [selectedId, setSelectedId] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [draft, setDraft] = useState<CustomerDraft>(initialDraft);
+  const [activeActionModal, setActiveActionModal] = useState<
+    "message" | "deal" | "task" | null
+  >(null);
 
-  const filteredCustomers = useMemo(() => {
-    return data.customers.filter((customer) => {
-      const searchable = [
-        customer.name,
-        customer.tags.join(" "),
-        customer.phone ?? "",
-        customer.email ?? "",
-      ]
-        .join(" ")
-        .toLowerCase();
-      const matchesSearch = searchable.includes(search.toLowerCase());
-      const matchesStatus =
-        statusFilter === "all" ? true : customer.leadStatus === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [data.customers, search, statusFilter]);
-
-  const selectedCustomer =
-    filteredCustomers.find((customer) => customer.id === selectedId) ??
-    filteredCustomers[0] ??
-    data.customers[0];
-
-  const customerStats = useMemo(
-    () => [
-      {
-        label: "Total customer aktif",
-        value: `${data.customers.length}`,
-        icon: Users2,
-        tone: "text-cyan-300",
-      },
-      {
-        label: "Lead panas",
-        value: `${data.customers.filter((customer) => customer.leadStatus === "Interested" || customer.leadStatus === "Hot Lead").length}`,
-        icon: CircleDollarSign,
-        tone: "text-emerald-300",
-      },
-      {
-        label: "Butuh follow-up",
-        value: `${data.customers.filter((customer) => customer.leadStatus === "Asked Price" || customer.leadStatus === "Booking").length}`,
-        icon: Phone,
-        tone: "text-amber-300",
-      },
-      {
-        label: "Tag unik",
-        value: `${new Set(data.customers.flatMap((customer) => customer.tags)).size}`,
-        icon: Tags,
-        tone: "text-fuchsia-300",
-      },
-    ],
-    [data.customers],
+  const allRows = useMemo(
+    () =>
+      deriveContactRows(data, {
+        ...initialFilters,
+      }),
+    [data],
   );
 
-  const updateSelectedCustomer = (updates: Partial<CustomerRecord>) => {
-    if (!selectedCustomer) {
+  const filteredRows = useMemo(() => deriveContactRows(data, filters), [data, filters]);
+  const quickFilters = useMemo(() => deriveQuickFilterSummary(allRows), [allRows]);
+  const segmentOptions = useMemo(() => deriveSegmentOptions(data), [data]);
+  const tagOptions = useMemo(() => deriveTagOptions(data), [data]);
+  const ownerOptions = useMemo(() => deriveOwnerOptions(data), [data]);
+  const segments = useMemo(() => deriveSegments(data), [data]);
+  const deals = useMemo(() => deriveDeals(data), [data]);
+  const tasks = useMemo(() => deriveTasks(data), [data]);
+
+  useEffect(() => {
+    if (!selectedId && allRows[0]) {
+      setSelectedId(allRows[0].id);
       return;
     }
 
-    patchData((current) => ({
-      ...current,
-      customers: current.customers.map((customer) =>
-        customer.id === selectedCustomer.id ? { ...customer, ...updates } : customer,
-      ),
-      conversations: current.conversations.map((conversation) =>
-        conversation.customerId === selectedCustomer.id
-          ? {
-              ...conversation,
-              name: updates.name ?? conversation.name,
-              channel: updates.channel ?? conversation.channel,
-              phone: updates.phone ?? conversation.phone,
-              email: updates.email ?? conversation.email,
-              username: updates.username ?? conversation.username,
-              assignedTo: updates.assignedTo ?? conversation.assignedTo,
-              notes: updates.note ?? conversation.notes,
-              tags: updates.tags ?? conversation.tags,
-            }
-          : conversation,
-      ),
-    }));
-  };
-
-  const handleCreateCustomer = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!draft.name.trim()) {
-      return;
+    if (selectedId && !allRows.some((row) => row.id === selectedId)) {
+      setSelectedId(allRows[0]?.id ?? "");
     }
+  }, [allRows, selectedId]);
 
+  const selectedRow =
+    filteredRows.find((row) => row.id === selectedId) ??
+    allRows.find((row) => row.id === selectedId) ??
+    filteredRows[0] ??
+    allRows[0] ??
+    null;
+
+  const selectedDetail = useMemo(
+    () => (selectedRow ? deriveContactDetail(data, selectedRow.customer) : null),
+    [data, selectedRow],
+  );
+
+  const handleCreateContact = (
+    draft: Omit<
+      CustomerRecord,
+      "id" | "lastContact" | "totalConversation" | "activeTicketCount"
+    >,
+  ) => {
     const nextCustomer: CustomerRecord = {
       id: createRecordId("cust"),
-      name: draft.name.trim(),
+      name: draft.name,
       channel: draft.channel,
       leadStatus: draft.leadStatus,
-      tags: parseTags(draft.tags),
+      tags: draft.tags,
       lastContact: createOperatorTimestamp(),
-      assignedTo: draft.assignedTo.trim() || "AI Agent",
+      assignedTo: draft.assignedTo,
       totalConversation: 0,
-      revenueHint: draft.revenueHint.trim() || "Rp0",
-      note: draft.note.trim(),
-      phone: draft.phone.trim(),
-      email: draft.email.trim(),
-      username: draft.username.trim(),
-      segment: draft.segment.trim() || "General",
+      revenueHint: draft.revenueHint,
+      note: draft.note,
+      phone: draft.phone,
+      email: draft.email,
+      username: draft.username,
+      segment: draft.segment,
       activeTicketCount: 0,
     };
 
-    patchData((current) => ({
+    void patchData((current) => ({
       ...current,
       customers: [nextCustomer, ...current.customers],
     }));
 
     setSelectedId(nextCustomer.id);
-    setSearch("");
-    setStatusFilter("all");
-    setDraft(initialDraft);
-    setIsCreateOpen(false);
+    setFilters(initialFilters);
   };
 
-  const handleDeleteCustomer = () => {
-    if (!selectedCustomer) {
+  const handleDeleteContact = () => {
+    if (!selectedDetail) {
       return;
     }
 
-    const nextSelectedId =
-      data.customers.find((customer) => customer.id !== selectedCustomer.id)?.id ?? "";
+    const shouldDelete = window.confirm(
+      `Hapus contact "${selectedDetail.customer.name}" dari CRM?`,
+    );
 
-    patchData((current) => ({
+    if (!shouldDelete) {
+      return;
+    }
+
+    const targetId = selectedDetail.customer.id;
+
+    void patchData((current) => ({
       ...current,
-      customers: current.customers.filter((customer) => customer.id !== selectedCustomer.id),
+      customers: current.customers.filter((customer) => customer.id !== targetId),
       conversations: current.conversations.filter(
-        (conversation) => conversation.customerId !== selectedCustomer.id,
+        (conversation) => conversation.customerId !== targetId,
       ),
-      bookings: current.bookings.filter((booking) => booking.customerId !== selectedCustomer.id),
-      tickets: current.tickets.filter((ticket) => ticket.customerId !== selectedCustomer.id),
+      bookings: current.bookings.filter((booking) => booking.customerId !== targetId),
+      tickets: current.tickets.filter((ticket) => ticket.customerId !== targetId),
     }));
-
-    setSelectedId(nextSelectedId);
   };
 
-  if (!selectedCustomer) {
-    return (
-      <div className="space-y-6">
-        <div className="relative overflow-hidden rounded-2xl border border-white/8 bg-gradient-to-r from-white/[0.04] to-transparent p-6 md:p-8">
-          <div className="relative z-10 space-y-3">
-            <Badge>Customer CRM</Badge>
-            <h1 className="text-3xl font-bold text-white">
-              Customer registry siap diisi dengan data bisnis Anda sendiri.
-            </h1>
-            <p className="max-w-3xl text-sm leading-7 text-slate-300">
-              Belum ada customer tersimpan. Tambahkan customer pertama agar inbox, booking,
-              ticket, dan broadcast memiliki sumber kontak yang sama.
-            </p>
-          </div>
-        </div>
+  const handleSendMessage = (payload: { message: string }) => {
+    if (!selectedDetail) {
+      return;
+    }
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {customerStats.map((stat) => {
-            const Icon = stat.icon;
+    const customer = selectedDetail.customer;
+    const timestampLabel = createOperatorTimestamp();
+    const nowIso = new Date().toISOString();
 
-            return (
-              <Card key={stat.label} className="glass-panel p-5">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      {stat.label}
-                    </p>
-                    <p className="mt-3 text-3xl font-bold text-white">{stat.value}</p>
-                  </div>
-                  <div className={`rounded-2xl border border-white/8 bg-white/5 p-3 ${stat.tone}`}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+    void patchData((current) => {
+      const existingConversation = current.conversations.find(
+        (conversation) => conversation.customerId === customer.id,
+      );
 
-        <EmptyState
-          icon={<Users2 className="h-10 w-10" />}
-          title="Belum ada customer"
-          description="Mulai dengan menambahkan customer pertama dari dashboard. Data ini nanti akan dipakai ulang oleh inbox, booking, ticket, dan automation."
-          action={
-            <Button type="button" variant="secondary" className="h-11 rounded-xl px-4" onClick={() => setIsCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah customer
-            </Button>
+      const nextMessage = {
+        id: createRecordId("msg"),
+        sender: "admin" as const,
+        text: payload.message,
+        timestamp: timestampLabel,
+        status: "sent" as const,
+        type: "text" as const,
+      };
+
+      const nextConversation: ConversationRecord = existingConversation
+        ? {
+            ...existingConversation,
+            lastMessage: payload.message,
+            timestamp: timestampLabel,
+            unreadCount: 0,
+            status: "assigned_to_admin",
+            messages: [...existingConversation.messages, nextMessage],
+            assignedTo: customer.assignedTo || "Admin Desk",
+            summary: "Percakapan diupdate manual dari halaman CRM.",
+            lastSeenAt: nowIso,
+            typingActor: null,
           }
-          className="min-h-[360px]"
+        : {
+            id: createRecordId("conv"),
+            customerId: customer.id,
+            name: customer.name,
+            channel: customer.channel,
+            lastMessage: payload.message,
+            timestamp: timestampLabel,
+            unreadCount: 0,
+            status: "assigned_to_admin",
+            messages: [nextMessage],
+            tags: customer.tags,
+            notes: customer.note,
+            summary: "Percakapan baru dibuat dari halaman CRM.",
+            lastSeenAt: nowIso,
+            typingActor: null,
+            phone: customer.phone,
+            email: customer.email,
+            username: customer.username,
+            assignedTo: customer.assignedTo || "Admin Desk",
+            responseTimeSeconds: 0,
+            lastIntent: "CRM Follow-up",
+            sentiment: "neutral",
+            aiConfidence: 0.84,
+            riskLevel: customer.leadStatus === "Complaint" ? "high" : "low",
+            ticketId: null,
+          };
+
+      return {
+        ...current,
+        conversations: existingConversation
+          ? current.conversations.map((conversation) =>
+              conversation.id === existingConversation.id ? nextConversation : conversation,
+            )
+          : [nextConversation, ...current.conversations],
+        customers: current.customers.map((item) =>
+          item.id === customer.id
+            ? {
+                ...item,
+                lastContact: timestampLabel,
+                assignedTo: nextConversation.assignedTo,
+                totalConversation: existingConversation
+                  ? item.totalConversation
+                  : item.totalConversation + 1,
+              }
+            : item,
+        ),
+      };
+    });
+  };
+
+  const handleCreateDeal = (payload: {
+    title: string;
+    stage: CrmDealEntry["stage"];
+    valueLabel: string;
+    probability: number;
+    owner: string;
+    expectedClose: string;
+    productOrService: string;
+    note: string;
+  }) => {
+    if (!selectedDetail) {
+      return;
+    }
+
+    const customer = selectedDetail.customer;
+    const timestampLabel = createOperatorTimestamp();
+
+    const nextDeal: CrmDealEntry = {
+      id: createRecordId("deal"),
+      title: payload.title,
+      contactId: customer.id,
+      contactName: customer.name,
+      stage: payload.stage,
+      valueLabel: payload.valueLabel,
+      probability: payload.probability,
+      owner: payload.owner,
+      source: customer.channel,
+      expectedClose: payload.expectedClose,
+      productOrService: payload.productOrService,
+      note: payload.note,
+      createdAt: timestampLabel,
+      updatedAt: timestampLabel,
+    };
+
+    void patchData((current) => ({
+      ...current,
+      crmDeals: [nextDeal, ...current.crmDeals],
+    }));
+
+    setActiveView("deals");
+  };
+
+  const handleCreateTask = (payload: {
+    title: string;
+    type: string;
+    status: CrmTaskEntry["status"];
+    dueLabel: string;
+    priority: CrmTaskEntry["priority"];
+    owner: string;
+    outcome: string;
+  }) => {
+    if (!selectedDetail) {
+      return;
+    }
+
+    const customer = selectedDetail.customer;
+    const timestampLabel = createOperatorTimestamp();
+
+    const nextTask: CrmTaskEntry = {
+      id: createRecordId("task"),
+      contactId: customer.id,
+      contactName: customer.name,
+      title: payload.title,
+      type: payload.type,
+      status: payload.status,
+      dueLabel: payload.dueLabel,
+      priority: payload.priority,
+      owner: payload.owner,
+      outcome: payload.outcome,
+      createdAt: timestampLabel,
+      updatedAt: timestampLabel,
+    };
+
+    void patchData((current) => ({
+      ...current,
+      crmTasks: [nextTask, ...current.crmTasks],
+    }));
+
+    setActiveView("tasks");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Memuat Contacts / CRM...
+        </div>
+      </div>
+    );
+  }
+
+  if (allRows.length === 0) {
+    return (
+      <div className="space-y-6 rounded-[28px] bg-[#eef3fb] p-4 md:p-5">
+        <CrmPageHeader
+          activeView={activeView}
+          onViewChange={setActiveView}
+          quickFilters={quickFilters}
+          onQuickFilterSelect={(quickFilter) =>
+            setFilters((current) => ({ ...current, quickFilter }))
+          }
+          activeQuickFilter={filters.quickFilter}
+          onCreateContact={() => setIsCreateOpen(true)}
         />
 
-        <Modal
-          isOpen={isCreateOpen}
-          onClose={() => {
-            setIsCreateOpen(false);
-            setDraft(initialDraft);
-          }}
-          title="Tambah Customer"
-          className="max-w-2xl"
-        >
-          <form onSubmit={handleCreateCustomer} className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Nama customer</label>
-                <Input
-                  value={draft.name}
-                  onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-                  placeholder="Nama customer"
-                  required
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Channel utama</label>
-                <Select
-                  value={draft.channel}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      channel: event.target.value as ChannelKind,
-                    }))
-                  }
-                >
-                  <option value="WhatsApp">WhatsApp</option>
-                  <option value="Website Chat">Website Chat</option>
-                  <option value="Instagram DM">Instagram DM</option>
-                  <option value="Instagram Comment">Instagram Comment</option>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Lead status</label>
-                <Select
-                  value={draft.leadStatus}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      leadStatus: event.target.value as LeadStatus,
-                    }))
-                  }
-                >
-                  <option value="New Lead">New Lead</option>
-                  <option value="Interested">Interested</option>
-                  <option value="Hot Lead">Hot Lead</option>
-                  <option value="Asked Price">Asked Price</option>
-                  <option value="Booking">Booking</option>
-                  <option value="Paid">Paid</option>
-                  <option value="Complaint">Complaint</option>
-                  <option value="Spam">Spam</option>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Assigned to</label>
-                <Input
-                  value={draft.assignedTo}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, assignedTo: event.target.value }))
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <Input
-                value={draft.phone}
-                onChange={(event) => setDraft((current) => ({ ...current, phone: event.target.value }))}
-                placeholder="Nomor telepon"
-              />
-              <Input
-                value={draft.email}
-                onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))}
-                placeholder="Email"
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <Input
-                value={draft.username}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, username: event.target.value }))
-                }
-                placeholder="Username / handle"
-              />
-              <Input
-                value={draft.segment}
-                onChange={(event) => setDraft((current) => ({ ...current, segment: event.target.value }))}
-                placeholder="Segment"
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <Input
-                value={draft.revenueHint}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, revenueHint: event.target.value }))
-                }
-                placeholder="Revenue hint"
-              />
-              <Input
-                value={draft.tags}
-                onChange={(event) => setDraft((current) => ({ ...current, tags: event.target.value }))}
-                placeholder="Tag dipisah koma"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Catatan internal</label>
-              <Textarea
-                rows={4}
-                value={draft.note}
-                onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))}
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)}>
-                Batal
+        <Card className="border-slate-200 bg-white p-0 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+          <EmptyState
+            icon={<Users2 className="h-10 w-10" />}
+            title="Belum ada contact tersimpan"
+            description="Tambahkan contact pertama agar inbox, booking, ticket, segment, deal, dan task memiliki sumber data CRM yang sama."
+            action={
+              <Button className="h-11 rounded-xl px-4" onClick={() => setIsCreateOpen(true)}>
+                Tambah Contact
               </Button>
-              <Button type="submit">Simpan customer</Button>
-            </div>
-          </form>
-        </Modal>
+            }
+            className="min-h-[440px]"
+          />
+        </Card>
+
+        <CreateContactModal
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          onCreate={handleCreateContact}
+        />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-2xl border border-white/8 bg-gradient-to-r from-white/[0.04] to-transparent p-6 md:p-8">
-        <div className="absolute right-0 top-0 h-44 w-44 rounded-full bg-cyan-400/6 blur-3xl" />
-        <div className="relative z-10 space-y-3">
-          <Badge>Customer CRM</Badge>
-          <h1 className="text-3xl font-bold text-white">
-            Customer registry sekarang sudah siap menjadi basis follow-up dan automation.
-          </h1>
-          <p className="max-w-3xl text-sm leading-7 text-slate-300">
-            Data lead status, tag, catatan, channel, dan kontak customer sudah tersentral
-            sehingga admin bisa menambah, mengubah, atau membersihkan data langsung dari dashboard.
-          </p>
+    <div className="space-y-6 rounded-[28px] bg-[#eef3fb] p-4 md:p-5">
+      <CrmPageHeader
+        activeView={activeView}
+        onViewChange={setActiveView}
+        quickFilters={quickFilters}
+        onQuickFilterSelect={(quickFilter) =>
+          setFilters((current) => ({ ...current, quickFilter }))
+        }
+        activeQuickFilter={filters.quickFilter}
+        onCreateContact={() => setIsCreateOpen(true)}
+      />
+
+      {activeView === "contacts" ? (
+        <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)]">
+          <ContactsTablePanel
+            rows={filteredRows}
+            selectedId={selectedRow?.id ?? ""}
+            onSelect={setSelectedId}
+            filters={filters}
+            onFiltersChange={(next) => setFilters((current) => ({ ...current, ...next }))}
+            segmentOptions={segmentOptions}
+            tagOptions={tagOptions}
+            ownerOptions={ownerOptions}
+            quickFilters={quickFilters}
+            onCreateContact={() => setIsCreateOpen(true)}
+          />
+
+          <ContactDetailPanel
+            detail={selectedDetail}
+            onSendMessage={() => setActiveActionModal("message")}
+            onCreateDeal={() => setActiveActionModal("deal")}
+            onAddTask={() => setActiveActionModal("task")}
+            onDeleteContact={handleDeleteContact}
+          />
         </div>
-      </div>
+      ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {customerStats.map((stat) => {
-          const Icon = stat.icon;
+      {activeView === "segments" ? <SegmentsPanel segments={segments} /> : null}
+      {activeView === "deals" ? <DealsPanel deals={deals} /> : null}
+      {activeView === "tasks" ? <TasksPanel tasks={tasks} /> : null}
 
-          return (
-            <Card key={stat.label} className="glass-panel p-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    {stat.label}
-                  </p>
-                  <p className="mt-3 text-3xl font-bold text-white">{stat.value}</p>
-                </div>
-                <div className={`rounded-2xl border border-white/8 bg-white/5 p-3 ${stat.tone}`}>
-                  <Icon className="h-5 w-5" />
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <Card className="glass-panel p-6">
-          <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-white">Customer registry</h2>
-              <p className="text-xs text-slate-400">
-                Fokus pada lead yang paling dekat ke booking, pembayaran, atau eskalasi.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="relative min-w-[220px]">
-                <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-500" />
-                <Input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  className="pl-9"
-                  placeholder="Cari nama, kontak, atau tag..."
-                />
-              </div>
-              <div className="min-w-[180px]">
-                <Select
-                  value={statusFilter}
-                  onChange={(event) =>
-                    setStatusFilter(event.target.value as LeadStatus | "all")
-                  }
-                >
-                  <option value="all">Semua status</option>
-                  <option value="New Lead">New Lead</option>
-                  <option value="Interested">Interested</option>
-                  <option value="Hot Lead">Hot Lead</option>
-                  <option value="Asked Price">Asked Price</option>
-                  <option value="Booking">Booking</option>
-                  <option value="Paid">Paid</option>
-                  <option value="Complaint">Complaint</option>
-                  <option value="Spam">Spam</option>
-                </Select>
-              </div>
-              <Button
-                type="button"
-                variant="secondary"
-                className="h-11 rounded-xl px-4"
-                onClick={() => setIsCreateOpen(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Tambah customer
-              </Button>
-            </div>
-          </div>
-
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Channel</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Assigned</TableHead>
-                <TableHead>Last contact</TableHead>
-                <TableHead>Revenue hint</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredCustomers.map((customer) => (
-                <TableRow
-                  key={customer.id}
-                  className={
-                    customer.id === selectedCustomer.id ? "bg-white/[0.04]" : undefined
-                  }
-                >
-                  <TableCell>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(customer.id)}
-                      className="flex items-center gap-3 text-left"
-                    >
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full border border-cyan-400/20 bg-cyan-950/30 text-sm font-bold text-cyan-300">
-                        {customer.name.slice(0, 1)}
-                      </span>
-                      <span>
-                        <span className="block text-sm font-semibold text-white">
-                          {customer.name}
-                        </span>
-                        <span className="block text-[11px] text-slate-500">
-                          {customer.totalConversation} percakapan
-                        </span>
-                      </span>
-                    </button>
-                  </TableCell>
-                  <TableCell>{customer.channel}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold ${leadStatusClasses[customer.leadStatus]}`}
-                    >
-                      {customer.leadStatus}
-                    </span>
-                  </TableCell>
-                  <TableCell>{customer.assignedTo}</TableCell>
-                  <TableCell>{customer.lastContact}</TableCell>
-                  <TableCell>{customer.revenueHint}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-
-        <Card className="glass-panel p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl border border-white/8 bg-white/5 p-3 text-cyan-300">
-                <UserRound className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">Customer detail</h2>
-                <p className="text-xs text-slate-400">
-                  Edit data customer tanpa keluar dari dashboard.
-                </p>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="secondary"
-              className="rounded-xl border-rose-500/20 bg-rose-950/20 px-4 text-rose-200 hover:border-rose-400/30 hover:bg-rose-950/30"
-              onClick={handleDeleteCustomer}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Hapus
-            </Button>
-          </div>
-
-          <div className="mt-6 space-y-5">
-            <div className="rounded-2xl border border-white/8 bg-[#020611]/60 p-5">
-              <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-cyan-400/20 bg-cyan-950/30 text-lg font-bold text-cyan-300">
-                  {selectedCustomer.name.slice(0, 1)}
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white">
-                    {selectedCustomer.name}
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    {selectedCustomer.channel} • assigned to {selectedCustomer.assignedTo}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                  Lead status
-                </p>
-                <div className="mt-3">
-                  <Select
-                    value={selectedCustomer.leadStatus}
-                    onChange={(event) =>
-                      updateSelectedCustomer({
-                        leadStatus: event.target.value as LeadStatus,
-                      })
-                    }
-                  >
-                    <option value="New Lead">New Lead</option>
-                    <option value="Interested">Interested</option>
-                    <option value="Hot Lead">Hot Lead</option>
-                    <option value="Asked Price">Asked Price</option>
-                    <option value="Booking">Booking</option>
-                    <option value="Paid">Paid</option>
-                    <option value="Complaint">Complaint</option>
-                    <option value="Spam">Spam</option>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                  Revenue hint
-                </p>
-                <Input
-                  className="mt-3"
-                  value={selectedCustomer.revenueHint}
-                  onChange={(event) =>
-                    updateSelectedCustomer({ revenueHint: event.target.value })
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                  Nama customer
-                </p>
-                <Input
-                  className="mt-3"
-                  value={selectedCustomer.name}
-                  onChange={(event) => updateSelectedCustomer({ name: event.target.value })}
-                />
-              </div>
-
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                  Assigned to
-                </p>
-                <Input
-                  className="mt-3"
-                  value={selectedCustomer.assignedTo}
-                  onChange={(event) =>
-                    updateSelectedCustomer({ assignedTo: event.target.value })
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                  Segment
-                </p>
-                <Input
-                  className="mt-3"
-                  value={selectedCustomer.segment}
-                  onChange={(event) =>
-                    updateSelectedCustomer({ segment: event.target.value })
-                  }
-                />
-              </div>
-
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                  Active tickets
-                </p>
-                <p className="mt-3 text-2xl font-bold text-white">
-                  {selectedCustomer.activeTicketCount}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                  Telepon
-                </p>
-                <Input
-                  className="mt-3"
-                  value={selectedCustomer.phone ?? ""}
-                  onChange={(event) => updateSelectedCustomer({ phone: event.target.value })}
-                />
-              </div>
-
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                  Email
-                </p>
-                <Input
-                  className="mt-3"
-                  value={selectedCustomer.email ?? ""}
-                  onChange={(event) => updateSelectedCustomer({ email: event.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-              <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                Username / handle
-              </p>
-              <Input
-                className="mt-3"
-                value={selectedCustomer.username ?? ""}
-                onChange={(event) => updateSelectedCustomer({ username: event.target.value })}
-              />
-            </div>
-
-            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-              <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                Active tags
-              </p>
-              <Input
-                className="mt-3"
-                value={selectedCustomer.tags.join(", ")}
-                onChange={(event) =>
-                  updateSelectedCustomer({ tags: parseTags(event.target.value) })
-                }
-                placeholder="VIP, Follow-up, Sparepart"
-              />
-              <div className="mt-3 flex flex-wrap gap-2">
-                {selectedCustomer.tags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    className="border-white/10 bg-white/5 text-slate-300"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-              <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                Internal note
-              </p>
-              <Textarea
-                className="mt-3 min-h-[120px]"
-                value={selectedCustomer.note}
-                onChange={(event) => updateSelectedCustomer({ note: event.target.value })}
-              />
-            </div>
-
-            <div className="rounded-2xl border border-amber-400/15 bg-amber-950/15 p-4">
-              <div className="flex items-start gap-3">
-                <Filter className="mt-0.5 h-4 w-4 text-amber-300" />
-                <p className="text-sm leading-6 text-slate-300">
-                  Perubahan customer di panel ini langsung ikut memperbarui data inbox yang
-                  terhubung, jadi operator tidak perlu mengedit di dua tempat.
-                </p>
-              </div>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <Modal
+      <CreateContactModal
         isOpen={isCreateOpen}
-        onClose={() => {
-          setIsCreateOpen(false);
-          setDraft(initialDraft);
-        }}
-        title="Tambah Customer"
-        className="max-w-2xl"
-      >
-        <form onSubmit={handleCreateCustomer} className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Nama customer</label>
-              <Input
-                value={draft.name}
-                onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-                placeholder="Nama customer"
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Channel utama</label>
-              <Select
-                value={draft.channel}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    channel: event.target.value as ChannelKind,
-                  }))
-                }
-              >
-                <option value="WhatsApp">WhatsApp</option>
-                <option value="Website Chat">Website Chat</option>
-                <option value="Instagram DM">Instagram DM</option>
-                <option value="Instagram Comment">Instagram Comment</option>
-              </Select>
-            </div>
-          </div>
+        onClose={() => setIsCreateOpen(false)}
+        onCreate={handleCreateContact}
+      />
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Lead status</label>
-              <Select
-                value={draft.leadStatus}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    leadStatus: event.target.value as LeadStatus,
-                  }))
-                }
-              >
-                <option value="New Lead">New Lead</option>
-                <option value="Interested">Interested</option>
-                <option value="Hot Lead">Hot Lead</option>
-                <option value="Asked Price">Asked Price</option>
-                <option value="Booking">Booking</option>
-                <option value="Paid">Paid</option>
-                <option value="Complaint">Complaint</option>
-                <option value="Spam">Spam</option>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Assigned to</label>
-              <Input
-                value={draft.assignedTo}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, assignedTo: event.target.value }))
-                }
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input
-              value={draft.phone}
-              onChange={(event) => setDraft((current) => ({ ...current, phone: event.target.value }))}
-              placeholder="Nomor telepon"
-            />
-            <Input
-              value={draft.email}
-              onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))}
-              placeholder="Email"
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input
-              value={draft.username}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, username: event.target.value }))
-              }
-              placeholder="Username / handle"
-            />
-            <Input
-              value={draft.segment}
-              onChange={(event) => setDraft((current) => ({ ...current, segment: event.target.value }))}
-              placeholder="Segment"
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input
-              value={draft.revenueHint}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, revenueHint: event.target.value }))
-              }
-              placeholder="Revenue hint"
-            />
-            <Input
-              value={draft.tags}
-              onChange={(event) => setDraft((current) => ({ ...current, tags: event.target.value }))}
-              placeholder="Tag dipisah koma"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Catatan internal</label>
-            <Textarea
-              rows={4}
-              value={draft.note}
-              onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))}
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)}>
-              Batal
-            </Button>
-            <Button type="submit">Simpan customer</Button>
-          </div>
-        </form>
-      </Modal>
+      <CrmActionModals
+        activeModal={activeActionModal}
+        customer={selectedDetail?.customer ?? null}
+        onClose={() => setActiveActionModal(null)}
+        onSendMessage={handleSendMessage}
+        onCreateDeal={handleCreateDeal}
+        onCreateTask={handleCreateTask}
+      />
     </div>
   );
 }

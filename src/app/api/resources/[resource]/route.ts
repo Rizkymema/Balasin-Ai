@@ -11,6 +11,8 @@ const RESOURCE_TABLES = {
   products: "products",
   services: "services",
   broadcasts: "broadcasts",
+  crm_deals: "crm_deals",
+  crm_tasks: "crm_tasks",
 } as const;
 
 type ResourceName = keyof typeof RESOURCE_TABLES;

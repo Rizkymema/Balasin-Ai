@@ -1,6 +1,8 @@
 import type {
   AnalyticsSummary,
   BookingRecord,
+  CrmDealEntry,
+  CrmTaskEntry,
   ChannelKind,
   ConversationRecord,
   ConversationStatus,
@@ -139,6 +141,38 @@ const EMPTY_BROADCAST_TEMPLATE: BroadcastRecord = {
   sentCount: 0,
 };
 
+const EMPTY_CRM_DEAL_TEMPLATE: CrmDealEntry = {
+  id: "",
+  title: "",
+  contactId: "",
+  contactName: "",
+  stage: "New Lead",
+  valueLabel: "Rp0",
+  probability: 0,
+  owner: "AI Agent",
+  source: "Website Chat",
+  expectedClose: "",
+  productOrService: "",
+  note: "",
+  createdAt: "",
+  updatedAt: "",
+};
+
+const EMPTY_CRM_TASK_TEMPLATE: CrmTaskEntry = {
+  id: "",
+  contactId: "",
+  contactName: "",
+  title: "",
+  type: "",
+  status: "Open",
+  dueLabel: "",
+  priority: "Medium",
+  owner: "AI Agent",
+  outcome: "",
+  createdAt: "",
+  updatedAt: "",
+};
+
 function cloneValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
@@ -232,6 +266,8 @@ export function createEmptyDashboardOperations(): DashboardOperationsData {
     products: [],
     services: [],
     broadcasts: [],
+    crmDeals: [],
+    crmTasks: [],
     lastUpdatedAt: new Date().toISOString(),
   };
 }
@@ -316,6 +352,21 @@ function normalizeBroadcast(input: Partial<BroadcastRecord>): BroadcastRecord {
   };
 }
 
+function normalizeCrmDeal(input: Partial<CrmDealEntry>): CrmDealEntry {
+  return {
+    ...cloneValue(EMPTY_CRM_DEAL_TEMPLATE),
+    ...input,
+    source: normalizeChannel(input.source),
+  };
+}
+
+function normalizeCrmTask(input: Partial<CrmTaskEntry>): CrmTaskEntry {
+  return {
+    ...cloneValue(EMPTY_CRM_TASK_TEMPLATE),
+    ...input,
+  };
+}
+
 export function normalizeDashboardOperations(raw: unknown): DashboardOperationsData {
   if (!raw || typeof raw !== "object") {
     return cloneDefaultData();
@@ -347,6 +398,12 @@ export function normalizeDashboardOperations(raw: unknown): DashboardOperationsD
       : [],
     broadcasts: Array.isArray(source.broadcasts)
       ? source.broadcasts.map(normalizeBroadcast)
+      : [],
+    crmDeals: Array.isArray(source.crmDeals)
+      ? source.crmDeals.map(normalizeCrmDeal)
+      : [],
+    crmTasks: Array.isArray(source.crmTasks)
+      ? source.crmTasks.map(normalizeCrmTask)
       : [],
     lastUpdatedAt:
       typeof source.lastUpdatedAt === "string"
