@@ -305,7 +305,7 @@ export function InboxWorkspace() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 lg:[--inbox-panel-height:calc(100dvh-12.5rem)]">
+    <div className="flex h-full min-h-0 flex-col gap-3">
       {/* Top Header Bar */}
       <section className="shrink-0 rounded-xl border border-white/[0.06] bg-[#0a0e1c] px-4 py-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -374,11 +374,11 @@ export function InboxWorkspace() {
       ) : (
         <div
           className={cn(
-            "grid min-h-0 flex-1 gap-3",
+            "grid min-h-0 flex-1 gap-3 lg:overflow-hidden",
             "lg:grid-cols-[16rem_minmax(0,1fr)_15rem]",
           )}
         >
-          <div className={mobileView === "list" ? "block min-h-0" : "hidden min-h-0 lg:block"}>
+          <div className={mobileView === "list" ? "block min-h-0 lg:overflow-hidden" : "hidden min-h-0 lg:block lg:overflow-hidden"}>
             <ConversationListPanel
               conversations={filteredConversations}
               selectedId={activeConversation?.id ?? ""}
@@ -412,7 +412,7 @@ export function InboxWorkspace() {
 
           <div
             className={
-              mobileView === "detail" ? "block min-h-0" : "hidden min-h-0 lg:block"
+              mobileView === "detail" ? "block min-h-0 lg:overflow-hidden" : "hidden min-h-0 lg:block lg:overflow-hidden"
             }
           >
             <ConversationThreadPanel
@@ -473,8 +473,8 @@ export function InboxWorkspace() {
           <div
             className={
               showContextPanel || mobileView === "context"
-                ? "block min-h-0"
-                : "hidden min-h-0 lg:block"
+                ? "block min-h-0 lg:overflow-hidden"
+                : "hidden min-h-0 lg:block lg:overflow-hidden"
             }
           >
             <CustomerContextPanel

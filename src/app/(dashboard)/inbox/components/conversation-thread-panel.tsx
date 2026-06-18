@@ -141,7 +141,7 @@ export function ConversationThreadPanel({
 
   if (!conversation) {
     return (
-      <section className="rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-[var(--inbox-panel-height)] lg:max-h-[var(--inbox-panel-height)]">
+      <section className="rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full">
         <EmptyState
           title="Belum memilih conversation"
           description="Pilih percakapan dari panel kiri untuk melihat histori pesan, AI summary, dan aksi operasional."
@@ -169,7 +169,7 @@ export function ConversationThreadPanel({
       conversation.status === "ai_paused");
 
   return (
-    <section className="flex min-h-[42rem] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-[var(--inbox-panel-height)] lg:min-h-0 lg:max-h-[var(--inbox-panel-height)]">
+    <section className="flex min-h-[42rem] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full lg:min-h-0">
       {/* Header */}
       <div className="border-b border-white/[0.06]">
         <div className="flex flex-col gap-4 px-4 py-4 xl:flex-row xl:items-start xl:justify-between">

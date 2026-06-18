@@ -101,7 +101,7 @@ export function CustomerContextPanel({
     return (
       <aside
         className={cn(
-          "rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-[var(--inbox-panel-height)] lg:max-h-[var(--inbox-panel-height)]",
+          "rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full",
           hiddenOnDesktop ? "xl:hidden" : "",
         )}
       >
@@ -121,7 +121,7 @@ export function CustomerContextPanel({
   return (
     <aside
       className={cn(
-        "custom-scrollbar min-h-[42rem] overflow-y-auto overscroll-contain rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-[var(--inbox-panel-height)] lg:min-h-0 lg:max-h-[var(--inbox-panel-height)]",
+        "custom-scrollbar overflow-y-auto overscroll-contain rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full lg:min-h-0",
         hiddenOnDesktop ? "xl:hidden" : "",
       )}
     >
