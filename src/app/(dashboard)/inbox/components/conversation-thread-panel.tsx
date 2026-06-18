@@ -141,7 +141,7 @@ export function ConversationThreadPanel({
 
   if (!conversation) {
     return (
-      <section className="rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full">
+      <section className="rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-[var(--inbox-panel-height)] lg:max-h-[var(--inbox-panel-height)]">
         <EmptyState
           title="Belum memilih conversation"
           description="Pilih percakapan dari panel kiri untuk melihat histori pesan, AI summary, dan aksi operasional."
@@ -169,7 +169,7 @@ export function ConversationThreadPanel({
       conversation.status === "ai_paused");
 
   return (
-    <section className="flex min-h-[42rem] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full lg:min-h-0">
+    <section className="flex min-h-[42rem] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-[var(--inbox-panel-height)] lg:min-h-0 lg:max-h-[var(--inbox-panel-height)]">
       {/* Header */}
       <div className="border-b border-white/[0.06]">
         <div className="flex flex-col gap-4 px-4 py-4 xl:flex-row xl:items-start xl:justify-between">
@@ -323,7 +323,7 @@ export function ConversationThreadPanel({
       </div>
 
       {/* Chat Messages Area */}
-      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto bg-[#080c18] px-4 py-4 sm:px-6">
+      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#080c18] px-4 py-4 sm:px-6">
         <div className="mb-4 flex items-center justify-center">
           <span className="rounded-full bg-white/[0.06] px-4 py-1 text-[11px] font-medium text-slate-500">
             Conversation timeline
@@ -433,7 +433,7 @@ export function ConversationThreadPanel({
       </div>
 
       {/* Composer Area */}
-      <div className="shrink-0 border-t border-white/[0.06] bg-[#0a0e1c] p-4">
+      <div className="sticky bottom-0 shrink-0 border-t border-white/[0.06] bg-[#0a0e1c] p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="inline-flex rounded-xl bg-white/[0.04] p-1">
             {[

@@ -305,7 +305,7 @@ export function InboxWorkspace() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-3 lg:[--inbox-panel-height:calc(100dvh-12.5rem)]">
       {/* Top Header Bar */}
       <section className="shrink-0 rounded-xl border border-white/[0.06] bg-[#0a0e1c] px-4 py-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

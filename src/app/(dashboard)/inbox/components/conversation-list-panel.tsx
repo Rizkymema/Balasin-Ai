@@ -137,7 +137,7 @@ export function ConversationListPanel({
   onSelectConversation,
 }: ConversationListPanelProps) {
   return (
-    <aside className="flex min-h-[42rem] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full lg:min-h-0">
+    <aside className="flex min-h-[42rem] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-[var(--inbox-panel-height)] lg:min-h-0 lg:max-h-[var(--inbox-panel-height)]">
       <div className="border-b border-white/[0.06]">
         <div className="flex items-center justify-between px-4 py-4">
           <h2 className="text-lg font-semibold tracking-tight text-slate-100">
@@ -277,7 +277,7 @@ export function ConversationListPanel({
         </div>
       </div>
 
-      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto">
+      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {conversations.length === 0 ? (
           <EmptyState
             title="Tidak ada percakapan"
