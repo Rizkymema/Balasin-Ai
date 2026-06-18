@@ -46,6 +46,7 @@ const NAV_ITEMS = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const isInboxRoute = pathname.startsWith("/inbox");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [businessName, setBusinessName] = useState("Workspace Baru");
   const [userEmail, setUserEmail] = useState("admin@workspace.local");
@@ -275,8 +276,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* PAGE CONTENT CONTAINER */}
-        <main className="flex-1 overflow-y-auto custom-scrollbar p-6 relative">
-          <div className="max-w-7xl mx-auto space-y-6">
+        <main
+          className={`relative flex-1 ${
+            isInboxRoute
+              ? "flex min-h-0 flex-col overflow-y-auto p-3 lg:overflow-hidden lg:p-4"
+              : "overflow-y-auto custom-scrollbar p-6"
+          }`}
+        >
+          <div
+            className={
+              isInboxRoute
+                ? "mx-auto flex h-full min-h-0 w-full max-w-7xl flex-1 flex-col"
+                : "mx-auto max-w-7xl space-y-6"
+            }
+          >
             {children}
           </div>
         </main>

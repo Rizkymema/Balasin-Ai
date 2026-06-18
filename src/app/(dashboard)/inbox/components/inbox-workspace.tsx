@@ -305,9 +305,9 @@ export function InboxWorkspace() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex h-full min-h-0 flex-col gap-3">
       {/* Top Header Bar */}
-      <section className="rounded-xl border border-white/[0.06] bg-[#0a0e1c] px-4 py-3">
+      <section className="shrink-0 rounded-xl border border-white/[0.06] bg-[#0a0e1c] px-4 py-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -354,9 +354,9 @@ export function InboxWorkspace() {
       </section>
 
       {data.conversations.length === 0 ? (
-        <section className="rounded-xl border border-white/[0.06] bg-[#0a0e1c] p-6">
-          <div className="min-h-[36rem]">
-            <div className="flex h-full min-h-[36rem] items-center justify-center rounded-xl border border-dashed border-white/[0.08] bg-white/[0.02]">
+        <section className="flex min-h-0 flex-1 rounded-xl border border-white/[0.06] bg-[#0a0e1c] p-6">
+          <div className="min-h-[36rem] flex-1 lg:min-h-0">
+            <div className="flex h-full min-h-[36rem] items-center justify-center rounded-xl border border-dashed border-white/[0.08] bg-white/[0.02] lg:min-h-0">
               <div className="max-w-md text-center">
                 <MessageSquare className="mx-auto h-10 w-10 text-[#00d2ff]" />
                 <h2 className="mt-4 text-xl font-semibold text-slate-200">
@@ -374,11 +374,11 @@ export function InboxWorkspace() {
       ) : (
         <div
           className={cn(
-            "grid gap-3",
-            "lg:h-[calc(100vh-11rem)] lg:grid-cols-[16rem_minmax(0,1fr)_15rem]",
+            "grid min-h-0 flex-1 gap-3",
+            "lg:grid-cols-[16rem_minmax(0,1fr)_15rem]",
           )}
         >
-          <div className={mobileView === "list" ? "block" : "hidden lg:block"}>
+          <div className={mobileView === "list" ? "block min-h-0" : "hidden min-h-0 lg:block"}>
             <ConversationListPanel
               conversations={filteredConversations}
               selectedId={activeConversation?.id ?? ""}
@@ -410,7 +410,11 @@ export function InboxWorkspace() {
             />
           </div>
 
-          <div className={mobileView === "detail" ? "block" : "hidden lg:block"}>
+          <div
+            className={
+              mobileView === "detail" ? "block min-h-0" : "hidden min-h-0 lg:block"
+            }
+          >
             <ConversationThreadPanel
               conversation={activeConversation}
               config={config}
@@ -468,7 +472,9 @@ export function InboxWorkspace() {
 
           <div
             className={
-              showContextPanel || mobileView === "context" ? "block" : "hidden lg:block"
+              showContextPanel || mobileView === "context"
+                ? "block min-h-0"
+                : "hidden min-h-0 lg:block"
             }
           >
             <CustomerContextPanel
