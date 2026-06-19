@@ -37,7 +37,7 @@ export function FAQSection() {
           <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-brand)]">
             Pertanyaan Umum
           </span>
-          <h2 className="text-3xl font-bold text-white md:text-4xl tracking-tight">
+          <h2 className="text-3xl font-bold text-[var(--color-text)] md:text-4xl tracking-tight">
             Sering Ditanyakan (FAQ)
           </h2>
           <p className="text-sm text-[var(--color-muted)] leading-relaxed">
@@ -54,7 +54,7 @@ export function FAQSection() {
                 className="p-0 overflow-hidden transition-all duration-200 cursor-pointer hover:border-[var(--color-border-hover)]"
                 onClick={() => toggleOpen(idx)}
               >
-                <div className="flex items-center justify-between p-5 font-bold text-xs md:text-sm text-white select-none">
+                <div className="flex items-center justify-between p-5 font-bold text-xs md:text-sm text-[var(--color-text)] select-none">
                   <span className="tracking-tight">{faq.question}</span>
                   {isOpen ? (
                     <ChevronUp className="h-4.5 w-4.5 text-[var(--color-brand)] shrink-0 ml-4" />

@@ -14,7 +14,7 @@ export function CTASection() {
           </div>
 
           <div className="space-y-3 max-w-2xl mx-auto">
-            <h2 className="text-3xl font-bold text-white md:text-4xl tracking-tight">
+            <h2 className="text-3xl font-bold text-[var(--color-text)] md:text-4xl tracking-tight">
               Siap Mengotomatiskan Layanan Pelanggan Toko Anda?
             </h2>
             <p className="text-xs md:text-sm text-[var(--color-muted)] leading-relaxed">

@@ -62,7 +62,7 @@ export function PricingSection() {
           <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-brand)]">
             Harga Transparan
           </span>
-          <h2 className="text-3xl font-bold text-white md:text-4xl tracking-tight">
+          <h2 className="text-3xl font-bold text-[var(--color-text)] md:text-4xl tracking-tight">
             Pilih Paket yang Sesuai dengan Skala Bisnis Anda
           </h2>
           <p className="text-sm text-[var(--color-muted)] leading-relaxed">
@@ -85,15 +85,15 @@ export function PricingSection() {
               )}
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-base font-bold text-white tracking-tight">{plan.name}</h3>
+                  <h3 className="text-base font-bold text-[var(--color-text)] tracking-tight">{plan.name}</h3>
                   <p className="text-xs text-[var(--color-muted)] mt-1.5 leading-relaxed">{plan.description}</p>
                 </div>
                 <div className="flex items-baseline">
-                  <span className="text-3xl font-extrabold text-white tracking-tight">{plan.price}</span>
+                  <span className="text-3xl font-extrabold text-[var(--color-text)] tracking-tight">{plan.price}</span>
                   <span className="text-xs text-[var(--color-muted)] font-medium ml-1.5">{plan.period}</span>
                 </div>
                 <div className="h-px bg-[var(--color-border)]" />
-                <ul className="space-y-3.5 text-xs text-slate-300 font-medium">
+                <ul className="space-y-3.5 text-xs text-[var(--color-muted)] font-semibold">
                   {plan.features.map((feat, fIdx) => (
                     <li key={fIdx} className="flex items-start gap-2.5">
                       <Check className="h-4 w-4 text-[var(--color-brand)] shrink-0 mt-0.5" />

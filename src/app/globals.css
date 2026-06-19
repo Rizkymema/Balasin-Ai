@@ -15,6 +15,21 @@
   --color-warning: #f59e0b;
 }
 
+.theme-light {
+  --color-bg: #ffffff;
+  --color-surface: #f8fafc;
+  --color-surface-hover: #f1f5f9;
+  --color-surface-strong: #ffffff;
+  --color-border: rgba(15, 23, 42, 0.08);
+  --color-border-hover: rgba(15, 23, 42, 0.15);
+  --color-text: #0f172a;
+  --color-muted: #475569;
+  --color-brand: #1352bf;
+  --color-brand-hover: #0f44a3;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+}
+
 @theme inline {
   --font-sans: var(--app-font-body);
   --font-heading: var(--app-font-heading);

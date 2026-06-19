@@ -20,7 +20,7 @@ export function RoadmapSection() {
           >
             <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-4 flex flex-col justify-center">
               <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand)]">{item.phase}</p>
-              <p className="mt-1 text-xl font-bold text-white tracking-tight">
+              <p className="mt-1 text-xl font-bold text-[var(--color-text)] tracking-tight">
                 {item.title}
               </p>
             </div>

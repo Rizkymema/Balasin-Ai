@@ -31,7 +31,7 @@ export function TestimonialSection() {
           <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-brand)]">
             Testimoni Mitra
           </span>
-          <h2 className="text-3xl font-bold text-white md:text-4xl tracking-tight">
+          <h2 className="text-3xl font-bold text-[var(--color-text)] md:text-4xl tracking-tight">
             Cerita Sukses dari Pengguna Balesin AI
           </h2>
           <p className="text-sm text-[var(--color-muted)] leading-relaxed">
@@ -42,7 +42,7 @@ export function TestimonialSection() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
           {TESTIMONIALS.map((test, idx) => (
             <Card key={idx} className="flex flex-col justify-between hover:border-[var(--color-border-hover)] transition-all">
-              <p className="text-xs text-slate-300 italic leading-relaxed font-medium">
+              <p className="text-xs text-[var(--color-muted)] italic leading-relaxed font-semibold">
                 &ldquo;{test.quote}&rdquo;
               </p>
               <div className="flex items-center gap-3 mt-6">
@@ -50,7 +50,7 @@ export function TestimonialSection() {
                   {test.avatar}
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white">{test.author}</h4>
+                  <h4 className="text-xs font-bold text-[var(--color-text)]">{test.author}</h4>
                   <p className="text-[10px] text-[var(--color-muted)] font-semibold">{test.role}</p>
                 </div>
               </div>

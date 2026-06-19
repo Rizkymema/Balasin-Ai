@@ -18,7 +18,7 @@ export function ModulesSection() {
         {dashboardModules.map((module) => (
           <Card key={module.label} className="flex min-h-40 flex-col justify-between hover:border-[var(--color-border-hover)] transition-all">
             <div className="space-y-3">
-              <h3 className="text-xl font-bold tracking-tight text-white">
+              <h3 className="text-xl font-bold tracking-tight text-[var(--color-text)]">
                 {module.label}
               </h3>
               <p className="text-xs leading-relaxed text-[var(--color-muted)]">

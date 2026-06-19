@@ -15,7 +15,7 @@ export function PlatformSection() {
         {featurePillars.map((pillar) => (
           <Card key={pillar.title} className="space-y-5">
             <div className="space-y-3">
-              <h3 className="text-2xl font-semibold tracking-[-0.04em] text-white">
+              <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--color-text)]">
                 {pillar.title}
               </h3>
               <p className="text-sm leading-7 text-slate-300">{pillar.description}</p>

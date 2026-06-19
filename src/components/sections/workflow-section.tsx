@@ -22,7 +22,7 @@ export function WorkflowSection() {
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-xs font-bold text-[var(--color-brand)] shadow-[0_0_10px_rgba(0,210,255,0.05)]">
                   {index + 1}
                 </div>
-                <h3 className="text-lg font-bold text-white tracking-tight">
+                <h3 className="text-lg font-bold text-[var(--color-text)] tracking-tight">
                   {step.title}
                 </h3>
               </div>

@@ -47,7 +47,7 @@ export function RootShell({ children }: RootShellProps) {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden theme-light bg-[var(--color-bg)] text-[var(--color-text)] transition-colors duration-300">
       <div className="relative z-10 flex min-h-screen flex-col justify-between">
         <div>
           <SiteHeader />
