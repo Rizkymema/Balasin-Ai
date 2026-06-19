@@ -325,7 +325,7 @@ export default function CustomersPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-[70vh] items-center justify-center">
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+        <div className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4 text-sm text-[var(--color-muted)]">
           <Loader2 className="h-4 w-4 animate-spin" />
           Memuat Contacts / CRM...
         </div>
@@ -335,7 +335,7 @@ export default function CustomersPage() {
 
   if (allRows.length === 0) {
     return (
-      <div className="space-y-6 rounded-[28px] bg-[#eef3fb] p-4 md:p-5">
+      <div className="space-y-6">
         <CrmPageHeader
           activeView={activeView}
           onViewChange={setActiveView}
@@ -347,7 +347,7 @@ export default function CustomersPage() {
           onCreateContact={() => setIsCreateOpen(true)}
         />
 
-        <Card className="border-slate-200 bg-white p-0 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+        <Card className="p-0">
           <EmptyState
             icon={<Users2 className="h-10 w-10" />}
             title="Belum ada contact tersimpan"
@@ -371,7 +371,7 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="space-y-6 rounded-[28px] bg-[#eef3fb] p-4 md:p-5">
+    <div className="space-y-6">
       <CrmPageHeader
         activeView={activeView}
         onViewChange={setActiveView}

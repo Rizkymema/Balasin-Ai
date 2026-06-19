@@ -88,7 +88,7 @@ export function CreateContactModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Add Contact" className="max-w-3xl border-slate-200 bg-white text-slate-900">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Add Contact" className="max-w-3xl">
       <form className="space-y-5" onSubmit={handleSubmit}>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
@@ -98,7 +98,6 @@ export function CreateContactModal({
             <Input
               value={draft.name}
               onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-              className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               placeholder="Contoh: Budi Santoso"
               required
             />
@@ -113,7 +112,6 @@ export function CreateContactModal({
               onChange={(event) =>
                 setDraft((current) => ({ ...current, assignedTo: event.target.value }))
               }
-              className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               placeholder="AI Agent / Admin"
             />
           </div>
@@ -130,7 +128,6 @@ export function CreateContactModal({
                   channel: event.target.value as ChannelKind,
                 }))
               }
-              className="border-slate-200 bg-slate-50 text-slate-900"
             >
               <option value="WhatsApp">WhatsApp</option>
               <option value="Website Chat">Website Chat</option>
@@ -151,7 +148,6 @@ export function CreateContactModal({
                   leadStatus: event.target.value as LeadStatus,
                 }))
               }
-              className="border-slate-200 bg-slate-50 text-slate-900"
             >
               <option value="New Lead">New Lead</option>
               <option value="Interested">Interested</option>
@@ -171,7 +167,6 @@ export function CreateContactModal({
             <Input
               value={draft.phone}
               onChange={(event) => setDraft((current) => ({ ...current, phone: event.target.value }))}
-              className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               placeholder="+62..."
             />
           </div>
@@ -183,7 +178,6 @@ export function CreateContactModal({
             <Input
               value={draft.email}
               onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))}
-              className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               placeholder="email@domain.com"
             />
           </div>
@@ -197,7 +191,6 @@ export function CreateContactModal({
               onChange={(event) =>
                 setDraft((current) => ({ ...current, username: event.target.value }))
               }
-              className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               placeholder="@username"
             />
           </div>
@@ -211,7 +204,6 @@ export function CreateContactModal({
               onChange={(event) =>
                 setDraft((current) => ({ ...current, segment: event.target.value }))
               }
-              className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               placeholder="General / VIP / Bengkel"
             />
           </div>
@@ -223,7 +215,6 @@ export function CreateContactModal({
             <Input
               value={draft.tags}
               onChange={(event) => setDraft((current) => ({ ...current, tags: event.target.value }))}
-              className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               placeholder="Pisahkan dengan koma"
             />
           </div>
@@ -237,7 +228,6 @@ export function CreateContactModal({
               onChange={(event) =>
                 setDraft((current) => ({ ...current, revenueHint: event.target.value }))
               }
-              className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               placeholder="Rp350.000"
             />
           </div>
@@ -249,14 +239,13 @@ export function CreateContactModal({
             <Textarea
               value={draft.note}
               onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))}
-              className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               placeholder="Catatan singkat customer, kendaraan, kebutuhan, atau preferensi follow-up."
             />
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
-          <Button type="button" variant="secondary" className="h-11 rounded-xl border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50" onClick={handleClose}>
+        <div className="flex justify-end gap-3 border-t border-white/8 pt-4">
+          <Button type="button" variant="secondary" className="h-11 rounded-xl px-4" onClick={handleClose}>
             Cancel
           </Button>
           <Button type="submit" className="h-11 rounded-xl px-4">

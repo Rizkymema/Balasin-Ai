@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, ChevronRight, Sparkles } from "lucide-react";
+import { CheckCircle2, ChevronRight, Sparkles, Building, Radio, BookOpen, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function CompletePage() {
@@ -56,45 +56,79 @@ export default function CompletePage() {
   };
 
   return (
-    <div className="text-center">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-cyan-500/10 text-cyan-400 shadow-[0_0_20px_rgba(84,219,255,0.2)] animate-pulse">
-        <Sparkles className="h-7 w-7" />
+    <div className="text-center animate-fade-in py-4">
+      {/* Celebrating success badge */}
+      <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-400/20 shadow-[0_0_30px_rgba(84,219,255,0.25)] animate-pulse">
+        <Sparkles className="h-8 w-8" />
       </div>
 
-      <h2 className="text-2xl font-bold font-heading text-white">Setup Workspace Selesai!</h2>
-      <p className="text-xs text-slate-400 mt-1.5 max-w-md mx-auto leading-relaxed">
-        Workspace Anda siap digunakan. AI Balesin telah dilatih dengan knowledge base awal Anda dan siap menjawab pelanggan.
+      <h2 className="text-2xl font-bold font-heading text-white tracking-wide">
+        Setup Workspace Selesai!
+      </h2>
+      <p className="text-xs text-slate-400 mt-2.5 max-w-md mx-auto leading-relaxed">
+        Workspace Anda siap digunakan. AI Balesin telah diinisialisasi menggunakan data profil dan FAQ awal Anda, siap diaktifkan untuk melayani pelanggan.
       </p>
 
-      {/* Summary Box */}
-      <div className="mt-8 mb-8 text-left rounded-xl border border-white/8 bg-white/3 p-5 space-y-3.5 max-w-sm mx-auto">
-        <div className="flex justify-between items-center text-xs">
-          <span className="text-slate-400">Nama Bisnis:</span>
-          <span className="font-bold text-white">{summary.businessName}</span>
+      {/* Summary Box Card */}
+      <div className="mt-8 mb-8 text-left rounded-xl border border-white/8 bg-white/[0.01] p-5.5 space-y-4 max-w-md mx-auto">
+        <div className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 border-b border-white/5 pb-2 flex items-center gap-1.5">
+          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+          Rincian Konfigurasi Workspace
         </div>
-        <div className="flex justify-between items-center text-xs">
-          <span className="text-slate-400">Channel Aktif:</span>
-          <span className="font-bold text-cyan-400 flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping" />
-            {summary.channelName}
-          </span>
-        </div>
-        <div className="flex justify-between items-center text-xs">
-          <span className="text-slate-400">Knowledge Base:</span>
-          <span className="font-bold text-white">{summary.faqCount} FAQ Terlatih</span>
-        </div>
-        <div className="flex justify-between items-center text-xs">
-          <span className="text-slate-400">Anggota Tim:</span>
-          <span className="font-bold text-white">{summary.inviteCount} Diundang</span>
+        
+        <div className="space-y-3.5">
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-slate-400 flex items-center gap-2">
+              <Building className="h-4 w-4 text-cyan-400/80" />
+              Nama Bisnis:
+            </span>
+            <span className="font-bold text-white">{summary.businessName}</span>
+          </div>
+          
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-slate-400 flex items-center gap-2">
+              <Radio className="h-4 w-4 text-cyan-400/80" />
+              Channel Utama:
+            </span>
+            <span className="font-bold text-cyan-400 flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping" />
+              {summary.channelName}
+            </span>
+          </div>
+          
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-slate-400 flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-cyan-400/80" />
+              Knowledge Base:
+            </span>
+            <span className="font-bold text-white bg-white/5 px-2.5 py-0.5 rounded border border-white/5">
+              {summary.faqCount} FAQ Aktif
+            </span>
+          </div>
+          
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-slate-400 flex items-center gap-2">
+              <Users className="h-4 w-4 text-cyan-400/80" />
+              Anggota Tim:
+            </span>
+            <span className="font-bold text-white">
+              {summary.inviteCount} Orang Diundang
+            </span>
+          </div>
         </div>
       </div>
 
-      <Button onClick={handleFinish} className="w-full max-w-xs px-6 py-5 rounded-full">
-        <span className="flex items-center justify-center gap-1.5">
-          Masuk ke Dashboard
-          <ChevronRight className="h-5 w-5" />
-        </span>
-      </Button>
+      <div className="flex justify-center">
+        <Button
+          onClick={handleFinish}
+          className="w-full max-w-xs px-6 py-5.5 rounded-full shadow-[0_4px_25px_rgba(0,210,255,0.2)] hover:shadow-[0_4px_30px_rgba(0,210,255,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+        >
+          <span className="flex items-center justify-center gap-1.5 font-bold tracking-wide">
+            Masuk ke Dashboard
+            <ChevronRight className="h-5 w-5" />
+          </span>
+        </Button>
+      </div>
     </div>
   );
 }

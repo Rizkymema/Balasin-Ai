@@ -102,7 +102,8 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
           }),
         );
 
-        router.push(redirectTo || "/step-1");
+        const isOnboarded = localStorage.getItem("balesin_onboarded") === "true";
+        router.push(redirectTo || (isOnboarded ? "/dashboard" : "/step-1"));
       } catch (fetchError: unknown) {
         setError(
           fetchError instanceof Error ? fetchError.message : "Login Google gagal.",
@@ -112,6 +113,14 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
     },
     [redirectTo, router],
   );
+
+  useEffect(() => {
+    const user = localStorage.getItem("balesin_user");
+    const isOnboarded = localStorage.getItem("balesin_onboarded") === "true";
+    if (user) {
+      router.push(redirectTo || (isOnboarded ? "/dashboard" : "/step-1"));
+    }
+  }, [redirectTo, router]);
 
   useEffect(() => {
     if (

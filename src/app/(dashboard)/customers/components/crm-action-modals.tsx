@@ -144,7 +144,7 @@ export function CrmActionModals({
         isOpen={activeModal === "message" && customer !== null}
         onClose={handleClose}
         title={`Send Message${customer ? ` - ${customer.name}` : ""}`}
-        className="max-w-2xl border-slate-200 bg-white text-slate-900"
+        className="max-w-2xl"
       >
         <form className="space-y-5" onSubmit={handleSubmitMessage}>
           <div className="space-y-2">
@@ -154,13 +154,13 @@ export function CrmActionModals({
             <Textarea
               value={message}
               onChange={(event) => setMessage(event.target.value)}
-              className="min-h-[160px] border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
+              className="min-h-[160px]"
               placeholder="Tulis balasan atau follow-up yang ingin dikirim dari CRM. Pesan ini akan membuat / memperbarui thread contact di Inbox."
             />
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
-            <Button type="button" variant="secondary" className="h-11 rounded-xl border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50" onClick={handleClose}>
+          <div className="flex justify-end gap-3 border-t border-white/8 pt-4">
+            <Button type="button" variant="secondary" className="h-11 rounded-xl px-4" onClick={handleClose}>
               Cancel
             </Button>
             <Button type="submit" className="h-11 rounded-xl px-4">
@@ -174,7 +174,7 @@ export function CrmActionModals({
         isOpen={activeModal === "deal" && customer !== null}
         onClose={handleClose}
         title={`Create Deal${customer ? ` - ${customer.name}` : ""}`}
-        className="max-w-3xl border-slate-200 bg-white text-slate-900"
+        className="max-w-3xl"
       >
         <form className="space-y-5" onSubmit={handleSubmitDeal}>
           <div className="grid gap-4 md:grid-cols-2">
@@ -185,7 +185,6 @@ export function CrmActionModals({
               <Input
                 value={dealForm.title}
                 onChange={(event) => setDealForm((current) => ({ ...current, title: event.target.value }))}
-                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
                 placeholder="Nama deal"
               />
             </div>
@@ -202,7 +201,6 @@ export function CrmActionModals({
                     stage: event.target.value as CrmDealStage,
                   }))
                 }
-                className="border-slate-200 bg-slate-50 text-slate-900"
               >
                 <option value="New Lead">New Lead</option>
                 <option value="Qualified">Qualified</option>
@@ -221,7 +219,6 @@ export function CrmActionModals({
                 onChange={(event) =>
                   setDealForm((current) => ({ ...current, valueLabel: event.target.value }))
                 }
-                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
                 placeholder="Rp0"
               />
             </div>
@@ -241,7 +238,6 @@ export function CrmActionModals({
                     probability: Number(event.target.value || 0),
                   }))
                 }
-                className="border-slate-200 bg-slate-50 text-slate-900"
               />
             </div>
 
@@ -254,7 +250,6 @@ export function CrmActionModals({
                 onChange={(event) =>
                   setDealForm((current) => ({ ...current, owner: event.target.value }))
                 }
-                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               />
             </div>
 
@@ -267,7 +262,6 @@ export function CrmActionModals({
                 onChange={(event) =>
                   setDealForm((current) => ({ ...current, expectedClose: event.target.value }))
                 }
-                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               />
             </div>
 
@@ -283,7 +277,6 @@ export function CrmActionModals({
                     productOrService: event.target.value,
                   }))
                 }
-                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               />
             </div>
 
@@ -296,14 +289,13 @@ export function CrmActionModals({
                 onChange={(event) =>
                   setDealForm((current) => ({ ...current, note: event.target.value }))
                 }
-                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
                 placeholder="Catatan deal, kebutuhan customer, atau syarat closing."
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
-            <Button type="button" variant="secondary" className="h-11 rounded-xl border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50" onClick={handleClose}>
+          <div className="flex justify-end gap-3 border-t border-white/8 pt-4">
+            <Button type="button" variant="secondary" className="h-11 rounded-xl px-4" onClick={handleClose}>
               Cancel
             </Button>
             <Button type="submit" className="h-11 rounded-xl px-4">
@@ -317,7 +309,7 @@ export function CrmActionModals({
         isOpen={activeModal === "task" && customer !== null}
         onClose={handleClose}
         title={`Add Task${customer ? ` - ${customer.name}` : ""}`}
-        className="max-w-3xl border-slate-200 bg-white text-slate-900"
+        className="max-w-3xl"
       >
         <form className="space-y-5" onSubmit={handleSubmitTask}>
           <div className="grid gap-4 md:grid-cols-2">
@@ -328,7 +320,6 @@ export function CrmActionModals({
               <Input
                 value={taskForm.title}
                 onChange={(event) => setTaskForm((current) => ({ ...current, title: event.target.value }))}
-                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               />
             </div>
 
@@ -339,7 +330,6 @@ export function CrmActionModals({
               <Input
                 value={taskForm.type}
                 onChange={(event) => setTaskForm((current) => ({ ...current, type: event.target.value }))}
-                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               />
             </div>
 
@@ -350,7 +340,6 @@ export function CrmActionModals({
               <Input
                 value={taskForm.owner}
                 onChange={(event) => setTaskForm((current) => ({ ...current, owner: event.target.value }))}
-                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               />
             </div>
 
@@ -366,7 +355,6 @@ export function CrmActionModals({
                     status: event.target.value as CrmTaskStatus,
                   }))
                 }
-                className="border-slate-200 bg-slate-50 text-slate-900"
               >
                 <option value="Open">Open</option>
                 <option value="In Progress">In Progress</option>
@@ -382,7 +370,6 @@ export function CrmActionModals({
               <Input
                 value={taskForm.dueLabel}
                 onChange={(event) => setTaskForm((current) => ({ ...current, dueLabel: event.target.value }))}
-                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
               />
             </div>
 
@@ -398,7 +385,6 @@ export function CrmActionModals({
                     priority: event.target.value as CrmTaskPriority,
                   }))
                 }
-                className="border-slate-200 bg-slate-50 text-slate-900"
               >
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
@@ -413,14 +399,13 @@ export function CrmActionModals({
               <Textarea
                 value={taskForm.outcome}
                 onChange={(event) => setTaskForm((current) => ({ ...current, outcome: event.target.value }))}
-                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
                 placeholder="Tujuan task, next step, atau konteks follow-up."
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
-            <Button type="button" variant="secondary" className="h-11 rounded-xl border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50" onClick={handleClose}>
+          <div className="flex justify-end gap-3 border-t border-white/8 pt-4">
+            <Button type="button" variant="secondary" className="h-11 rounded-xl px-4" onClick={handleClose}>
               Cancel
             </Button>
             <Button type="submit" className="h-11 rounded-xl px-4">

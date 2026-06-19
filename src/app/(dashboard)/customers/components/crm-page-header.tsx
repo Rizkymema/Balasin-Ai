@@ -35,17 +35,17 @@ export function CrmPageHeader({
 
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] md:p-8">
-        <div className="absolute right-0 top-0 h-44 w-44 rounded-full bg-cyan-200/50 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 md:p-8">
+        <div className="absolute right-0 top-0 h-44 w-44 rounded-full bg-[var(--color-brand)]/10 blur-3xl" />
         <div className="relative z-10 flex flex-col gap-5">
           <div className="space-y-3">
-            <Badge className="border-cyan-100 bg-cyan-50 text-cyan-700">Contacts / CRM</Badge>
+            <Badge className="border-[var(--color-brand)]/20 bg-[var(--color-brand)]/10 text-[var(--color-brand)]">Contacts / CRM</Badge>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-slate-900">
+                <h1 className="text-3xl font-bold text-white">
                   Contacts / CRM
                 </h1>
-                <p className="mt-2 max-w-4xl text-sm leading-7 text-slate-600">
+                <p className="mt-2 max-w-4xl text-sm leading-7 text-[var(--color-muted)]">
                   Satu workspace untuk contact, segmentasi, deal pipeline, task,
                   dan histori customer. Struktur awalnya mengikuti kebutuhan CRM
                   di dokumen kerja tanpa mematahkan data dashboard yang sudah ada.
@@ -72,12 +72,12 @@ export function CrmPageHeader({
                 className={cn(
                   "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition",
                   activeQuickFilter === filter.id
-                    ? "border-cyan-200 bg-cyan-50 text-cyan-700"
-                    : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100",
+                    ? "border-[var(--color-brand)]/25 bg-[var(--color-brand)]/12 text-[var(--color-brand)]"
+                    : "border-[var(--color-border)] bg-white/[0.04] text-[var(--color-muted)] hover:bg-white/[0.08]",
                 )}
               >
                 {filter.label}
-                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] text-slate-600 shadow-sm">
+                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white">
                   {filter.count}
                 </span>
               </button>
@@ -86,7 +86,7 @@ export function CrmPageHeader({
         </div>
       </section>
 
-      <section className="flex flex-col gap-3 rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] md:flex-row md:items-center md:justify-between">
+      <section className="flex flex-col gap-3 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-wrap gap-2">
           {CRM_VIEW_TABS.map((tab) => (
             <button
@@ -96,8 +96,8 @@ export function CrmPageHeader({
               className={cn(
                 "rounded-xl px-4 py-2 text-sm font-semibold transition",
                 activeView === tab.id
-                  ? "bg-[#1677ff] text-white shadow-sm"
-                  : "bg-slate-50 text-slate-600 hover:bg-slate-100",
+                  ? "bg-[var(--color-brand)] text-slate-950"
+                  : "bg-white/[0.04] text-[var(--color-muted)] hover:bg-white/[0.08]",
               )}
             >
               {tab.label}
@@ -105,16 +105,16 @@ export function CrmPageHeader({
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--color-muted)]">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white/[0.04] px-3 py-1.5">
             <Users2 className="h-3.5 w-3.5" />
             Contact core
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white/[0.04] px-3 py-1.5">
             <Filter className="h-3.5 w-3.5" />
             Search + segment + tag
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white/[0.04] px-3 py-1.5">
             <Building2 className="h-3.5 w-3.5" />
             CRM initial scope
           </span>
