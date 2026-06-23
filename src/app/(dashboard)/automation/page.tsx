@@ -1727,7 +1727,7 @@ export default function AutomationPage() {
                 </div>
                 <div>
                   <h2 className="text-sm font-bold uppercase tracking-wider text-white">Idle Action (Kontrol Obrolan Menganggur)</h2>
-                  <p className="text-xs text-slate-400 mt-1">Fitur kontrol otomatisasi obrolan. Di sini Anda mengatur apa yang harus dilakukan oleh sistem jika sebuah obrolan sedang "menganggur" (idle), misalnya ketika pelanggan menghilang tanpa membalas chat atau agen lupa menutup sesi percakapan.</p>
+                  <p className="text-xs text-slate-400 mt-1">Fitur kontrol otomatisasi obrolan. Di sini Anda mengatur apa yang harus dilakukan oleh sistem jika sebuah obrolan sedang &quot;menganggur&quot; (idle), misalnya ketika pelanggan menghilang tanpa membalas chat atau agen lupa menutup sesi percakapan.</p>
                 </div>
               </div>
 
