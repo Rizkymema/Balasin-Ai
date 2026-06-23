@@ -18,6 +18,8 @@ declare global {
           extras?: Record<string, unknown>;
           config_id?: string;
           auth_type?: string;
+          response_type?: string;
+          override_default_response_type?: boolean;
         }
       ) => void;
     };
@@ -28,12 +30,13 @@ declare global {
 interface FacebookAuthResponse {
   status: "connected" | "not_authorized" | "unknown";
   authResponse?: {
-    accessToken: string;
-    userID: string;
-    expiresIn: number;
-    signedRequest: string;
-    graphDomain: string;
-    data_access_expiration_time: number;
+    accessToken?: string;
+    userID?: string;
+    expiresIn?: number;
+    signedRequest?: string;
+    graphDomain?: string;
+    data_access_expiration_time?: number;
+    code?: string;
   };
 }
 
@@ -47,10 +50,11 @@ export interface MetaInstagramResult {
 
 // Payload yang dikembalikan dari Meta Embedded Signup (channel=WHATSAPP)
 export interface MetaWhatsAppResult {
-  phoneNumberId: string;
-  wabaId: string;
-  accessToken: string;
-  businessName: string;
+  accessToken?: string;
+  code?: string;
+  phoneNumberId?: string;
+  wabaId?: string;
+  businessName?: string;
   displayPhone?: string;
 }
 
@@ -173,8 +177,6 @@ export function useMetaConnect() {
     setWaStatus("loading");
     setWaError(null);
 
-    // Karena dipanggil via click, kita harus memanggil FB.login secara sinkron
-    // Pastikan SDK sudah dimuat oleh useEffect
     if (typeof window === "undefined" || !window.FB) {
       try {
         await loadFbSdk(WHATSAPP_APP_ID);
@@ -185,27 +187,30 @@ export function useMetaConnect() {
       }
     }
 
-    // FB.login callback TIDAK boleh async — gunakan IIFE async di dalam
     return new Promise((resolve) => {
       window.FB.login(
         (response: FacebookAuthResponse) => {
-          // Jalankan logika async di dalam sync callback menggunakan IIFE
           void (async () => {
-            if (response.status !== "connected" || !response.authResponse) {
+            const auth = response.authResponse;
+            if (response.status !== "connected" || !auth) {
               setWaStatus("error");
-              setWaError("Login Facebook dibatalkan atau gagal.");
+              setWaError("Autentikasi gagal atau dibatalkan oleh pengguna.");
+              resolve(null);
+              return;
+            }
+
+            if (!auth.accessToken && !auth.code) {
+              setWaStatus("error");
+              setWaError("Akses token atau code tidak ditemukan.");
               resolve(null);
               return;
             }
 
             try {
-              const { accessToken } = response.authResponse;
-
-              // Kirim ke server untuk tukar token & ambil Phone Number ID
               const res = await fetch("/api/channels/whatsapp/connect", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ accessToken }),
+                body: JSON.stringify({ accessToken: auth.accessToken, code: auth.code }),
               });
 
               if (!res.ok) {
@@ -227,7 +232,9 @@ export function useMetaConnect() {
         },
         WA_CONFIG_ID ? {
           config_id: WA_CONFIG_ID,
-          auth_type: "rerequest" // Paksa prompt u/ tambah akun
+          auth_type: "rerequest", // Paksa prompt u/ tambah akun
+          response_type: "code",
+          override_default_response_type: true
         } : {
           scope: [
             "business_management",

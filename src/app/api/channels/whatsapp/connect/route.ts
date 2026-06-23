@@ -4,6 +4,7 @@ const META_GRAPH = "https://graph.facebook.com";
 const API_VERSION = process.env.WHATSAPP_API_VERSION ?? "v21.0";
 const APP_SECRET = process.env.WHATSAPP_APP_SECRET ?? process.env.META_APP_SECRET ?? "";
 const APP_ID = process.env.NEXT_PUBLIC_WHATSAPP_APP_ID ?? process.env.NEXT_PUBLIC_META_APP_ID ?? "";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "";
 
 interface WabaData {
   id: string;
@@ -22,32 +23,68 @@ interface LongLivedTokenResponse {
   token_type: string;
 }
 
+interface CodeTokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in?: number;
+}
+
 /**
- * Tukar short-lived user access token → long-lived token,
- * lalu ambil WABA + Phone Number ID pertama yang tersedia.
- *
  * POST /api/channels/whatsapp/connect
- * Body: { accessToken: string }
+ * Body: { accessToken?: string; code?: string }
+ *
+ * Mendukung dua flow:
+ * 1. accessToken (legacy JS SDK flow) → langsung tukar ke long-lived token
+ * 2. code (Facebook Login for Business / config_id flow) → tukar code ke access_token dulu
  */
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { accessToken?: string };
-    const shortLivedToken = body.accessToken;
-
-    if (!shortLivedToken) {
-      return NextResponse.json(
-        { error: "accessToken diperlukan." },
-        { status: 400 }
-      );
-    }
+    const body = (await request.json()) as { accessToken?: string; code?: string };
 
     if (!APP_ID || !APP_SECRET) {
       return NextResponse.json(
         {
           error:
-            "NEXT_PUBLIC_META_APP_ID (atau NEXT_PUBLIC_WHATSAPP_APP_ID) dan META_APP_SECRET (atau WHATSAPP_APP_SECRET) belum dikonfigurasi di environment.",
+            "NEXT_PUBLIC_META_APP_ID dan META_APP_SECRET belum dikonfigurasi di environment.",
         },
         { status: 500 }
+      );
+    }
+
+    let shortLivedToken: string | undefined;
+
+    // ---------------------------------------------------
+    // Flow A: code → access_token (config_id flow)
+    // ---------------------------------------------------
+    if (body.code) {
+      const redirectUri = `${APP_URL}/api/channels/whatsapp/connect`;
+      const codeUrl = new URL(`${META_GRAPH}/oauth/access_token`);
+      codeUrl.searchParams.set("client_id", APP_ID);
+      codeUrl.searchParams.set("client_secret", APP_SECRET);
+      codeUrl.searchParams.set("code", body.code);
+      codeUrl.searchParams.set("redirect_uri", redirectUri);
+
+      const codeRes = await fetch(codeUrl.toString());
+      if (!codeRes.ok) {
+        const err = await codeRes.json().catch(() => ({}));
+        return NextResponse.json(
+          { error: "Gagal menukar code ke access token.", detail: err },
+          { status: 502 }
+        );
+      }
+      const codeData = (await codeRes.json()) as CodeTokenResponse;
+      shortLivedToken = codeData.access_token;
+    } else if (body.accessToken) {
+      // ---------------------------------------------------
+      // Flow B: accessToken langsung (legacy JS SDK flow)
+      // ---------------------------------------------------
+      shortLivedToken = body.accessToken;
+    }
+
+    if (!shortLivedToken) {
+      return NextResponse.json(
+        { error: "accessToken atau code diperlukan." },
+        { status: 400 }
       );
     }
 
