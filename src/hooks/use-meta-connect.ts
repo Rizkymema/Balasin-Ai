@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -53,6 +53,8 @@ type ConnectStatus = "idle" | "loading" | "success" | "error";
 
 const WHATSAPP_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID ?? "";
 const INSTAGRAM_APP_ID = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID ?? WHATSAPP_APP_ID;
+const WA_CONFIG_ID = process.env.NEXT_PUBLIC_META_WA_CONFIG_ID ?? "";
+const IG_CONFIG_ID = process.env.NEXT_PUBLIC_META_IG_CONFIG_ID ?? "";
 const SDK_VERSION = "v21.0";
 
 // ---------------------------------------------------
@@ -145,6 +147,14 @@ export function useMetaConnect() {
   const waResultRef = useRef<MetaWhatsAppResult | null>(null);
   const igResultRef = useRef<MetaInstagramResult | null>(null);
 
+  // Preload FB SDK untuk menghindari popup blocker yang memblokir async call
+  useEffect(() => {
+    if (!isHttpOnly()) {
+      if (WHATSAPP_APP_ID) loadFbSdk(WHATSAPP_APP_ID).catch(() => {});
+      else if (INSTAGRAM_APP_ID) loadFbSdk(INSTAGRAM_APP_ID).catch(() => {});
+    }
+  }, []);
+
   // -----------------------------------------------
   // WHATSAPP – Embedded Signup
   // -----------------------------------------------
@@ -158,13 +168,16 @@ export function useMetaConnect() {
     setWaStatus("loading");
     setWaError(null);
 
-    try {
-      await loadFbSdk(WHATSAPP_APP_ID);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Gagal memuat Facebook SDK.";
-      setWaStatus("error");
-      setWaError(message);
-      return null;
+    // Karena dipanggil via click, kita harus memanggil FB.login secara sinkron
+    // Pastikan SDK sudah dimuat oleh useEffect
+    if (typeof window === "undefined" || !window.FB) {
+      try {
+        await loadFbSdk(WHATSAPP_APP_ID);
+      } catch (err) {
+        setWaStatus("error");
+        setWaError("Gagal memuat Facebook SDK. Pastikan HTTPS.");
+        return null;
+      }
     }
 
     // FB.login callback TIDAK boleh async — gunakan IIFE async di dalam
@@ -207,7 +220,10 @@ export function useMetaConnect() {
             }
           })();
         },
-        {
+        WA_CONFIG_ID ? {
+          config_id: WA_CONFIG_ID,
+          auth_type: "rerequest" // Paksa prompt u/ tambah akun
+        } : {
           scope: [
             "business_management",
             "whatsapp_business_management",
@@ -219,6 +235,7 @@ export function useMetaConnect() {
               business: { name: "" }, // kosong = user isi sendiri di wizard
             },
           },
+          auth_type: "rerequest"
         }
       );
     });
@@ -237,13 +254,14 @@ export function useMetaConnect() {
     setIgStatus("loading");
     setIgError(null);
 
-    try {
-      await loadFbSdk(INSTAGRAM_APP_ID);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Gagal memuat Facebook SDK.";
-      setIgStatus("error");
-      setIgError(message);
-      return null;
+    if (typeof window === "undefined" || !window.FB) {
+      try {
+        await loadFbSdk(INSTAGRAM_APP_ID);
+      } catch (err) {
+        setIgStatus("error");
+        setIgError("Gagal memuat Facebook SDK.");
+        return null;
+      }
     }
 
     // FB.login callback TIDAK boleh async — gunakan IIFE async di dalam
@@ -285,7 +303,10 @@ export function useMetaConnect() {
             }
           })();
         },
-        {
+        IG_CONFIG_ID ? {
+          config_id: IG_CONFIG_ID,
+          auth_type: "rerequest"
+        } : {
           scope: [
             "instagram_basic",
             "instagram_manage_messages",
@@ -294,6 +315,7 @@ export function useMetaConnect() {
             "pages_manage_metadata",
             "pages_read_engagement",
           ].join(","),
+          auth_type: "rerequest"
         }
       );
     });
