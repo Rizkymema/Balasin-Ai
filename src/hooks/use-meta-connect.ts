@@ -13,7 +13,12 @@ declare global {
       }) => void;
       login: (
         callback: (response: FacebookAuthResponse) => void,
-        params: { scope: string; extras?: Record<string, unknown> }
+        params: { 
+          scope?: string; 
+          extras?: Record<string, unknown>;
+          config_id?: string;
+          auth_type?: string;
+        }
       ) => void;
     };
     fbAsyncInit?: () => void;
