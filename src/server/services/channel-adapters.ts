@@ -7,6 +7,7 @@ type SendMessageInput = {
   recipientId?: string;
   message: string;
   phoneNumberIdOverride?: string;
+  instagramAccountIdOverride?: string;
 };
 
 type WhatsAppGraphResponse = {
@@ -90,7 +91,12 @@ export async function sendChannelMessage(input: SendMessageInput) {
     const phoneNumberId =
       input.phoneNumberIdOverride?.trim() ||
       config.channels.whatsapp.phoneNumberId.trim();
-    const accessToken = config.channels.whatsapp.accessToken.trim();
+
+    // Cari token di daftar accounts yang cocok dengan phoneNumberId
+    const matchingAccount = config.channels.whatsapp.accounts?.find(
+      (acc) => acc.phoneNumberId === phoneNumberId
+    );
+    const accessToken = (matchingAccount?.accessToken || config.channels.whatsapp.accessToken).trim();
 
     if (!phoneNumberId || !accessToken) {
       return {
@@ -134,8 +140,15 @@ export async function sendChannelMessage(input: SendMessageInput) {
   }
 
   if (input.channel === "Instagram DM") {
-    const accountId = config.channels.instagram.accountId?.trim();
-    const igAccessToken = config.channels.instagram.accessToken?.trim();
+    const accountId =
+      input.instagramAccountIdOverride?.trim() ||
+      config.channels.instagram.accountId?.trim();
+
+    // Cari token di daftar accounts yang cocok dengan accountId
+    const matchingAccount = config.channels.instagram.accounts?.find(
+      (acc) => acc.accountId === accountId
+    );
+    const igAccessToken = (matchingAccount?.accessToken || config.channels.instagram.accessToken || "").trim();
 
     if (!accountId || !igAccessToken) {
       return {
@@ -237,10 +250,15 @@ export async function sendWhatsAppReadTypingIndicator(input: {
   phoneNumberIdOverride?: string;
 }) {
   const config = await getDashboardConfigRecord();
-  const accessToken = config.channels.whatsapp.accessToken.trim();
   const phoneNumberId =
     input.phoneNumberIdOverride?.trim() ||
     config.channels.whatsapp.phoneNumberId.trim();
+
+  // Cari token di daftar accounts yang cocok dengan phoneNumberId
+  const matchingAccount = config.channels.whatsapp.accounts?.find(
+    (acc) => acc.phoneNumberId === phoneNumberId
+  );
+  const accessToken = (matchingAccount?.accessToken || config.channels.whatsapp.accessToken).trim();
 
   if (!accessToken || !phoneNumberId) {
     return {

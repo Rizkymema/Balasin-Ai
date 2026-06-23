@@ -193,6 +193,7 @@ function mergePersistedDashboardConfig(
           existing.channels.whatsapp.verifyToken,
           incoming.channels.whatsapp.verifyToken,
         ),
+        accounts: incoming.channels.whatsapp.accounts ?? existing.channels.whatsapp.accounts ?? [],
       },
       instagram: {
         ...incoming.channels.instagram,
@@ -212,6 +213,7 @@ function mergePersistedDashboardConfig(
           existing.channels.instagram.verifyToken,
           incoming.channels.instagram.verifyToken,
         ),
+        accounts: incoming.channels.instagram.accounts ?? existing.channels.instagram.accounts ?? [],
       },
     },
   } satisfies DashboardConfig;

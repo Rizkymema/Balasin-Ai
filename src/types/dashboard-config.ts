@@ -108,6 +108,15 @@ export type DashboardConfig = {
       verifyToken: string;
       webhookUrl: string;
       autoReply: boolean;
+      accounts?: Array<{
+        id: string; // phone number ID
+        businessLabel: string;
+        phoneNumberId: string;
+        accessToken: string;
+        verifyToken: string;
+        status: ChannelStatus;
+        phoneNumber: string; // display phone number
+      }>;
     };
     instagram: {
       enabled: boolean;
@@ -119,7 +128,17 @@ export type DashboardConfig = {
       autoReplyDm: boolean;
       commentGuard: boolean;
       commentToDm: boolean;
+      accounts?: Array<{
+        id: string; // account ID
+        username: string;
+        accountId: string;
+        accessToken: string;
+        verifyToken: string;
+        status: ChannelStatus;
+        pageName?: string;
+      }>;
     };
+
   };
   automation: {
     handoffThreshold: number;

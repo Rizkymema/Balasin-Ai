@@ -281,6 +281,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       recipientId: input.phone ?? input.externalUserId,
       message: decision.reply,
       phoneNumberIdOverride: input.channelContext?.whatsappPhoneNumberId,
+      instagramAccountIdOverride: input.channelContext?.instagramAccountId,
     });
 
     conversation = appendMessage(

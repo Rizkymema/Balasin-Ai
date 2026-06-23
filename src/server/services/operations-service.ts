@@ -244,6 +244,7 @@ export async function sendInboxReply(input: {
     recipientId,
     message: input.message,
     phoneNumberIdOverride: conversation.channelContext?.whatsappPhoneNumberId,
+    instagramAccountIdOverride: conversation.channelContext?.instagramAccountId,
   });
 
   const outgoingMessage: ConversationMessage = {

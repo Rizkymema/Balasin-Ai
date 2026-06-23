@@ -20,6 +20,7 @@ async function processLeadFollowup(payload: Record<string, unknown>) {
     message:
       "Halo, kami follow-up ya. Jika masih ingin lanjut, cukup balas detail kebutuhan atau jadwal yang diinginkan.",
     phoneNumberIdOverride: target.channelContext?.whatsappPhoneNumberId,
+    instagramAccountIdOverride: target.channelContext?.instagramAccountId,
   });
 
   target.messages.push({
@@ -51,10 +52,13 @@ async function processBookingReminder(payload: Record<string, unknown>) {
   }
 
   const customer = current.customers.find((item) => item.id === booking.customerId);
+  const conv = current.conversations.find((c) => c.customerId === booking.customerId && c.channel === booking.channel);
   await sendChannelMessage({
     channel: booking.channel,
     recipientId: customer?.phone ?? customer?.username ?? booking.customerId,
     message: `Reminder booking ${booking.service} pada ${booking.date} jam ${booking.slot}.`,
+    phoneNumberIdOverride: conv?.channelContext?.whatsappPhoneNumberId,
+    instagramAccountIdOverride: conv?.channelContext?.instagramAccountId,
   });
 
   return { reminded: true };
@@ -70,10 +74,13 @@ async function processBroadcastSend(payload: Record<string, unknown>) {
 
   const audience = current.customers.filter((customer) => customer.leadStatus !== "Spam");
   for (const customer of audience.slice(0, 25)) {
+    const conv = current.conversations.find((c) => c.customerId === customer.id && c.channel === broadcast.channel);
     await sendChannelMessage({
       channel: broadcast.channel,
       recipientId: customer.phone ?? customer.username ?? customer.id,
       message: broadcast.template,
+      phoneNumberIdOverride: conv?.channelContext?.whatsappPhoneNumberId,
+      instagramAccountIdOverride: conv?.channelContext?.instagramAccountId,
     });
   }
 

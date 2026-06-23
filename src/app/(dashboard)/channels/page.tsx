@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, useCallback, type FormEvent } from "react";
 import {
   AlertCircle,
   ArrowLeft,
   Check,
+  CheckCircle2,
   Copy,
   Eye,
   Globe,
   Instagram,
+  Loader2,
   MessageCircle,
   Send,
   Shield,
@@ -24,8 +26,13 @@ import {
   PlusCircle,
   Link2,
   Settings,
-  ChevronRight
+  ChevronDown,
+  ChevronRight,
+  Unplug,
+  Zap
 } from "lucide-react";
+
+import { useMetaConnect } from "@/hooks/use-meta-connect";
 
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import { resolveDashboardPublicAppUrl } from "@/lib/runtime-url";
@@ -65,6 +72,50 @@ function getChannelKind(activeChannel: ActiveChannel): ChannelKind {
 
 export default function ChannelsPage() {
   const { config, patchConfig } = useDashboardConfig();
+  const {
+    connectWhatsApp,
+    connectInstagram,
+    isWaConnecting,
+    isIgConnecting,
+    waError: oauthWaError,
+    igError: oauthIgError,
+  } = useMetaConnect();
+
+  const whatsappAccounts = useMemo(() => {
+    const list = config.channels.whatsapp.accounts ?? [];
+    if (list.length === 0 && config.channels.whatsapp.status === "connected" && config.channels.whatsapp.phoneNumberId) {
+      return [{
+        id: config.channels.whatsapp.phoneNumberId,
+        businessLabel: config.channels.whatsapp.businessLabel || "WhatsApp Business Account",
+        phoneNumberId: config.channels.whatsapp.phoneNumberId,
+        accessToken: config.channels.whatsapp.accessToken,
+        verifyToken: config.channels.whatsapp.verifyToken,
+        status: config.channels.whatsapp.status,
+        phoneNumber: "Primary Number",
+      }];
+    }
+    return list;
+  }, [config.channels.whatsapp]);
+
+  const instagramAccounts = useMemo(() => {
+    const list = config.channels.instagram.accounts ?? [];
+    if (list.length === 0 && config.channels.instagram.status === "connected" && config.channels.instagram.accountId) {
+      return [{
+        id: config.channels.instagram.accountId,
+        username: config.channels.instagram.username || "instagram_user",
+        accountId: config.channels.instagram.accountId,
+        accessToken: config.channels.instagram.accessToken,
+        verifyToken: config.channels.instagram.verifyToken,
+        status: config.channels.instagram.status,
+        pageName: "Instagram Account",
+      }];
+    }
+    return list;
+  }, [config.channels.instagram]);
+
+  const hasConnectedWhatsApp = whatsappAccounts.length > 0;
+  const hasConnectedInstagram = instagramAccounts.length > 0;
+
 
   // Set default active tab to "mobilechat" as requested
   const [activeChannel, setActiveChannel] = useState<ActiveChannel>("mobilechat");
@@ -73,6 +124,10 @@ export default function ChannelsPage() {
   const [webchatSaved, setWebchatSaved] = useState(false);
   const [waSaved, setWaSaved] = useState(false);
   const [igSaved, setIgSaved] = useState(false);
+
+  // Advanced/manual section toggle
+  const [waAdvancedOpen, setWaAdvancedOpen] = useState(false);
+  const [igAdvancedOpen, setIgAdvancedOpen] = useState(false);
 
   const [widgetColor, setWidgetColor] = useState(config.channels.webchat.widgetColor);
   const [welcomeText, setWelcomeText] = useState(config.channels.webchat.welcomeText);
@@ -307,6 +362,9 @@ struct ChatView: View {
 
   const disconnectWhatsApp = () => {
     setWaStatus("disconnected");
+    setPhoneId("");
+    setAccessToken("");
+    setVerifyToken("");
     patchConfig((current) => ({
       ...current,
       channels: {
@@ -315,10 +373,200 @@ struct ChatView: View {
           ...current.channels.whatsapp,
           enabled: false,
           status: "disconnected",
+          phoneNumberId: "",
+          accessToken: "",
+          verifyToken: "",
+          accounts: [],
         },
       },
     }));
   };
+
+  const disconnectInstagram = () => {
+    setIgStatus("draft");
+    setIgAccountId("");
+    setIgAccessToken("");
+    setIgUsername("");
+    patchConfig((current) => ({
+      ...current,
+      channels: {
+        ...current.channels,
+        instagram: {
+          ...current.channels.instagram,
+          enabled: false,
+          status: "draft",
+          accountId: "",
+          accessToken: "",
+          username: "",
+          accounts: [],
+        },
+      },
+    }));
+  };
+
+  // OAuth WhatsApp connect handler (Multi-Account)
+  const handleOAuthWhatsApp = useCallback(async () => {
+    const result = await connectWhatsApp();
+    if (!result) {
+      // Jika error karena HTTP (bukan HTTPS), buka panel manual otomatis
+      // agar user bisa langsung memasukkan token secara manual
+      if (oauthWaError?.toLowerCase().includes("https")) {
+        setWaAdvancedOpen(true);
+      }
+      return;
+    }
+
+    const { phoneNumberId, accessToken: token, businessName, displayPhone } = result;
+    if (!phoneNumberId || !token) return;
+
+    patchConfig((current) => {
+      const existingAccounts = current.channels.whatsapp.accounts ?? [];
+      const alreadyExists = existingAccounts.some(acc => acc.phoneNumberId === phoneNumberId);
+      let updatedAccounts = [...existingAccounts];
+
+      const newAccount = {
+        id: phoneNumberId,
+        businessLabel: businessName || "WhatsApp Business Account",
+        phoneNumberId: phoneNumberId,
+        accessToken: token,
+        verifyToken: current.channels.whatsapp.verifyToken || "balesin_verify",
+        status: "connected" as const,
+        phoneNumber: displayPhone || "—",
+      };
+
+      if (alreadyExists) {
+        updatedAccounts = updatedAccounts.map(acc => acc.phoneNumberId === phoneNumberId ? newAccount : acc);
+      } else {
+        updatedAccounts.push(newAccount);
+      }
+
+      const isFirst = existingAccounts.length === 0;
+
+      return {
+        ...current,
+        channels: {
+          ...current.channels,
+          whatsapp: {
+            ...current.channels.whatsapp,
+            enabled: true,
+            status: "connected" as const,
+            businessLabel: isFirst ? newAccount.businessLabel : current.channels.whatsapp.businessLabel,
+            phoneNumberId: isFirst ? newAccount.phoneNumberId : current.channels.whatsapp.phoneNumberId,
+            accessToken: isFirst ? newAccount.accessToken : current.channels.whatsapp.accessToken,
+            verifyToken: current.channels.whatsapp.verifyToken || "balesin_verify",
+            accounts: updatedAccounts,
+          }
+        }
+      };
+    });
+  }, [connectWhatsApp, patchConfig, oauthWaError, setWaAdvancedOpen]);
+
+  const disconnectWhatsAppAccount = useCallback((phoneIdToDisconnect: string) => {
+    patchConfig((current) => {
+      const existingAccounts = current.channels.whatsapp.accounts ?? [];
+      const updatedAccounts = existingAccounts.filter(acc => acc.phoneNumberId !== phoneIdToDisconnect);
+      
+      const nextPrimary = updatedAccounts[0];
+
+      return {
+        ...current,
+        channels: {
+          ...current.channels,
+          whatsapp: {
+            ...current.channels.whatsapp,
+            enabled: updatedAccounts.length > 0,
+            status: updatedAccounts.length > 0 ? "connected" as const : "disconnected" as const,
+            businessLabel: nextPrimary ? nextPrimary.businessLabel : "",
+            phoneNumberId: nextPrimary ? nextPrimary.phoneNumberId : "",
+            accessToken: nextPrimary ? nextPrimary.accessToken : "",
+            accounts: updatedAccounts,
+          }
+        }
+      };
+    });
+  }, [patchConfig]);
+
+  // OAuth Instagram connect handler (Multi-Account)
+  const handleOAuthInstagram = useCallback(async () => {
+    const result = await connectInstagram();
+    if (!result) {
+      // Jika error karena HTTP (bukan HTTPS), buka panel manual otomatis
+      if (oauthIgError?.toLowerCase().includes("https")) {
+        setIgAdvancedOpen(true);
+      }
+      return;
+    }
+
+    const { accountId, accessToken: token, username, pageName } = result;
+    if (!accountId || !token) return;
+
+    patchConfig((current) => {
+      const existingAccounts = current.channels.instagram.accounts ?? [];
+      const alreadyExists = existingAccounts.some(acc => acc.accountId === accountId);
+      let updatedAccounts = [...existingAccounts];
+
+      const newAccount = {
+        id: accountId,
+        username: username || "instagram_user",
+        accountId: accountId,
+        accessToken: token,
+        verifyToken: current.channels.instagram.verifyToken || "balesin_verify",
+        status: "connected" as const,
+        pageName: pageName || "—",
+      };
+
+      if (alreadyExists) {
+        updatedAccounts = updatedAccounts.map(acc => acc.accountId === accountId ? newAccount : acc);
+      } else {
+        updatedAccounts.push(newAccount);
+      }
+
+      const isFirst = existingAccounts.length === 0;
+
+      return {
+        ...current,
+        channels: {
+          ...current.channels,
+          instagram: {
+            ...current.channels.instagram,
+            enabled: true,
+            status: "connected" as const,
+            username: isFirst ? newAccount.username : current.channels.instagram.username,
+            accountId: isFirst ? newAccount.accountId : current.channels.instagram.accountId,
+            accessToken: isFirst ? newAccount.accessToken : current.channels.instagram.accessToken,
+            verifyToken: current.channels.instagram.verifyToken || "balesin_verify",
+            accounts: updatedAccounts,
+          }
+        }
+      };
+    });
+  }, [connectInstagram, patchConfig, oauthIgError, setIgAdvancedOpen]);
+
+  const disconnectInstagramAccount = useCallback((accountIdToDisconnect: string) => {
+    patchConfig((current) => {
+      const existingAccounts = current.channels.instagram.accounts ?? [];
+      const updatedAccounts = existingAccounts.filter(acc => acc.accountId !== accountIdToDisconnect);
+      
+      const nextPrimary = updatedAccounts[0];
+
+      return {
+        ...current,
+        channels: {
+          ...current.channels,
+          instagram: {
+            ...current.channels.instagram,
+            enabled: updatedAccounts.length > 0,
+            status: updatedAccounts.length > 0 ? "connected" as const : "draft" as const,
+            username: nextPrimary ? nextPrimary.username : "",
+            accountId: nextPrimary ? nextPrimary.accountId : "",
+            accessToken: nextPrimary ? nextPrimary.accessToken : "",
+            accounts: updatedAccounts,
+          }
+        }
+      };
+    });
+  }, [patchConfig]);
+
 
   const persistInstagram = (event: FormEvent) => {
     event.preventDefault();
@@ -1063,93 +1311,283 @@ struct ChatView: View {
           {/* ACTIVE TAB: WHATSAPP */}
           {/* ============================================== */}
           {activeChannel === "whatsapp" && (
-            <div className="space-y-5 rounded-xl border border-white/8 bg-[#04091a]/70 p-6 backdrop-blur-md max-w-3xl">
+            <div className="space-y-4 max-w-3xl">
+              {/* Header */}
               <div className="flex items-center justify-between border-b border-white/8 pb-3">
-                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-400">
-                  <MessageCircle className="h-5 w-5 text-emerald-400" />
-                  Integrasi WhatsApp Cloud API
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
+                  <MessageCircle className="h-5 w-5" />
+                  WhatsApp Business
                 </h3>
-                <Badge className="border-emerald-400/20 bg-emerald-950/40 text-emerald-200">
-                  {waStatus}
-                </Badge>
+                {hasConnectedWhatsApp && (
+                  <Button
+                    type="button"
+                    onClick={() => void handleOAuthWhatsApp()}
+                    disabled={isWaConnecting}
+                    className="h-8 text-[11px] font-bold bg-[#1877f2] hover:bg-[#1565d8] text-white flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all"
+                  >
+                    {isWaConnecting ? (
+                      <Loader2 className="h-3 animate-spin" />
+                    ) : (
+                      <Plus className="h-3.5 w-3.5" />
+                    )}
+                    Tambah Akun
+                  </Button>
+                )}
               </div>
 
-              <form onSubmit={persistWhatsApp} className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Label nomor bisnis</label>
-                    <Input value={waLabel} onChange={(event) => setWaLabel(event.target.value)} className="h-10 text-xs" />
+              {/* === CONNECTED STATE === */}
+              {hasConnectedWhatsApp ? (
+                <div className="space-y-4">
+                  {/* Status Table */}
+                  <div className="rounded-xl border border-white/8 bg-white/[0.01] overflow-hidden">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-white/8 bg-white/[0.02] text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                          <th className="p-4">Whatsapp name</th>
+                          <th className="p-4">Phone number</th>
+                          <th className="p-4">Status</th>
+                          <th className="p-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/6">
+                        {whatsappAccounts.map((acc) => (
+                          <tr key={acc.phoneNumberId} className="hover:bg-white/[0.01] transition-colors">
+                            <td className="p-4 font-bold text-white flex items-center gap-2">
+                              <div className="h-6 w-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                                <MessageCircle className="h-3.5 w-3.5 text-emerald-400" />
+                              </div>
+                              {acc.businessLabel}
+                            </td>
+                            <td className="p-4 text-slate-300 font-mono">{acc.phoneNumber}</td>
+                            <td className="p-4">
+                              <Badge className="border-emerald-400/20 bg-emerald-950/30 text-emerald-300 text-[9px] font-bold px-2 py-0.5">
+                                Connected
+                              </Badge>
+                            </td>
+                            <td className="p-4 text-right">
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                className="text-[10px] px-2 h-7 border-red-500/20 text-red-400 hover:bg-red-950/20"
+                                onClick={() => disconnectWhatsAppAccount(acc.phoneNumberId)}
+                              >
+                                <Unplug className="h-3 w-3 mr-1" />
+                                Disconnect
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Phone Number ID</label>
-                    <Input value={phoneId} onChange={(event) => setPhoneId(event.target.value)} className="h-10 text-xs" />
-                  </div>
+
+                  {/* Auto reply toggle */}
+                  <label className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/[0.02] p-3 text-xs text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={waAutoReply}
+                      onChange={(e) => {
+                        setWaAutoReply(e.target.checked);
+                        patchConfig((c) => ({
+                          ...c,
+                          channels: { ...c.channels, whatsapp: { ...c.channels.whatsapp, autoReply: e.target.checked } },
+                        }));
+                      }}
+                      className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
+                    />
+                    Aktifkan auto reply WhatsApp menggunakan AI Agent untuk semua akun terhubung
+                  </label>
+
+                  {/* Collapsible Advanced */}
+                  <button
+                    type="button"
+                    onClick={() => setWaAdvancedOpen((v) => !v)}
+                    className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 hover:text-slate-300 transition w-full text-left"
+                  >
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${waAdvancedOpen ? "rotate-180" : ""}`} />
+                    Konfigurasi Manual / Advanced (Akun Utama)
+                  </button>
+
+                  {waAdvancedOpen && (
+                    <form onSubmit={persistWhatsApp} className="rounded-xl border border-white/8 bg-white/[0.02] p-5 space-y-4">
+                      <p className="text-[10px] text-slate-500">Gunakan ini jika ingin override token atau Phone Number ID secara manual.</p>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">Label nomor bisnis</label>
+                          <Input value={waLabel} onChange={(e) => setWaLabel(e.target.value)} className="h-10 text-xs" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">Phone Number ID</label>
+                          <Input value={phoneId} onChange={(e) => setPhoneId(e.target.value)} className="h-10 text-xs" />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-300">Permanent access token</label>
+                        <Input type="password" value={accessToken} onChange={(e) => setAccessToken(e.target.value)} className="h-10 text-xs" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-300">Verify token</label>
+                        <Input value={verifyToken} onChange={(e) => setVerifyToken(e.target.value)} className="h-10 text-xs" />
+                      </div>
+                      <div className="rounded-lg border border-white/8 bg-white/4 p-3 text-[11px] text-slate-400">
+                        <span className="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Callback URL</span>
+                        <code className="font-mono text-cyan-300">{whatsappWebhookUrl}</code>
+                      </div>
+                      {waSaved && (
+                        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-300">
+                          Konfigurasi tersimpan.
+                        </div>
+                      )}
+                      <div className="flex justify-end">
+                        <Button type="submit" className="px-5 text-xs h-9">Simpan Manual</Button>
+                      </div>
+                    </form>
+                  )}
                 </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Permanent access token</label>
-                  <Input
-                    type="password"
-                    value={accessToken}
-                    onChange={(event) => setAccessToken(event.target.value)}
-                    className="h-10 text-xs"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Verify token</label>
-                  <Input
-                    value={verifyToken}
-                    onChange={(event) => setVerifyToken(event.target.value)}
-                    className="h-10 text-xs"
-                  />
-                </div>
-
-                <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={waAutoReply}
-                    onChange={(event) => setWaAutoReply(event.target.checked)}
-                    className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
-                  />
-                  Aktifkan auto reply WhatsApp menggunakan AI Agent dashboard
-                </label>
-
-                <div className="rounded-lg border border-white/8 bg-white/4 p-4 text-[11px] leading-normal text-slate-400">
-                  <p className="flex items-center gap-1 font-bold text-slate-300">
-                    <AlertCircle className="h-4 w-4 text-cyan-400" />
-                    Gunakan data ini pada Facebook Developer webhook setup
-                  </p>
-                  <div className="mt-2 space-y-2">
-                    <div>
-                      <span className="block text-[10px] font-semibold uppercase text-slate-500">Callback URL</span>
-                      <code className="mt-0.5 block rounded bg-[#020611] p-1 font-mono text-cyan-300">{whatsappWebhookUrl}</code>
+              ) : (
+                /* === NOT CONNECTED STATE === */
+                <div className="space-y-5">
+                  {/* OAuth Connect Card */}
+                  <div className="rounded-xl border border-white/10 bg-[#04091a] p-6 space-y-5">
+                    {/* Icon + title */}
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-2xl bg-emerald-950/50 border border-emerald-500/25 flex items-center justify-center">
+                        <MessageCircle className="h-6 w-6 text-emerald-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white">Connect WhatsApp Business</h4>
+                        <p className="text-xs text-slate-400 mt-0.5">Hubungkan nomor WA Anda lewat Facebook — tidak perlu copy-paste token manual.</p>
+                      </div>
                     </div>
-                    <div>
-                      <span className="block text-[10px] font-semibold uppercase text-slate-500">Verify Token</span>
-                      <code className="mt-0.5 block rounded bg-[#020611] p-1 font-mono text-cyan-300">{verifyToken}</code>
+
+                    {/* Flow steps */}
+                    <div className="rounded-xl border border-emerald-500/10 bg-emerald-950/10 p-4">
+                      <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                        <Zap className="h-3 w-3" /> Flow OAuth (1 klik)
+                      </p>
+                      <ol className="space-y-2">
+                        {[
+                          "Login ke akun Facebook Business",
+                          "Pilih Business Portfolio",
+                          "Buat atau pilih WABA (WhatsApp Business Account)",
+                          "Verifikasi nomor telepon",
+                          "Sistem menyimpan Phone Number ID otomatis ✓",
+                        ].map((step, i) => (
+                          <li key={i} className="flex items-start gap-2.5 text-[11px] text-slate-300">
+                            <span className="flex-shrink-0 h-4 w-4 rounded-full bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center text-[8px] font-extrabold text-emerald-400">
+                              {i + 1}
+                            </span>
+                            {step}
+                          </li>
+                        ))}
+                      </ol>
                     </div>
-                  </div>
-                </div>
 
-                {waSaved ? (
-                  <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-xs text-emerald-300">
-                    Konfigurasi WhatsApp tersimpan.
-                  </div>
-                ) : null}
-
-                <div className="flex items-center justify-between">
-                  <div className="text-xs text-slate-500">Semua data WhatsApp bersumber dari dashboard.</div>
-                  <div className="flex gap-3">
-                    {waStatus === "connected" && (
-                      <Button type="button" variant="secondary" className="px-4" onClick={disconnectWhatsApp}>
-                        Putuskan
-                      </Button>
+                    {/* Error */}
+                    {oauthWaError && (
+                      oauthWaError.toLowerCase().includes("https") ? (
+                        <div className="rounded-lg border border-amber-500/20 bg-amber-950/20 p-3 text-xs text-amber-300 flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-amber-400" />
+                          <div>
+                            <p className="font-semibold mb-1">Fitur OAuth membutuhkan HTTPS</p>
+                            <p className="text-amber-400/80">{oauthWaError}</p>
+                            <button
+                              type="button"
+                              onClick={() => setWaAdvancedOpen(true)}
+                              className="mt-2 text-amber-300 underline underline-offset-2 hover:text-amber-200 transition"
+                            >
+                              → Buka Setup Manual untuk input token langsung
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-red-500/20 bg-red-950/20 p-3 text-xs text-red-300 flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                          {oauthWaError}
+                        </div>
+                      )
                     )}
-                    <Button type="submit" className="px-5">Simpan WA</Button>
+
+                    {/* Main connect button */}
+                    <Button
+                      type="button"
+                      onClick={() => void handleOAuthWhatsApp()}
+                      disabled={isWaConnecting}
+                      className="w-full h-11 bg-[#1877f2] hover:bg-[#1565d8] text-white font-bold text-sm gap-2.5 transition-all"
+                    >
+                      {isWaConnecting ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Menghubungkan...</>
+                      ) : (
+                        <><Facebook className="h-4.5 w-4.5" /> Connect via Facebook</>
+                      )}
+                    </Button>
                   </div>
+
+                  {/* Collapsible manual setup */}
+                  <button
+                    type="button"
+                    onClick={() => setWaAdvancedOpen((v) => !v)}
+                    className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 hover:text-slate-300 transition w-full text-left"
+                  >
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${waAdvancedOpen ? "rotate-180" : ""}`} />
+                    Setup manual (Phone Number ID, Token, Verify Token)
+                  </button>
+
+                  {waAdvancedOpen && (
+                    <form onSubmit={persistWhatsApp} className="rounded-xl border border-white/8 bg-white/[0.02] p-5 space-y-4">
+                      <p className="text-[10px] text-amber-400/80 bg-amber-950/20 border border-amber-500/15 rounded-lg p-3">
+                        ⚠️ Setup manual digunakan jika Anda sudah memiliki token dari Meta Developer Console dan ingin mengkonfigurasi tanpa OAuth. Pastikan Callback URL sudah didaftarkan di Meta Developer.
+                      </p>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">Label nomor bisnis</label>
+                          <Input value={waLabel} onChange={(e) => setWaLabel(e.target.value)} className="h-10 text-xs" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">Phone Number ID</label>
+                          <Input value={phoneId} onChange={(e) => setPhoneId(e.target.value)} className="h-10 text-xs" />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-300">Permanent access token</label>
+                        <Input type="password" value={accessToken} onChange={(e) => setAccessToken(e.target.value)} className="h-10 text-xs" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-300">Verify token</label>
+                        <Input value={verifyToken} onChange={(e) => setVerifyToken(e.target.value)} className="h-10 text-xs" />
+                      </div>
+                      <div className="rounded-lg border border-white/8 bg-white/4 p-3 text-[11px] text-slate-400">
+                        <p className="flex items-center gap-1 font-bold text-slate-300 mb-2">
+                          <AlertCircle className="h-3.5 w-3.5 text-cyan-400" />
+                          Gunakan data ini pada Facebook Developer webhook setup
+                        </p>
+                        <div className="space-y-2">
+                          <div>
+                            <span className="block text-[10px] font-semibold uppercase text-slate-500">Callback URL</span>
+                            <code className="mt-0.5 block rounded bg-[#020611] p-1 font-mono text-cyan-300 text-[10px]">{whatsappWebhookUrl}</code>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] font-semibold uppercase text-slate-500">Verify Token</span>
+                            <code className="mt-0.5 block rounded bg-[#020611] p-1 font-mono text-cyan-300 text-[10px]">{verifyToken || "(isi di atas dulu)"}</code>
+                          </div>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300 cursor-pointer">
+                        <input type="checkbox" checked={waAutoReply} onChange={(e) => setWaAutoReply(e.target.checked)} className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500" />
+                        Aktifkan auto reply WhatsApp menggunakan AI Agent
+                      </label>
+                      {waSaved && (
+                        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-300">
+                          Konfigurasi tersimpan.
+                        </div>
+                      )}
+                      <div className="flex justify-end">
+                        <Button type="submit" className="px-5 text-xs h-9">Simpan Manual</Button>
+                      </div>
+                    </form>
+                  )}
                 </div>
-              </form>
+              )}
             </div>
           )}
 
@@ -1157,103 +1595,296 @@ struct ChatView: View {
           {/* ACTIVE TAB: INSTAGRAM */}
           {/* ============================================== */}
           {activeChannel === "instagram" && (
-            <div className="space-y-5 rounded-xl border border-white/8 bg-[#04091a]/70 p-6 backdrop-blur-md max-w-3xl">
+            <div className="space-y-4 max-w-3xl">
+              {/* Header */}
               <div className="flex items-center justify-between border-b border-white/8 pb-3">
-                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-fuchsia-300">
-                  <Instagram className="h-5 w-5 text-fuchsia-300" />
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-fuchsia-400">
+                  <Instagram className="h-5 w-5" />
                   Instagram DM & Comment Automation
                 </h3>
-                <Badge className="border-fuchsia-400/20 bg-fuchsia-950/40 text-fuchsia-200">
-                  {igStatus}
-                </Badge>
+                {hasConnectedInstagram && (
+                  <Button
+                    type="button"
+                    onClick={() => void handleOAuthInstagram()}
+                    disabled={isIgConnecting}
+                    className="h-8 text-[11px] font-bold bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all"
+                  >
+                    {isIgConnecting ? (
+                      <Loader2 className="h-3 animate-spin" />
+                    ) : (
+                      <Plus className="h-3.5 w-3.5" />
+                    )}
+                    Tambah Akun
+                  </Button>
+                )}
               </div>
 
-              <form onSubmit={persistInstagram} className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Username Instagram</label>
-                    <Input value={igUsername} onChange={(event) => setIgUsername(event.target.value)} className="h-10 text-xs" />
+              {/* === CONNECTED STATE === */}
+              {hasConnectedInstagram ? (
+                <div className="space-y-4">
+                  {/* Status Table */}
+                  <div className="rounded-xl border border-white/8 bg-white/[0.01] overflow-hidden">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-white/8 bg-white/[0.02] text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                          <th className="p-4">Instagram name</th>
+                          <th className="p-4">Username</th>
+                          <th className="p-4">Status</th>
+                          <th className="p-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/6">
+                        {instagramAccounts.map((acc) => (
+                          <tr key={acc.accountId} className="hover:bg-white/[0.01] transition-colors">
+                            <td className="p-4 font-bold text-white flex items-center gap-2">
+                              <div className="h-6 w-6 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/20 flex items-center justify-center">
+                                <Instagram className="h-3.5 w-3.5 text-fuchsia-400" />
+                              </div>
+                              {acc.pageName || "Instagram Business"}
+                            </td>
+                            <td className="p-4 text-slate-300 font-mono">@{acc.username}</td>
+                            <td className="p-4">
+                              <Badge className="border-fuchsia-400/20 bg-fuchsia-950/30 text-fuchsia-300 text-[9px] font-bold px-2 py-0.5">
+                                Connected
+                              </Badge>
+                            </td>
+                            <td className="p-4 text-right">
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                className="text-[10px] px-2 h-7 border-red-500/20 text-red-400 hover:bg-red-950/20"
+                                onClick={() => disconnectInstagramAccount(acc.accountId)}
+                              >
+                                <Unplug className="h-3 w-3 mr-1" />
+                                Disconnect
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Instagram Account ID</label>
-                    <Input value={igAccountId} onChange={(event) => setIgAccountId(event.target.value)} className="h-10 text-xs" />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Meta access token</label>
-                    <Input type="password" value={igAccessToken} onChange={(event) => setIgAccessToken(event.target.value)} className="h-10 text-xs" />
+                  {/* Toggles */}
+                  <div className="grid grid-cols-1 gap-2">
+                    {[
+                      { label: "Auto reply DM Instagram untuk semua akun terhubung", value: igAutoReplyDm, set: setIgAutoReplyDm },
+                      { label: "Comment guard (spam, judol, kata kasar)", value: igCommentGuard, set: setIgCommentGuard },
+                      { label: "Arahkan komentar berkualitas ke DM (sales)", value: igCommentToDm, set: setIgCommentToDm },
+                    ].map(({ label, value, set }) => (
+                      <label key={label} className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/[0.02] p-3 text-xs text-slate-300 cursor-pointer">
+                        <input type="checkbox" checked={value} onChange={(e) => {
+                          set(e.target.checked);
+                          patchConfig((c) => ({
+                            ...c,
+                            channels: {
+                              ...c.channels,
+                              instagram: {
+                                ...c.channels.instagram,
+                                autoReplyDm: label.startsWith("Auto reply") ? e.target.checked : igAutoReplyDm,
+                                commentGuard: label.startsWith("Comment guard") ? e.target.checked : igCommentGuard,
+                                commentToDm: label.startsWith("Arahkan komentar") ? e.target.checked : igCommentToDm,
+                              }
+                            }
+                          }));
+                        }} className="h-4 w-4 rounded border-white/12 bg-white/4 text-fuchsia-500" />
+                        {label}
+                      </label>
+                    ))}
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Verify token</label>
-                    <Input value={igVerifyToken} onChange={(event) => setIgVerifyToken(event.target.value)} className="h-10 text-xs" placeholder="Contoh: MANADO123" />
-                  </div>
-                </div>
 
-                <div className="rounded-lg border border-white/8 bg-white/4 p-4 text-[11px] leading-normal text-slate-400">
-                  <p className="flex items-center gap-1 font-bold text-slate-300">
-                    <AlertCircle className="h-4 w-4 text-cyan-400" />
-                    Gunakan data ini pada Meta Developer webhook setup (Instagram)
-                  </p>
-                  <div className="mt-2 space-y-2">
-                    <div>
-                      <span className="block text-[10px] font-semibold uppercase text-slate-500">Callback URL</span>
-                      <code className="mt-0.5 block rounded bg-[#020611] p-1.5 font-mono text-cyan-300">{instagramWebhookUrl}</code>
+                  {/* Collapsible Advanced */}
+                  <button
+                    type="button"
+                    onClick={() => setIgAdvancedOpen((v) => !v)}
+                    className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 hover:text-slate-300 transition w-full text-left"
+                  >
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${igAdvancedOpen ? "rotate-180" : ""}`} />
+                    Konfigurasi Manual / Advanced (Akun Utama)
+                  </button>
+
+                  {igAdvancedOpen && (
+                    <form onSubmit={persistInstagram} className="rounded-xl border border-white/8 bg-white/[0.02] p-5 space-y-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">Username Instagram</label>
+                          <Input value={igUsername} onChange={(e) => setIgUsername(e.target.value)} className="h-10 text-xs" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">Instagram Account ID</label>
+                          <Input value={igAccountId} onChange={(e) => setIgAccountId(e.target.value)} className="h-10 text-xs" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">Meta access token</label>
+                          <Input type="password" value={igAccessToken} onChange={(e) => setIgAccessToken(e.target.value)} className="h-10 text-xs" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">Verify token</label>
+                          <Input value={igVerifyToken} onChange={(e) => setIgVerifyToken(e.target.value)} className="h-10 text-xs" placeholder="Contoh: balesin_verify" />
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-white/8 bg-white/4 p-3 text-[11px] text-slate-400">
+                        <span className="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Callback URL</span>
+                        <code className="font-mono text-cyan-300">{instagramWebhookUrl}</code>
+                      </div>
+                      {igSaved && (
+                        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-300">
+                          Konfigurasi Instagram tersimpan.
+                        </div>
+                      )}
+                      <div className="flex justify-end">
+                        <Button type="submit" className="px-5 text-xs h-9">Simpan Manual</Button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              ) : (
+                /* === NOT CONNECTED STATE === */
+                <div className="space-y-5">
+                  <div className="rounded-xl border border-white/10 bg-[#04091a] p-6 space-y-5">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-2xl bg-fuchsia-950/50 border border-fuchsia-500/25 flex items-center justify-center">
+                        <Instagram className="h-6 w-6 text-fuchsia-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white">Connect Instagram Business</h4>
+                        <p className="text-xs text-slate-400 mt-0.5">Hubungkan akun Instagram Business Anda lewat halaman Facebook — tidak perlu copy-paste token manual.</p>
+                      </div>
                     </div>
-                    <div>
-                      <span className="block text-[10px] font-semibold uppercase text-slate-500">Verify Token</span>
-                      <code className="mt-0.5 block rounded bg-[#020611] p-1.5 font-mono text-cyan-300">{igVerifyToken || "MANADO123"}</code>
+
+                    <div className="rounded-xl border border-fuchsia-500/10 bg-fuchsia-950/10 p-4">
+                      <p className="text-[10px] font-bold text-fuchsia-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                        <Zap className="h-3 w-3" /> Flow OAuth (1 klik)
+                      </p>
+                      <ol className="space-y-2">
+                        {[
+                          "Login ke akun Facebook",
+                          "Pilih halaman Facebook yang terhubung ke Instagram",
+                          "Berikan permission DM & Comment",
+                          "Sistem mengambil Account ID otomatis ✓",
+                          "Webhook aktif langsung ✓",
+                        ].map((step, i) => (
+                          <li key={i} className="flex items-start gap-2.5 text-[11px] text-slate-300">
+                            <span className="flex-shrink-0 h-4 w-4 rounded-full bg-fuchsia-950/60 border border-fuchsia-500/30 flex items-center justify-center text-[8px] font-extrabold text-fuchsia-400">
+                              {i + 1}
+                            </span>
+                            {step}
+                          </li>
+                        ))}
+                      </ol>
                     </div>
+
+                    <div className="rounded-lg border border-amber-500/15 bg-amber-950/10 p-3 text-[10px] text-amber-300/80">
+                      <strong className="text-amber-300">Prasyarat:</strong> Akun Instagram Anda harus bertype <strong>Business</strong> atau <strong>Creator</strong> dan sudah terhubung ke halaman Facebook.
+                    </div>
+
+                    {oauthIgError && (
+                      oauthIgError.toLowerCase().includes("https") ? (
+                        <div className="rounded-lg border border-fuchsia-500/20 bg-fuchsia-950/20 p-3 text-xs text-fuchsia-300 flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-fuchsia-400" />
+                          <div>
+                            <p className="font-semibold mb-1">Fitur OAuth membutuhkan HTTPS</p>
+                            <p className="text-fuchsia-400/80">{oauthIgError}</p>
+                            <button
+                              type="button"
+                              onClick={() => setIgAdvancedOpen(true)}
+                              className="mt-2 text-fuchsia-300 underline underline-offset-2 hover:text-fuchsia-200 transition"
+                            >
+                              → Buka Setup Manual untuk input token langsung
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-red-500/20 bg-red-950/20 p-3 text-xs text-red-300 flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                          {oauthIgError}
+                        </div>
+                      )
+                    )}
+
+                    <Button
+                      type="button"
+                      onClick={() => void handleOAuthInstagram()}
+                      disabled={isIgConnecting}
+                      className="w-full h-11 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white font-bold text-sm gap-2.5 transition-all"
+                    >
+                      {isIgConnecting ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Menghubungkan...</>
+                      ) : (
+                        <><Instagram className="h-4.5 w-4.5" /> Connect Instagram via Facebook</>
+                      )}
+                    </Button>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 gap-3">
-                  <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={igAutoReplyDm}
-                      onChange={(event) => setIgAutoReplyDm(event.target.checked)}
-                      className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
-                    />
-                    Aktifkan auto reply untuk DM Instagram
-                  </label>
-                  <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={igCommentGuard}
-                      onChange={(event) => setIgCommentGuard(event.target.checked)}
-                      className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
-                    />
-                    Aktifkan comment guard untuk spam, judol, dan kata kasar
-                  </label>
-                  <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={igCommentToDm}
-                      onChange={(event) => setIgCommentToDm(event.target.checked)}
-                      className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
-                    />
-                    Otomatis arahkan komentar berkualitas ke DM untuk follow-up sales
-                  </label>
-                </div>
+                  {/* Collapsible manual setup */}
+                  <button
+                    type="button"
+                    onClick={() => setIgAdvancedOpen((v) => !v)}
+                    className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 hover:text-slate-300 transition w-full text-left"
+                  >
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${igAdvancedOpen ? "rotate-180" : ""}`} />
+                    Setup manual (Account ID, Token, Verify Token)
+                  </button>
 
-                <div className="rounded-lg border border-fuchsia-400/15 bg-fuchsia-950/15 p-4 text-xs leading-6 text-slate-300 font-medium">
-                  <Shield className="h-4 w-4 text-fuchsia-400 inline mr-2" />
-                  Pengaturan ini menjadi source of truth untuk DM automation, comment guard, dan private DM converter.
+                  {igAdvancedOpen && (
+                    <form onSubmit={persistInstagram} className="rounded-xl border border-white/8 bg-white/[0.02] p-5 space-y-4">
+                      <p className="text-[10px] text-amber-400/80 bg-amber-950/20 border border-amber-500/15 rounded-lg p-3">
+                        ⚠️ Setup manual untuk konfigurasi token dari Meta Developer Console. Pastikan Callback URL sudah didaftarkan.
+                      </p>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">Username Instagram</label>
+                          <Input value={igUsername} onChange={(e) => setIgUsername(e.target.value)} className="h-10 text-xs" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">Instagram Account ID</label>
+                          <Input value={igAccountId} onChange={(e) => setIgAccountId(e.target.value)} className="h-10 text-xs" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">Meta access token</label>
+                          <Input type="password" value={igAccessToken} onChange={(e) => setIgAccessToken(e.target.value)} className="h-10 text-xs" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">Verify token</label>
+                          <Input value={igVerifyToken} onChange={(e) => setIgVerifyToken(e.target.value)} className="h-10 text-xs" placeholder="Contoh: balesin_verify" />
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-white/8 bg-white/4 p-3 text-[11px] text-slate-400">
+                        <p className="flex items-center gap-1 font-bold text-slate-300 mb-2">
+                          <AlertCircle className="h-3.5 w-3.5 text-cyan-400" />
+                          Data untuk Meta Developer webhook setup (Instagram)
+                        </p>
+                        <div className="space-y-2">
+                          <div>
+                            <span className="block text-[10px] font-semibold uppercase text-slate-500">Callback URL</span>
+                            <code className="mt-0.5 block rounded bg-[#020611] p-1.5 font-mono text-cyan-300 text-[10px]">{instagramWebhookUrl}</code>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] font-semibold uppercase text-slate-500">Verify Token</span>
+                            <code className="mt-0.5 block rounded bg-[#020611] p-1.5 font-mono text-cyan-300 text-[10px]">{igVerifyToken || "(isi di atas dulu)"}</code>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-fuchsia-400/15 bg-fuchsia-950/15 p-3 text-xs text-slate-300">
+                        <Shield className="h-4 w-4 text-fuchsia-400 inline mr-2" />
+                        Pengaturan ini menjadi source of truth untuk DM automation, comment guard, dan DM converter.
+                      </div>
+                      {igSaved && (
+                        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-300">
+                          Konfigurasi Instagram tersimpan.
+                        </div>
+                      )}
+                      <div className="flex justify-end">
+                        <Button type="submit" className="px-5 text-xs h-9">Simpan Manual</Button>
+                      </div>
+                    </form>
+                  )}
                 </div>
-
-                {igSaved ? (
-                  <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-xs text-emerald-300">
-                    Konfigurasi Instagram berhasil disimpan ke dashboard.
-                  </div>
-                ) : null}
-
-                <div className="flex items-center justify-between">
-                  <div className="text-xs text-slate-500">Status menjadi `connected` saat account ID dan token tersedia.</div>
-                  <Button type="submit" className="px-5">Simpan Instagram</Button>
-                </div>
-              </form>
+              )}
             </div>
           )}
 

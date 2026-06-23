@@ -106,6 +106,14 @@ export async function POST(request: Request) {
     const config = await getDashboardConfigRecord();
     const ownAccountId = config.channels.instagram.accountId?.trim();
 
+    // Helper to check if a sender ID belongs to one of our connected accounts
+    const isOwnInstagramAccount = (senderId: string) => {
+      if (ownAccountId && senderId === ownAccountId) return true;
+      return config.channels.instagram.accounts?.some(
+        (acc) => acc.accountId === senderId
+      ) ?? false;
+    };
+
     // ─── Format Meta resmi: object === "instagram" ───
     if (body.object === "instagram" && body.entry) {
       let receivedCount = 0;
@@ -129,11 +137,13 @@ export async function POST(request: Request) {
 
           const senderId = event.sender?.id ?? "unknown";
 
-          // Jangan proses pesan dari akun sendiri
-          if (ownAccountId && senderId === ownAccountId) {
+          // Jangan proses pesan dari akun sendiri (multi-account check)
+          if (isOwnInstagramAccount(senderId)) {
             ignoredCount += 1;
             continue;
           }
+
+          const recipientId = event.recipient?.id || entry.id || ownAccountId;
 
           const normalized = {
             channel: "Instagram DM" as const,
@@ -146,6 +156,9 @@ export async function POST(request: Request) {
               : new Date().toISOString(),
             externalMessageId: event.message?.mid,
             username: `IG:${senderId}`,
+            channelContext: {
+              instagramAccountId: recipientId,
+            },
             rawPayload: body as Record<string, unknown>,
           };
 
@@ -190,6 +203,14 @@ export async function POST(request: Request) {
           const senderId = from?.id ?? "unknown";
           const senderUsername = from?.username ?? "Instagram User";
 
+          // Abaikan komentar dari akun sendiri
+          if (isOwnInstagramAccount(senderId)) {
+            ignoredCount += 1;
+            continue;
+          }
+
+          const recipientId = entry.id || ownAccountId;
+
           const normalized = {
             channel: "Instagram Comment" as const,
             externalUserId: senderId,
@@ -200,6 +221,9 @@ export async function POST(request: Request) {
               ? new Date(entry.time * 1000).toISOString()
               : new Date().toISOString(),
             username: senderUsername,
+            channelContext: {
+              instagramAccountId: recipientId,
+            },
             rawPayload: body as Record<string, unknown>,
           };
 
@@ -274,6 +298,9 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString(),
       username: displayName,
       rawPayload: body as Record<string, unknown>,
+      channelContext: {
+        instagramAccountId: ownAccountId,
+      },
     };
 
     try {

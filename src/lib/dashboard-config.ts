@@ -138,8 +138,16 @@ export function mergeDashboardConfig(
     },
     channels: {
       webchat: { ...base.channels.webchat, ...incoming.channels?.webchat },
-      whatsapp: { ...base.channels.whatsapp, ...incoming.channels?.whatsapp },
-      instagram: { ...base.channels.instagram, ...incoming.channels?.instagram },
+      whatsapp: { 
+        ...base.channels.whatsapp, 
+        ...incoming.channels?.whatsapp,
+        accounts: incoming.channels?.whatsapp?.accounts ?? base.channels.whatsapp.accounts ?? []
+      },
+      instagram: { 
+        ...base.channels.instagram, 
+        ...incoming.channels?.instagram,
+        accounts: incoming.channels?.instagram?.accounts ?? base.channels.instagram.accounts ?? []
+      },
     },
     automation: {
       ...base.automation,
