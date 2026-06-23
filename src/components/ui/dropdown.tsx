@@ -14,9 +14,10 @@ interface DropdownProps {
   items: DropdownItem[];
   align?: "left" | "right";
   className?: string;
+  header?: ReactNode;
 }
 
-export function Dropdown({ trigger, items, align = "right", className }: DropdownProps) {
+export function Dropdown({ trigger, items, align = "right", className, header }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +44,11 @@ export function Dropdown({ trigger, items, align = "right", className }: Dropdow
             align === "right" ? "right-0" : "left-0"
           )}
         >
+          {header && (
+            <div className="px-3 py-2 border-b border-white/[0.06] mb-1">
+              {header}
+            </div>
+          )}
           {items.map((item, index) => (
             <button
               key={index}

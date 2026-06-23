@@ -19,6 +19,7 @@ import {
   Trash2,
   User,
   Users,
+  PanelRight,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -141,13 +142,31 @@ export function ConversationThreadPanel({
 
   if (!conversation) {
     return (
-      <section className="rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full">
-        <EmptyState
-          title="Belum memilih conversation"
-          description="Pilih percakapan dari panel kiri untuk melihat histori pesan, AI summary, dan aksi operasional."
-          className="min-h-[42rem] border-none bg-transparent lg:h-full lg:min-h-0"
-          icon={<MessageSquareDiff className="h-10 w-10" />}
-        />
+      <section className="rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full flex items-center justify-center p-6">
+        <div className="max-w-sm text-center space-y-6">
+          {/* Overlapping Chat Bubble CSS Art */}
+          <div className="relative w-32 h-24 mx-auto">
+            {/* White/gray chat bubble behind */}
+            <div className="absolute right-4 bottom-2 bg-slate-700/40 h-14 w-16 rounded-3xl rounded-br-none shadow-md border border-white/5 flex items-center justify-center animate-pulse" />
+            {/* Purple chat bubble in front */}
+            <div className="absolute left-4 top-2 bg-[#8c52ff] h-14 w-16 rounded-3xl rounded-bl-none flex items-center justify-center shadow-lg border border-[#8c52ff]/20 z-10">
+              {/* Three dots loader inside purple bubble */}
+              <div className="flex gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-white animate-bounce [animation-delay:-0.3s]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-white animate-bounce [animation-delay:-0.15s]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-white animate-bounce" />
+              </div>
+            </div>
+          </div>
+          <div>
+            <h2 className="text-[15px] font-bold text-slate-200 tracking-tight">
+              A chat will appear here
+            </h2>
+            <p className="mt-1.5 text-xs text-slate-500 max-w-[260px] mx-auto leading-relaxed">
+              Select a chat to view customer messages.
+            </p>
+          </div>
+        </div>
       </section>
     );
   }
@@ -222,6 +241,14 @@ export function ConversationThreadPanel({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onToggleContextPanel}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
+              title={showContextPanel ? "Tutup Detail" : "Lihat Detail"}
+            >
+              <PanelRight className="h-4 w-4" />
+            </button>
             <button
               type="button"
               className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"

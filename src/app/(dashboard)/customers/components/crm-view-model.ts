@@ -30,6 +30,7 @@ export type CrmFilters = {
   owner: string;
   channel: "all" | ChannelKind;
   quickFilter: CrmQuickFilterId;
+  dateRange: string;
 };
 
 export type CrmContactRow = {
@@ -132,6 +133,46 @@ const QUICK_FILTER_LABELS: Record<CrmQuickFilterId, string> = {
   inactive: "Tidak Aktif",
   blocked: "Blocked",
 };
+
+function parseOperatorTimestamp(timestamp: string): Date | null {
+  if (!timestamp || timestamp.includes("Sekarang")) return new Date();
+  try {
+    const clean = timestamp.replace(/,/g, "").replace(/\./g, ":");
+    const parts = clean.split(/\s+/);
+    if (parts.length >= 3) {
+      const day = parseInt(parts[0], 10);
+      const monthStr = parts[1];
+      const year = parseInt(parts[2], 10);
+      
+      let month = 0;
+      const key = monthStr.toLowerCase();
+      if (key.startsWith("jan")) month = 0;
+      else if (key.startsWith("feb")) month = 1;
+      else if (key.startsWith("mar")) month = 2;
+      else if (key.startsWith("apr")) month = 3;
+      else if (key.startsWith("mei") || key.startsWith("may")) month = 4;
+      else if (key.startsWith("jun")) month = 5;
+      else if (key.startsWith("jul")) month = 6;
+      else if (key.startsWith("agt") || key.startsWith("aug")) month = 7;
+      else if (key.startsWith("sep")) month = 8;
+      else if (key.startsWith("okt") || key.startsWith("oct")) month = 9;
+      else if (key.startsWith("nov")) month = 10;
+      else if (key.startsWith("des") || key.startsWith("dec")) month = 11;
+      
+      let hours = 0;
+      let minutes = 0;
+      if (parts[3]) {
+        const timeParts = parts[3].split(":");
+        hours = parseInt(timeParts[0], 10) || 0;
+        minutes = parseInt(timeParts[1], 10) || 0;
+      }
+      return new Date(year, month, day, hours, minutes);
+    }
+  } catch (e) {
+    console.error("Error parsing date", timestamp, e);
+  }
+  return null;
+}
 
 function normalizeLookupValue(value?: string | null) {
   return value?.trim().toLowerCase() ?? "";
@@ -390,11 +431,39 @@ export function deriveContactRows(
       const channelMatch =
         filters.channel === "all" || row.customer.channel === filters.channel;
 
+      let dateMatch = true;
+      if (filters.dateRange && filters.dateRange !== "all") {
+        const parsedDate = parseOperatorTimestamp(row.customer.lastContact);
+        if (parsedDate) {
+          const now = new Date();
+          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          
+          if (filters.dateRange === "today") {
+            dateMatch = parsedDate >= startOfToday;
+          } else if (filters.dateRange === "yesterday") {
+            const startOfYesterday = new Date(startOfToday);
+            startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+            dateMatch = parsedDate >= startOfYesterday && parsedDate < startOfToday;
+          } else if (filters.dateRange === "this_week") {
+            const startOfWeek = new Date(startOfToday);
+            const day = startOfWeek.getDay();
+            startOfWeek.setDate(startOfWeek.getDate() - day);
+            dateMatch = parsedDate >= startOfWeek;
+          } else if (filters.dateRange === "this_month") {
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            dateMatch = parsedDate >= startOfMonth;
+          }
+        } else {
+          dateMatch = false;
+        }
+      }
+
       return (
         segmentMatch &&
         tagMatch &&
         ownerMatch &&
         channelMatch &&
+        dateMatch &&
         matchesQuickFilter(row, filters.quickFilter) &&
         matchesSearch(row.customer, data, filters.search)
       );
@@ -453,6 +522,7 @@ export function deriveSegments(data: DashboardOperationsData) {
     owner: "all",
     channel: "all",
     quickFilter: "all",
+    dateRange: "all",
   });
 
   const hotLeadNoBooking = rows.filter(

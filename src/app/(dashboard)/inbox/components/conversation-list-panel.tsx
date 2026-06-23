@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   CheckCheck,
   Clock3,
@@ -7,10 +8,11 @@ import {
   MoreVertical,
   Search,
   SlidersHorizontal,
+  Filter,
+  CheckCircle2,
+  RefreshCcw,
 } from "lucide-react";
 
-import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -30,6 +32,7 @@ type ConversationListPanelProps = {
   selectedId: string;
   searchQuery: string;
   onSearchChange: (value: string) => void;
+  showSearchInput?: boolean;
   quickFilter: InboxQuickFilterId;
   onQuickFilterChange: (value: InboxQuickFilterId) => void;
   channelFilter: "all" | ConversationRecord["channel"];
@@ -44,6 +47,7 @@ type ConversationListPanelProps = {
   onSortChange: (value: string) => void;
   summary: InboxSummary;
   onSelectConversation: (conversationId: string) => void;
+  onRefresh?: () => void;
 };
 
 const CHANNEL_LABELS: Record<ConversationRecord["channel"], string> = {
@@ -121,6 +125,7 @@ export function ConversationListPanel({
   selectedId,
   searchQuery,
   onSearchChange,
+  showSearchInput,
   quickFilter,
   onQuickFilterChange,
   channelFilter,
@@ -135,148 +140,146 @@ export function ConversationListPanel({
   onSortChange,
   summary,
   onSelectConversation,
+  onRefresh,
 }: ConversationListPanelProps) {
+  const [showFilters, setShowFilters] = useState(false);
+
+  const getHeaderTitle = () => {
+    switch (quickFilter) {
+      case "all":
+        return "All chats";
+      case "unhandled":
+        return "My chats";
+      case "need_admin":
+        return "Unassigned";
+      case "mine":
+        return "Assigned";
+      case "resolved":
+        return "Resolved";
+      default:
+        return "Chats";
+    }
+  };
+
   return (
     <aside className="flex min-h-[42rem] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full lg:min-h-0">
-      <div className="border-b border-white/[0.06]">
-        <div className="flex items-center justify-between px-4 py-4">
-          <h2 className="text-lg font-semibold tracking-tight text-slate-100">
-            Inbox
+      {/* Header and Toolbar */}
+      <div className="border-b border-white/[0.06] bg-[#0c1020]/40">
+        <div className="flex items-center justify-between px-4.5 py-4">
+          <h2 className="text-lg font-bold tracking-tight text-slate-100">
+            {getHeaderTitle()}
           </h2>
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
-              title="Cari"
-            >
-              <Search className="h-[18px] w-[18px]" />
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
-              title="Mulai chat baru"
-            >
-              <MessageSquarePlus className="h-[18px] w-[18px]" />
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
-              title="Filter inbox"
-            >
-              <SlidersHorizontal className="h-[18px] w-[18px]" />
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
-              title="Menu"
-            >
-              <MoreVertical className="h-[18px] w-[18px]" />
-            </button>
-          </div>
-        </div>
-
-        <div className="px-4 pb-3">
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-            <Input
-              value={searchQuery}
-              onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Cari pelanggan atau isi chat"
-              className="h-11 rounded-xl border-white/[0.08] bg-white/[0.04] pl-10 text-sm text-slate-200 placeholder:text-slate-500"
-            />
-          </div>
-        </div>
-
-        <div className="flex gap-5 overflow-x-auto px-4 text-[13px] custom-scrollbar">
-          {PRIMARY_FILTERS.map((filter) => {
-            const active = quickFilter === filter.id;
-            const count = quickFilterCount(summary, filter.id);
-
-            return (
+            {onRefresh && (
               <button
-                key={filter.id}
                 type="button"
-                onClick={() => onQuickFilterChange(filter.id)}
-                className={cn(
-                  "shrink-0 border-b-2 pb-3 pt-0.5 font-medium transition",
-                  active
-                    ? "border-[#00d2ff] text-[#00d2ff]"
-                    : "border-transparent text-slate-500 hover:text-slate-300",
-                )}
+                onClick={onRefresh}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
+                title="Refresh"
               >
-                <span>{filter.label}</span>
-                {count > 0 ? <span className="ml-1.5">{count}</span> : null}
+                <RefreshCcw className="h-4 w-4" />
               </button>
-            );
-          })}
+            )}
+            <button
+              type="button"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
+              title="Bulk Action"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowFilters(!showFilters)}
+              className={cn(
+                "inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200",
+                showFilters && "bg-white/[0.06] text-[#00d2ff]"
+              )}
+              title="Filter"
+            >
+              <Filter className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
-        <div className="grid gap-2 border-t border-white/[0.06] px-4 py-3">
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Select
-              value={channelFilter}
-              onChange={(event) =>
-                onChannelFilterChange(
-                  event.target.value as "all" | ConversationRecord["channel"],
-                )
-              }
-              className="h-9 rounded-xl border-white/[0.08] bg-white/[0.04] text-[11px] text-slate-400"
-            >
-              {channelOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option === "all" ? "Semua Channel" : CHANNEL_LABELS[option]}
-                </option>
-              ))}
-            </Select>
-
-            <Select
-              value={statusFilter}
-              onChange={(event) =>
-                onStatusFilterChange(
-                  event.target.value as "all" | ConversationStatus,
-                )
-              }
-              className="h-9 rounded-xl border-white/[0.08] bg-white/[0.04] text-[11px] text-slate-400"
-            >
-              <option value="all">Semua Status</option>
-              <option value="ai_active">AI Aktif</option>
-              <option value="ai_paused">AI Pause</option>
-              <option value="assigned_to_admin">Butuh Admin</option>
-              <option value="waiting_customer">Menunggu Customer</option>
-              <option value="resolved">Selesai</option>
-              <option value="blocked">Blocked</option>
-              <option value="spam">Spam</option>
-            </Select>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Select
-              value={assignmentFilter}
-              onChange={(event) => onAssignmentFilterChange(event.target.value)}
-              className="h-9 rounded-xl border-white/[0.08] bg-white/[0.04] text-[11px] text-slate-400"
-            >
-              {assignmentOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-
-            <Select
+        {/* Sorting selection bar */}
+        <div className="px-4.5 pb-3 flex items-center justify-between text-xs text-slate-400">
+          <div className="flex items-center gap-1.5 font-bold">
+            <span>Sort:</span>
+            <select
               value={sortBy}
-              onChange={(event) => onSortChange(event.target.value)}
-              className="h-9 rounded-xl border-white/[0.08] bg-white/[0.04] text-[11px] text-slate-400"
+              onChange={(e) => onSortChange(e.target.value)}
+              className="bg-transparent border-none text-slate-200 font-extrabold focus:outline-none cursor-pointer"
             >
-              <option value="latest">Urut: Terbaru</option>
-              <option value="unread">Urut: Unread</option>
-              <option value="priority">Urut: Prioritas</option>
-              <option value="longest_wait">Urut: Terlama menunggu</option>
-              <option value="oldest">Urut: Terlama</option>
-            </Select>
+              <option value="latest">Newest</option>
+              <option value="unread">Unread</option>
+              <option value="priority">Priority</option>
+              <option value="longest_wait">Wait time</option>
+              <option value="oldest">Oldest</option>
+            </select>
           </div>
         </div>
+
+        {/* Collapsible search bar */}
+        {(showSearchInput || searchQuery) && (
+          <div className="px-4.5 pb-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+              <Input
+                value={searchQuery}
+                onChange={(event) => onSearchChange(event.target.value)}
+                placeholder="Cari percakapan..."
+                className="h-9 rounded-lg border-white/[0.08] bg-white/[0.04] pl-9 text-xs text-slate-200 placeholder:text-slate-500 focus:border-[#00d2ff]/80 focus:bg-white/[0.08]"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Collapsible Filter Section */}
+        {showFilters && (
+          <div className="grid gap-2 grid-cols-2 px-4.5 pb-4.5 pt-3.5 border-t border-white/[0.04] bg-[#080c18]/30 animate-fade-in">
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Channel</span>
+              <Select
+                value={channelFilter}
+                onChange={(event) =>
+                  onChannelFilterChange(
+                    event.target.value as "all" | ConversationRecord["channel"],
+                  )
+                }
+                className="h-8 rounded-lg border-white/[0.08] bg-white/[0.04] text-[10px] text-slate-300"
+              >
+                {channelOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option === "all" ? "All" : CHANNEL_LABELS[option]}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Status</span>
+              <Select
+                value={statusFilter}
+                onChange={(event) =>
+                  onStatusFilterChange(
+                    event.target.value as "all" | ConversationStatus,
+                  )
+                }
+                className="h-8 rounded-lg border-white/[0.08] bg-white/[0.04] text-[10px] text-slate-300"
+              >
+                <option value="all">All</option>
+                <option value="ai_active">AI Active</option>
+                <option value="ai_paused">AI Paused</option>
+                <option value="assigned_to_admin">Human</option>
+                <option value="waiting_customer">Waiting</option>
+                <option value="resolved">Resolved</option>
+              </Select>
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Conversations List */}
       <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {conversations.length === 0 ? (
           <EmptyState
@@ -285,13 +288,13 @@ export function ConversationListPanel({
             className="min-h-[18rem] border-none bg-transparent p-4"
           />
         ) : (
-          <div>
+          <div className="divide-y divide-white/[0.04]">
             {conversations.map((conversation) => {
               const active = selectedId === conversation.id;
               const unread = conversation.unreadCount > 0;
-              const statusMeta = getConversationStatusMeta(conversation);
               const channelMeta = getChannelMeta(conversation);
               const ChannelIcon = channelMeta.icon;
+              const isAssigned = conversation.assignedTo !== "AI Agent" && conversation.assignedTo !== "AI";
 
               return (
                 <button
@@ -299,104 +302,70 @@ export function ConversationListPanel({
                   type="button"
                   onClick={() => onSelectConversation(conversation.id)}
                   className={cn(
-                    "relative w-full border-b border-white/[0.04] px-4 py-3 text-left transition",
-                    active ? "bg-white/[0.06]" : "hover:bg-white/[0.03]",
+                    "relative w-full px-4.5 py-4 text-left transition duration-150 cursor-pointer block",
+                    active ? "bg-white/[0.04]" : "hover:bg-white/[0.02]",
                   )}
                 >
-                  {active ? (
-                    <span className="absolute inset-y-0 right-0 w-1 rounded-l-full bg-[#00d2ff]" />
-                  ) : null}
+                  {active && (
+                    <span className="absolute inset-y-0 left-0 w-0.5 bg-[#00d2ff]" />
+                  )}
 
-                  <div className="flex items-start gap-3">
-                    <Avatar
-                      fallback={conversation.name}
-                      className="h-11 w-11 border-white/[0.08] bg-white/[0.06] text-slate-400"
-                    />
+                  <div className="flex gap-3">
+                    {/* Channel logo in solid colored circle */}
+                    <div className={cn(
+                      "h-10 w-10 rounded-full flex items-center justify-center shrink-0 border transition-transform duration-200",
+                      active && "scale-105",
+                      conversation.channel === "WhatsApp" ? "bg-emerald-600/10 text-emerald-400 border-emerald-500/20" :
+                      conversation.channel.startsWith("Instagram") ? "bg-fuchsia-600/10 text-fuchsia-400 border-fuchsia-500/20" :
+                      "bg-cyan-600/10 text-cyan-400 border-cyan-500/20"
+                    )}>
+                      <ChannelIcon className="h-5 w-5" />
+                    </div>
 
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3
-                              className={cn(
-                                "truncate text-[15px] text-slate-200",
-                                unread ? "font-semibold" : "font-medium",
-                              )}
-                            >
-                              {conversation.name}
-                            </h3>
-                            <span
-                              className={cn(
-                                "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                                statusBadgeClass(conversation.status),
-                              )}
-                            >
-                              {statusMeta.shortLabel}
-                            </span>
-                          </div>
-
-                          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
-                            <ChannelIcon className="h-3.5 w-3.5" />
-                            <span>{channelMeta.label}</span>
-                            <span className="h-1 w-1 rounded-full bg-slate-600" />
-                            <span className="truncate">{conversation.assignedTo}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex shrink-0 flex-col items-end gap-2">
-                          <span
-                            className={cn(
-                              "text-[11px]",
-                              unread ? "font-semibold text-[#00d2ff]" : "text-slate-500",
-                            )}
-                          >
-                            {conversation.timestamp}
-                          </span>
-                          {unread ? (
-                            <span
-                              className={cn(
-                                "inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold",
-                                unreadBadgeClass(conversation.channel),
-                              )}
-                            >
-                              {conversation.unreadCount}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
-                              <CheckCheck className="h-3.5 w-3.5" />
-                              Read
-                            </span>
-                          )}
-                        </div>
+                      {/* Name & Time */}
+                      <div className="flex items-center justify-between gap-2.5">
+                        <h3 className={cn(
+                          "truncate text-sm text-slate-200 font-bold",
+                          unread && "text-white"
+                        )}>
+                          {conversation.name}
+                        </h3>
+                        <span className={cn(
+                          "text-[10px] text-slate-500 shrink-0 font-medium",
+                          unread && "text-[#00d2ff] font-bold"
+                        )}>
+                          {conversation.timestamp}
+                        </span>
                       </div>
 
-                      <p
-                        className={cn(
-                          "mt-2 line-clamp-1 text-[13px] leading-5",
-                          unread ? "text-slate-300" : "text-slate-500",
+                      {/* Message Preview & Badge count */}
+                      <div className="flex items-start justify-between gap-2.5 mt-1">
+                        <p className={cn(
+                          "truncate text-xs leading-normal flex-1",
+                          unread ? "text-slate-200 font-semibold" : "text-slate-500"
+                        )}>
+                          {conversation.lastMessage}
+                        </p>
+                        {unread && (
+                          <span className="inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-rose-600 px-1 py-0.5 text-[9px] font-black text-white shrink-0 shadow-[0_2px_6px_rgba(225,29,72,0.3)]">
+                            {conversation.unreadCount}
+                          </span>
                         )}
-                      >
-                        {conversation.lastMessage}
-                      </p>
+                      </div>
 
-                      <div className="mt-2 flex items-center justify-between gap-3">
-                        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                          <Badge className="rounded-full border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] text-slate-400">
-                            {conversation.lastIntent}
-                          </Badge>
-                          {conversation.tags.slice(0, 1).map((tag) => (
-                            <span
-                              key={tag}
-                              className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] text-slate-400"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-
-                        <span className="inline-flex shrink-0 items-center gap-1 text-[10px] text-slate-500">
-                          <Clock3 className="h-3.5 w-3.5" />
-                          {formatSlaLabel(conversation)}
+                      {/* Brand & Assignment Status */}
+                      <div className="mt-3 flex items-center justify-between text-[10px]">
+                        <span className="text-slate-500 font-bold tracking-wide">
+                          Johan Garage
+                        </span>
+                        <span className={cn(
+                          "px-2 py-0.5 rounded text-[9px] font-bold tracking-wide uppercase border",
+                          isAssigned
+                            ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                            : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                        )}>
+                          {isAssigned ? "Assigned" : "Unassigned"}
                         </span>
                       </div>
                     </div>
@@ -406,6 +375,11 @@ export function ConversationListPanel({
             })}
           </div>
         )}
+      </div>
+
+      {/* Unassigned Chat Count Footer */}
+      <div className="shrink-0 border-t border-white/[0.04] bg-[#080c18]/50 px-4.5 py-3 text-center text-xs font-bold text-slate-500 tracking-wider">
+        Unassigned chat: {summary.needAdminCount}
       </div>
     </aside>
   );

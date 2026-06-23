@@ -12,8 +12,19 @@ import {
   MessageCircle,
   Send,
   Shield,
-  TestTube2,
   Wifi,
+  Smartphone,
+  Phone,
+  ShoppingCart,
+  Mail,
+  Facebook,
+  MessageSquare,
+  Database,
+  Plus,
+  PlusCircle,
+  Link2,
+  Settings,
+  ChevronRight
 } from "lucide-react";
 
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
@@ -23,8 +34,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
 
-type ActiveChannel = "list" | "webchat" | "whatsapp" | "instagram";
+type ActiveChannel =
+  | "mobilechat"
+  | "webchat"
+  | "whatsapp"
+  | "instagram"
+  | "facebook"
+  | "telegram"
+  | "x"
+  | "line"
+  | "call"
+  | "ecommerce"
+  | "email"
+  | "qontak";
 
 function getChannelKind(activeChannel: ActiveChannel): ChannelKind {
   switch (activeChannel) {
@@ -33,7 +57,7 @@ function getChannelKind(activeChannel: ActiveChannel): ChannelKind {
     case "instagram":
       return "Instagram DM";
     case "webchat":
-    case "list":
+    case "mobilechat":
     default:
       return "Website Chat";
   }
@@ -42,14 +66,13 @@ function getChannelKind(activeChannel: ActiveChannel): ChannelKind {
 export default function ChannelsPage() {
   const { config, patchConfig } = useDashboardConfig();
 
-  const [activeChannel, setActiveChannel] = useState<ActiveChannel>("list");
+  // Set default active tab to "mobilechat" as requested
+  const [activeChannel, setActiveChannel] = useState<ActiveChannel>("mobilechat");
   const [origin, setOrigin] = useState("");
   const [copied, setCopied] = useState(false);
   const [webchatSaved, setWebchatSaved] = useState(false);
   const [waSaved, setWaSaved] = useState(false);
   const [igSaved, setIgSaved] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
-  const [testFeedback, setTestFeedback] = useState("");
 
   const [widgetColor, setWidgetColor] = useState(config.channels.webchat.widgetColor);
   const [welcomeText, setWelcomeText] = useState(config.channels.webchat.welcomeText);
@@ -81,14 +104,14 @@ export default function ChannelsPage() {
   );
   const [igStatus, setIgStatus] = useState(config.channels.instagram.status);
 
-  const [testDisplayName, setTestDisplayName] = useState("Customer Test");
-  const [testPhone, setTestPhone] = useState("+6281234567890");
-  const [testUsername, setTestUsername] = useState("@customer.test");
-  const [testMessage, setTestMessage] = useState("Halo, saya ingin tanya harga servis.");
-  const [testOutboundRecipient, setTestOutboundRecipient] = useState("+6281234567890");
-  const [testOutboundMessage, setTestOutboundMessage] = useState(
-    "Halo, ini pesan test dari dashboard Balesin Desk.",
-  );
+  // Mobile Widget Builder States
+  const [isCreatingMobileWidget, setIsCreatingMobileWidget] = useState(false);
+  const [mobileWidgetName, setMobileWidgetName] = useState("Mobile App Widget Utama");
+  const [mobilePlatform, setMobilePlatform] = useState<"react-native" | "flutter" | "android" | "ios">("react-native");
+  const [mobileWidgetColor, setMobileWidgetColor] = useState("#00d2ff");
+  const [mobileWelcomeText, setMobileWelcomeText] = useState("Halo Kak! Ada yang bisa kami bantu?");
+  const [mobileWidgetSaved, setMobileWidgetSaved] = useState(false);
+  const [mobileCopied, setMobileCopied] = useState(false);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -151,10 +174,72 @@ export default function ChannelsPage() {
     ],
   );
 
+  const mobileEmbedCode = useMemo(() => {
+    const wsSlug = config?.workspace?.name?.toLowerCase()?.replace(/\s+/g, "-") || "johan-garage";
+    switch (mobilePlatform) {
+      case "react-native":
+        return `// Balesin SDK Integration for React Native
+import { BalesinChat } from 'balesin-mobile-sdk';
+
+export default function App() {
+  return (
+    <BalesinChat 
+      workspaceId="${wsSlug}"
+      themeColor="${mobileWidgetColor}"
+      welcomeMessage="${mobileWelcomeText}"
+    />
+  );
+}`;
+      case "flutter":
+        return `// Balesin SDK Integration for Flutter
+import 'package:balesin_sdk/balesin_sdk.dart';
+
+class MyChatScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return BalesinChatWidget(
+      workspaceId: "${wsSlug}",
+      themeColor: "${mobileWidgetColor}",
+      welcomeMessage: "${mobileWelcomeText}",
+    );
+  }
+}`;
+      case "android":
+        return `<!-- Balesin SDK Integration for Android (XML Layout) -->
+<com.balesin.sdk.BalesinChatWidget
+    android:id="@+id/balesin_chat_widget"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:workspace_id="${wsSlug}"
+    app:widget_color="${mobileWidgetColor}"
+    app:welcome_text="${mobileWelcomeText}" />`;
+      case "ios":
+        return `// Balesin SDK Integration for iOS (SwiftUI)
+import BalesinSDK
+import SwiftUI
+
+struct ChatView: View {
+    var body: some View {
+        BalesinChatView(
+            workspaceId: "${wsSlug}",
+            themeColor: "${mobileWidgetColor}",
+            welcomeMessage: "${mobileWelcomeText}"
+        )
+    }
+}`;
+    }
+  }, [mobilePlatform, mobileWidgetColor, mobileWelcomeText, config]);
+
   const handleCopyCode = async () => {
     await navigator.clipboard.writeText(embedCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyMobileCode = async () => {
+    await navigator.clipboard.writeText(mobileEmbedCode);
+    setMobileCopied(true);
+    setTimeout(() => setMobileCopied(false), 2000);
   };
 
   const persistWebchat = (event: FormEvent) => {
@@ -265,727 +350,1019 @@ export default function ChannelsPage() {
     setTimeout(() => setIgSaved(false), 2500);
   };
 
-  const runInboundTest = async () => {
-    if (activeChannel === "list") {
-      return;
-    }
-
-    setIsTesting(true);
-    setTestFeedback("");
-
-    try {
-      const response = await fetch("/api/channels/test-inbound", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          channel: activeChannel === "instagram" ? "Instagram DM" : getChannelKind(activeChannel),
-          displayName: testDisplayName,
-          phone: testPhone,
-          username: testUsername,
-          message: testMessage,
-        }),
-      });
-
-      const payload = (await response.json()) as {
-        error?: string;
-        data?: {
-          decision?: {
-            intent?: string;
-            status?: string;
-          };
-        };
-      };
-
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Simulasi inbound gagal.");
-      }
-
-      setTestFeedback(
-        `Inbound test berhasil. Intent: ${payload.data?.decision?.intent ?? "-"}, status: ${payload.data?.decision?.status ?? "-"}. Lihat hasilnya di Inbox.`,
-      );
-    } catch (error) {
-      setTestFeedback(
-        error instanceof Error ? error.message : "Simulasi inbound gagal.",
-      );
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
-  const runOutboundTest = async () => {
-    if (activeChannel === "list") {
-      return;
-    }
-
-    setIsTesting(true);
-    setTestFeedback("");
-
-    try {
-      const response = await fetch("/api/channels/test-message", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          channel: activeChannel === "instagram" ? "Instagram DM" : getChannelKind(activeChannel),
-          recipientId: testOutboundRecipient,
-          message: testOutboundMessage,
-        }),
-      });
-
-      const payload = (await response.json()) as {
-        error?: string;
-        data?: {
-          provider?: string;
-          status?: number;
-          note?: string;
-        };
-      };
-
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Test outbound gagal.");
-      }
-
-      setTestFeedback(
-        `Outbound test selesai. Provider: ${payload.data?.provider ?? "-"}, status: ${payload.data?.status ?? "-"}. ${payload.data?.note ?? ""}`.trim(),
-      );
-    } catch (error) {
-      setTestFeedback(
-        error instanceof Error ? error.message : "Test outbound gagal.",
-      );
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        {activeChannel !== "list" ? (
-          <button
-            onClick={() => setActiveChannel("list")}
-            className="rounded-lg border border-white/8 bg-white/4 px-3 py-1.5 text-xs font-semibold transition duration-200 hover:text-white"
-          >
-            <span className="flex items-center gap-1.5">
-              <ArrowLeft className="h-4 w-4" />
-              Kembali ke daftar channel
-            </span>
-          </button>
-        ) : null}
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-white">
-            <Wifi className="h-6 w-6 text-cyan-400" />
-            Saluran Komunikasi
-          </h1>
-          <p className="mt-1 text-xs text-slate-400">
-            Semua koneksi WA, IG, dan web chat diatur dari dashboard yang sama.
-          </p>
-        </div>
+      {/* Top Header */}
+      <div>
+        <h1 className="flex items-center gap-2.5 text-2xl font-bold text-white">
+          <Wifi className="h-6 w-6 text-cyan-400" />
+          Integrations & Channels
+        </h1>
+        <p className="mt-1 text-xs text-slate-400">
+          Kelola seluruh channel sosial media, widget chat khusus, sistem internal, dan integrasi CRM omnichannel Anda.
+        </p>
       </div>
 
-      {activeChannel === "list" ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <div className="glass-panel flex h-52 flex-col justify-between rounded-xl p-5 transition duration-300 hover:border-cyan-500/20">
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <Globe className="h-7 w-7 text-cyan-300" />
-                <Badge className="border-cyan-400/20 bg-cyan-950/40 text-cyan-200">
-                  {config.channels.webchat.status}
+      {/* Main Container Layout */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4 items-start">
+        {/* Left Sidebar List of Channels */}
+        <div className="space-y-6 lg:col-span-1">
+          {/* Category 1: Saluran Pesan & Media Sosial */}
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block px-2.5">
+              Saluran Pesan & Media Sosial
+            </span>
+            <div className="space-y-1 bg-white/[0.01] border border-white/6 rounded-xl p-1.5">
+              {/* WhatsApp */}
+              <button
+                onClick={() => {
+                  setActiveChannel("whatsapp");
+                  setIsCreatingMobileWidget(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-semibold transition ${
+                  activeChannel === "whatsapp"
+                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
+                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4 text-emerald-400" />
+                  <span>WhatsApp</span>
+                </div>
+                <Badge className={`text-[9px] px-1.5 py-0 border ${
+                  config.channels.whatsapp.status === "connected"
+                    ? "border-emerald-400/20 bg-emerald-950/40 text-emerald-300"
+                    : "border-white/10 bg-white/4 text-slate-400"
+                }`}>
+                  {config.channels.whatsapp.status === "connected" ? "Connected" : "Draft"}
                 </Badge>
-              </div>
-              <h3 className="text-sm font-bold text-white">Website Live Chat</h3>
-              <p className="mt-1.5 text-[11px] leading-normal text-slate-400">
-                Widget chat, webhook inbound, dan lead capture dikelola penuh dari dashboard.
-              </p>
+              </button>
+
+              {/* Facebook Messenger */}
+              <button
+                onClick={() => {
+                  setActiveChannel("facebook");
+                  setIsCreatingMobileWidget(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-semibold transition ${
+                  activeChannel === "facebook"
+                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
+                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Facebook className="h-4 w-4 text-blue-400" />
+                  <span>Facebook</span>
+                </div>
+                <Badge className="border-white/8 bg-white/4 text-slate-500 text-[8px] px-1.5 py-0">
+                  Roadmap
+                </Badge>
+              </button>
+
+              {/* Instagram */}
+              <button
+                onClick={() => {
+                  setActiveChannel("instagram");
+                  setIsCreatingMobileWidget(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-semibold transition ${
+                  activeChannel === "instagram"
+                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
+                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Instagram className="h-4 w-4 text-fuchsia-400" />
+                  <span>Instagram</span>
+                </div>
+                <Badge className={`text-[9px] px-1.5 py-0 border ${
+                  config.channels.instagram.status === "connected"
+                    ? "border-fuchsia-400/20 bg-fuchsia-950/40 text-fuchsia-300"
+                    : "border-white/10 bg-white/4 text-slate-400"
+                }`}>
+                  {config.channels.instagram.status === "connected" ? "Connected" : "Draft"}
+                </Badge>
+              </button>
+
+              {/* Telegram */}
+              <button
+                onClick={() => {
+                  setActiveChannel("telegram");
+                  setIsCreatingMobileWidget(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-semibold transition ${
+                  activeChannel === "telegram"
+                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
+                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Send className="h-4 w-4 text-cyan-400" />
+                  <span>Telegram</span>
+                </div>
+                <Badge className="border-white/8 bg-white/4 text-slate-500 text-[8px] px-1.5 py-0">
+                  Roadmap
+                </Badge>
+              </button>
+
+              {/* X (Twitter) */}
+              <button
+                onClick={() => {
+                  setActiveChannel("x");
+                  setIsCreatingMobileWidget(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-semibold transition ${
+                  activeChannel === "x"
+                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
+                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-slate-300" />
+                  <span>X (Twitter)</span>
+                </div>
+                <Badge className="border-white/8 bg-white/4 text-slate-500 text-[8px] px-1.5 py-0">
+                  Roadmap
+                </Badge>
+              </button>
+
+              {/* Line Messenger */}
+              <button
+                onClick={() => {
+                  setActiveChannel("line");
+                  setIsCreatingMobileWidget(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-semibold transition ${
+                  activeChannel === "line"
+                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
+                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-green-400" />
+                  <span>Line Messenger</span>
+                </div>
+                <Badge className="border-white/8 bg-white/4 text-slate-500 text-[8px] px-1.5 py-0">
+                  Roadmap
+                </Badge>
+              </button>
             </div>
-            <Button
-              onClick={() => setActiveChannel("webchat")}
-              className="mt-4 h-9 w-full py-2 text-xs"
-              variant="secondary"
-            >
-              Konfigurasi widget
-            </Button>
           </div>
 
-          <div className="glass-panel flex h-52 flex-col justify-between rounded-xl p-5 transition duration-300 hover:border-emerald-500/20">
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <MessageCircle className="h-7 w-7 text-emerald-300" />
-                <Badge className="border-emerald-400/20 bg-emerald-950/40 text-emerald-200">
-                  {config.channels.whatsapp.status}
+          {/* Category 2: Widget Khusus */}
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block px-2.5">
+              Widget Khusus
+            </span>
+            <div className="space-y-1 bg-white/[0.01] border border-white/6 rounded-xl p-1.5">
+              {/* Mobile Chat */}
+              <button
+                onClick={() => {
+                  setActiveChannel("mobilechat");
+                  setIsCreatingMobileWidget(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-semibold transition ${
+                  activeChannel === "mobilechat"
+                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
+                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Smartphone className="h-4 w-4 text-cyan-400" />
+                  <span>Mobile chat</span>
+                </div>
+                <Badge className="border-cyan-400/25 bg-cyan-950/30 text-cyan-300 text-[9px] px-1.5 py-0">
+                  Active
                 </Badge>
-              </div>
-              <h3 className="text-sm font-bold text-white">WhatsApp Cloud API</h3>
-              <p className="mt-1.5 text-[11px] leading-normal text-slate-400">
-                Phone number ID, token, verify token, webhook, dan test message dikelola di sini.
-              </p>
+              </button>
+
+              {/* Web Chat */}
+              <button
+                onClick={() => {
+                  setActiveChannel("webchat");
+                  setIsCreatingMobileWidget(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-semibold transition ${
+                  activeChannel === "webchat"
+                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
+                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-cyan-300" />
+                  <span>Web chat</span>
+                </div>
+                <Badge className={`text-[9px] px-1.5 py-0 border ${
+                  config.channels.webchat.enabled
+                    ? "border-cyan-400/20 bg-cyan-950/40 text-cyan-300"
+                    : "border-white/10 bg-white/4 text-slate-400"
+                }`}>
+                  {config.channels.webchat.enabled ? "Connected" : "Draft"}
+                </Badge>
+              </button>
             </div>
-            <Button
-              onClick={() => setActiveChannel("whatsapp")}
-              className="mt-4 h-9 w-full py-2 text-xs"
-              variant="secondary"
-            >
-              Sambungkan nomor
-            </Button>
           </div>
 
-          <div className="glass-panel flex h-52 flex-col justify-between rounded-xl p-5 transition duration-300 hover:border-fuchsia-500/20">
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <Instagram className="h-7 w-7 text-fuchsia-300" />
-                <Badge className="border-fuchsia-400/20 bg-fuchsia-950/40 text-fuchsia-200">
-                  {config.channels.instagram.status}
+          {/* Category 3: Ekspansi Baru (NEW) */}
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 px-2.5">
+              Ekspansi Baru
+              <Badge className="bg-cyan-500 text-slate-950 text-[8px] font-extrabold px-1 py-0.5 rounded">NEW</Badge>
+            </span>
+            <div className="space-y-1 bg-white/[0.01] border border-white/6 rounded-xl p-1.5">
+              {/* Call */}
+              <button
+                onClick={() => {
+                  setActiveChannel("call");
+                  setIsCreatingMobileWidget(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-semibold transition ${
+                  activeChannel === "call"
+                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
+                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-amber-400" />
+                  <span>Call (Telepon)</span>
+                </div>
+                <Badge className="border-white/8 bg-white/4 text-slate-500 text-[8px] px-1.5 py-0">
+                  Roadmap
                 </Badge>
-              </div>
-              <h3 className="text-sm font-bold text-white">Instagram DM & Comment</h3>
-              <p className="mt-1.5 text-[11px] leading-normal text-slate-400">
-                DM automation, comment guard, dan test inbound Instagram diatur dari sini.
-              </p>
+              </button>
+
+              {/* E-commerce */}
+              <button
+                onClick={() => {
+                  setActiveChannel("ecommerce");
+                  setIsCreatingMobileWidget(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-semibold transition ${
+                  activeChannel === "ecommerce"
+                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
+                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <ShoppingCart className="h-4 w-4 text-fuchsia-400" />
+                  <span>E-commerce</span>
+                </div>
+                <Badge className="border-white/8 bg-white/4 text-slate-500 text-[8px] px-1.5 py-0">
+                  Roadmap
+                </Badge>
+              </button>
+
+              {/* Email */}
+              <button
+                onClick={() => {
+                  setActiveChannel("email");
+                  setIsCreatingMobileWidget(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-semibold transition ${
+                  activeChannel === "email"
+                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
+                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-cyan-400" />
+                  <span>Email</span>
+                </div>
+                <Badge className="border-white/8 bg-white/4 text-slate-500 text-[8px] px-1.5 py-0">
+                  Roadmap
+                </Badge>
+              </button>
             </div>
-            <Button
-              onClick={() => setActiveChannel("instagram")}
-              className="mt-4 h-9 w-full py-2 text-xs"
-              variant="secondary"
-            >
-              Atur Instagram
-            </Button>
+          </div>
+
+          {/* Category 4: Sistem Internal */}
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block px-2.5">
+              Sistem Internal
+            </span>
+            <div className="space-y-1 bg-white/[0.01] border border-white/6 rounded-xl p-1.5">
+              {/* Qontak CRM */}
+              <button
+                onClick={() => {
+                  setActiveChannel("qontak");
+                  setIsCreatingMobileWidget(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-semibold transition ${
+                  activeChannel === "qontak"
+                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
+                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Link2 className="h-4 w-4 text-emerald-400" />
+                  <span>Qontak CRM Sync</span>
+                </div>
+                <Badge className="border-emerald-500/20 bg-emerald-950/30 text-emerald-400 text-[9px] px-1.5 py-0 font-bold">
+                  Active 2-Way
+                </Badge>
+              </button>
+            </div>
           </div>
         </div>
-      ) : null}
 
-      {activeChannel === "webchat" ? (
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
-          <form onSubmit={persistWebchat} className="space-y-6 lg:col-span-2">
-            <div className="glass-panel space-y-4 rounded-xl p-5">
-              <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-cyan-400">
-                <Globe className="h-4.5 w-4.5" />
-                Desain widget chat website
-              </h3>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Warna tombol utama</label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="color"
-                      value={widgetColor}
-                      onChange={(event) => setWidgetColor(event.target.value)}
-                      className="h-10 w-12 rounded-lg border-0 bg-transparent p-0"
-                    />
-                    <Input
-                      type="text"
-                      value={widgetColor}
-                      onChange={(event) => setWidgetColor(event.target.value)}
-                      className="h-10 flex-1 text-xs"
-                    />
-                  </div>
+        {/* Right Content Panel - Area Kerja Utama */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* ============================================== */}
+          {/* ACTIVE TAB: MOBILE CHAT */}
+          {/* ============================================== */}
+          {activeChannel === "mobilechat" && (
+            <div className="space-y-6">
+              {/* Mobile Chat Workspace Header */}
+              <div className="flex items-center justify-between border-b border-white/8 pb-4">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                    <Smartphone className="h-4.5 w-4.5 text-cyan-400" />
+                    Mobile Chat widget (Active)
+                  </h2>
+                  <p className="text-[11px] text-slate-400 mt-1">Konfigurasikan SDK chat Balesin langsung di aplikasi Android/iOS Anda.</p>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">
-                    Pesan selamat datang
-                  </label>
-                  <Input
-                    value={welcomeText}
-                    onChange={(event) => setWelcomeText(event.target.value)}
-                    className="h-10 text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={webchatEnabled}
-                    onChange={(event) => setWebchatEnabled(event.target.checked)}
-                    className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
-                  />
-                  Aktifkan widget web chat untuk website
-                </label>
-                <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={captureLead}
-                    onChange={(event) => setCaptureLead(event.target.checked)}
-                    className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
-                  />
-                  Minta nama dan nomor customer sebelum percakapan lanjut
-                </label>
-                <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300 md:col-span-2">
-                  <input
-                    type="checkbox"
-                    checked={handoffToWhatsApp}
-                    onChange={(event) => setHandoffToWhatsApp(event.target.checked)}
-                    className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
-                  />
-                  Saat handoff terjadi, arahkan customer ke WhatsApp admin bila channel itu aktif
-                </label>
-              </div>
-
-              <div className="rounded-lg border border-white/8 bg-white/4 p-4 text-[11px] leading-normal text-slate-400">
-                <p className="font-bold text-slate-300">Webhook web chat</p>
-                <code className="mt-2 block rounded bg-[#020611] p-2 font-mono text-cyan-300">
-                  {webchatWebhookUrl}
-                </code>
-              </div>
-
-              <div className="flex items-center justify-between">
-                {webchatSaved ? (
-                  <span className="text-xs font-bold text-emerald-400">
-                    Konfigurasi web chat disimpan.
-                  </span>
-                ) : (
-                  <div />
+                {!isCreatingMobileWidget && (
+                  <Button onClick={() => setIsCreatingMobileWidget(true)} className="bg-cyan-500 text-slate-950 hover:bg-cyan-400 text-xs px-4 h-9">
+                    <Plus className="mr-1.5 h-4 w-4" />
+                    Create chat widget
+                  </Button>
                 )}
-                <Button type="submit">Simpan web chat</Button>
-              </div>
-            </div>
-
-            <div className="glass-panel space-y-4 rounded-xl p-5">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400">
-                  Embed code HTML
-                </h3>
-                <button
-                  onClick={() => void handleCopyCode()}
-                  type="button"
-                  className="flex items-center gap-1.5 text-xs font-semibold text-cyan-400 transition hover:text-cyan-300"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="h-4 w-4" /> Disalin
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" /> Salin code
-                    </>
-                  )}
-                </button>
-              </div>
-              <pre className="custom-scrollbar overflow-x-auto whitespace-pre-wrap rounded-lg border border-white/8 bg-[#020611] p-4 font-mono text-[10px] leading-relaxed text-slate-300">
-                {embedCode}
-              </pre>
-            </div>
-          </form>
-
-          <div className="glass-panel relative flex h-[470px] flex-col overflow-hidden rounded-xl bg-gradient-to-b from-[#04091a] to-[#020611] p-5">
-            <h3 className="mb-4 flex items-center gap-1.5 shrink-0 text-xs font-bold uppercase tracking-wider text-cyan-400">
-              <Eye className="h-4.5 w-4.5" />
-              Pratinjau widget
-            </h3>
-            <div className="relative flex flex-1 flex-col justify-between overflow-hidden rounded-lg border border-white/8 bg-white/2 p-4">
-              <div className="pointer-events-none select-none space-y-2 opacity-30">
-                <div className="h-4 w-24 rounded bg-white/20" />
-                <div className="h-3 w-full rounded bg-white/10" />
-                <div className="h-3 w-4/5 rounded bg-white/10" />
               </div>
 
-              <div className="absolute bottom-16 right-4 flex w-56 flex-col rounded-xl border border-white/8 bg-[#091223] text-[10px] shadow-2xl">
-                <div
-                  className="rounded-t-xl px-3 py-2.5 font-bold text-white"
-                  style={{ backgroundColor: widgetColor }}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 font-bold">
-                      B
+              {/* Main Content Form / Canvas */}
+              {!isCreatingMobileWidget ? (
+                <div className="space-y-6">
+                  {/* Center Information Canvas */}
+                  <div className="flex flex-col items-center justify-center text-center p-8 rounded-2xl border border-white/6 bg-white/[0.01] min-h-[250px] relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-b from-cyan-950/5 to-transparent pointer-events-none" />
+                    <div className="h-14 w-14 rounded-2xl bg-cyan-950/50 border border-cyan-400/25 flex items-center justify-center text-cyan-400 mb-4 animate-pulse">
+                      <Smartphone className="h-7 w-7" />
                     </div>
-                    <div>
-                      <div className="text-[9px] font-bold">{config.workspace.name}</div>
-                      <div className="text-[7px] font-normal text-white/80">
-                        AI membalas kilat
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-2">Mobile Chat Widget Canvas</h3>
+                    <p className="text-xs text-slate-400 max-w-lg leading-relaxed mb-6">
+                      Fitur ini digunakan untuk membuat modul obrolan khusus yang nantinya ditanamkan ke dalam aplikasi mobile milik bisnis Anda.
+                    </p>
+                    <Button onClick={() => setIsCreatingMobileWidget(true)} className="bg-cyan-500 text-slate-950 hover:bg-cyan-400 px-6">
+                      <PlusCircle className="mr-1.5 h-4.5 w-4.5" />
+                      Create chat widget
+                    </Button>
+                  </div>
+
+                  {/* Step-by-Step Procedure */}
+                  <Card className="glass-panel p-6 border-white/6">
+                    <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <Settings className="h-4 w-4 text-cyan-400" />
+                      Prosedur Umum Pembuatan & Penautan Widget
+                    </h4>
+                    <div className="space-y-4">
+                      <p className="text-xs text-slate-400 leading-normal">
+                        Berikut adalah prosedur umum untuk membuat dan menautkan widget obrolan pada aplikasi mobile bisnis Anda:
+                      </p>
+                      <div className="relative border-l border-white/8 pl-6 ml-2.5 space-y-5 text-xs text-slate-300">
+                        {/* Step 1 */}
+                        <div className="relative">
+                          <span className="absolute -left-[31px] top-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-[#050814] border border-cyan-400/30 text-[9px] font-extrabold text-cyan-400">
+                            1
+                          </span>
+                          <p className="font-semibold text-white">Buka sub-menu Mobile chat di dalam menu Integrations.</p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Akses panel konfigurasi mobile chat yang saat ini sedang aktif di layar Anda.</p>
+                        </div>
+                        {/* Step 2 */}
+                        <div className="relative">
+                          <span className="absolute -left-[31px] top-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-[#050814] border border-cyan-400/30 text-[9px] font-extrabold text-cyan-400">
+                            2
+                          </span>
+                          <p className="font-semibold text-white">Klik tombol biru Create chat widget yang berada di sudut kanan atas layar.</p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Tombol ini memicu form/wizard pembuatan widget baru untuk aplikasi Anda.</p>
+                        </div>
+                        {/* Step 3 */}
+                        <div className="relative">
+                          <span className="absolute -left-[31px] top-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-[#050814] border border-cyan-400/30 text-[9px] font-extrabold text-cyan-400">
+                            3
+                          </span>
+                          <p className="font-semibold text-white">Konfigurasikan detail dan preferensi tampilan widget sesuai instruksi sistem.</p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Pilih platform SDK, kustomisasi nama widget, warna tombol utama, serta pesan sapaan bot.</p>
+                        </div>
+                        {/* Step 4 */}
+                        <div className="relative">
+                          <span className="absolute -left-[31px] top-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-[#050814] border border-cyan-400/30 text-[9px] font-extrabold text-cyan-400">
+                            4
+                          </span>
+                          <p className="font-semibold text-white">Salin kode (atau script) yang dihasilkan oleh sistem.</p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Kode integrasi unik akan secara otomatis tergenerasi sesuai preferensi yang Anda tentukan.</p>
+                        </div>
+                        {/* Step 5 */}
+                        <div className="relative">
+                          <span className="absolute -left-[31px] top-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-[#050814] border border-cyan-400/30 text-[9px] font-extrabold text-cyan-400">
+                            5
+                          </span>
+                          <p className="font-semibold text-white">Tanamkan (embed) kode tersebut ke dalam source code aplikasi mobile Anda.</p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Hal ini dilakukan agar setiap pesan masuk dari aplikasi secara otomatis diteruskan (routing) ke Inbox Omnichannel Balesin AI.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              ) : (
+                /* Interactive Creation Wizard */
+                <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+                  <div className="glass-panel space-y-4 rounded-xl p-5 lg:col-span-2">
+                    <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-cyan-400">
+                      <Smartphone className="h-4 w-4" />
+                      Configure Mobile Widget
+                    </h3>
+
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-300">Nama Widget</label>
+                        <Input
+                          value={mobileWidgetName}
+                          onChange={(e) => setMobileWidgetName(e.target.value)}
+                          className="h-10 text-xs"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">Warna Tombol Utama</label>
+                          <div className="flex gap-2">
+                            <Input
+                              type="color"
+                              value={mobileWidgetColor}
+                              onChange={(e) => setMobileWidgetColor(e.target.value)}
+                              className="h-10 w-12 rounded-lg border-0 bg-transparent p-0"
+                            />
+                            <Input
+                              type="text"
+                              value={mobileWidgetColor}
+                              onChange={(e) => setMobileWidgetColor(e.target.value)}
+                              className="h-10 flex-1 text-xs"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">SDK Target Platform</label>
+                          <select
+                            value={mobilePlatform}
+                            onChange={(e) => setMobilePlatform(e.target.value as any)}
+                            className="flex h-10 w-full rounded-md border border-white/10 bg-[#0a0e1c] px-3 py-2 text-xs text-white outline-none focus:border-cyan-400"
+                          >
+                            <option value="react-native">React Native</option>
+                            <option value="flutter">Flutter</option>
+                            <option value="android">Android (Kotlin / XML)</option>
+                            <option value="ios">iOS (SwiftUI)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-300">Welcome greeting message</label>
+                        <Textarea
+                          value={mobileWelcomeText}
+                          onChange={(e) => setMobileWelcomeText(e.target.value)}
+                          rows={3}
+                          className="text-xs"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between border-t border-white/8 pt-4">
+                        {mobileWidgetSaved ? (
+                          <span className="text-xs font-bold text-emerald-400">
+                            Widget mobile berhasil disimpan.
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => setIsCreatingMobileWidget(false)}
+                            className="text-xs font-semibold text-slate-400 hover:text-white transition"
+                          >
+                            Batal
+                          </button>
+                        )}
+                        <Button onClick={() => {
+                          setMobileWidgetSaved(true);
+                          setTimeout(() => {
+                            setMobileWidgetSaved(false);
+                            setIsCreatingMobileWidget(false);
+                          }, 2500);
+                        }}>
+                          Simpan & Hubungkan
+                        </Button>
                       </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex-1 space-y-2 bg-[#04091a]/40 p-3">
-                  <div className="max-w-[85%] rounded-lg rounded-tl-none bg-white/6 px-2.5 py-1.5 text-[9px] text-slate-300">
-                    {welcomeText}
+
+                  {/* Embed Code output panel */}
+                  <div className="space-y-6">
+                    <div className="glass-panel space-y-4 rounded-xl p-5">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400">
+                          Embed SDK Script
+                        </h3>
+                        <button
+                          onClick={() => void handleCopyMobileCode()}
+                          type="button"
+                          className="flex items-center gap-1.5 text-xs font-semibold text-cyan-400 transition hover:text-cyan-300"
+                        >
+                          {mobileCopied ? (
+                            <>
+                              <Check className="h-4 w-4" /> Disalin
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-4 w-4" /> Salin script
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <pre className="custom-scrollbar overflow-x-auto whitespace-pre-wrap rounded-lg border border-white/8 bg-[#020611] p-4 font-mono text-[9px] leading-relaxed text-slate-300">
+                        {mobileEmbedCode}
+                      </pre>
+                    </div>
+
+                    <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4 text-[10px] text-slate-400 space-y-2 leading-relaxed">
+                      <h4 className="font-bold text-slate-200 uppercase tracking-wider">Langkah Integrasi SDK:</h4>
+                      <ol className="list-decimal pl-4 space-y-1.5">
+                        <li>Install paket SDK balesin sesuai platform target.</li>
+                        <li>Salin script di atas dan tanamkan ke bagian routing/inbox chat aplikasi.</li>
+                        <li>Pesan masuk dari pelanggan Anda akan langsung diarahkan ke inbox dashboard.</li>
+                      </ol>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div
-                className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg"
-                style={{ backgroundColor: widgetColor }}
-              >
-                <MessageCircle className="h-4.5 w-4.5" />
-              </div>
+              )}
             </div>
-          </div>
-        </div>
-      ) : null}
+          )}
 
-      {activeChannel === "whatsapp" ? (
-        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="space-y-5 rounded-xl border border-white/8 bg-[#04091a]/70 p-6 backdrop-blur-md">
-            <div className="flex items-center justify-between border-b border-white/8 pb-3">
-              <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-400">
-                <MessageCircle className="h-5 w-5 text-emerald-400" />
-                Integrasi WhatsApp Cloud API
-              </h3>
-              <Badge className="border-emerald-400/20 bg-emerald-950/40 text-emerald-200">
-                {waStatus}
-              </Badge>
-            </div>
+          {/* ============================================== */}
+          {/* ACTIVE TAB: WEBSITE LIVE CHAT */}
+          {/* ============================================== */}
+          {activeChannel === "webchat" && (
+            <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+              <form onSubmit={persistWebchat} className="space-y-6 lg:col-span-2">
+                <div className="glass-panel space-y-4 rounded-xl p-5">
+                  <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-cyan-400">
+                    <Globe className="h-4.5 w-4.5" />
+                    Desain widget chat website
+                  </h3>
 
-            <form onSubmit={persistWhatsApp} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Label nomor bisnis</label>
-                  <Input value={waLabel} onChange={(event) => setWaLabel(event.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Phone Number ID</label>
-                  <Input value={phoneId} onChange={(event) => setPhoneId(event.target.value)} />
-                </div>
-              </div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-300">Warna tombol utama</label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={widgetColor}
+                          onChange={(event) => setWidgetColor(event.target.value)}
+                          className="h-10 w-12 rounded-lg border-0 bg-transparent p-0"
+                        />
+                        <Input
+                          type="text"
+                          value={widgetColor}
+                          onChange={(event) => setWidgetColor(event.target.value)}
+                          className="h-10 flex-1 text-xs"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-300">
+                        Pesan selamat datang
+                      </label>
+                      <Input
+                        value={welcomeText}
+                        onChange={(event) => setWelcomeText(event.target.value)}
+                        className="h-10 text-xs"
+                      />
+                    </div>
+                  </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">
-                  Permanent access token
-                </label>
-                <Input
-                  type="password"
-                  value={accessToken}
-                  onChange={(event) => setAccessToken(event.target.value)}
-                />
-              </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={webchatEnabled}
+                        onChange={(event) => setWebchatEnabled(event.target.checked)}
+                        className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
+                      />
+                      Aktifkan widget web chat untuk website
+                    </label>
+                    <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={captureLead}
+                        onChange={(event) => setCaptureLead(event.target.checked)}
+                        className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
+                      />
+                      Minta nama dan nomor customer sebelum percakapan lanjut
+                    </label>
+                    <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300 md:col-span-2">
+                      <input
+                        type="checkbox"
+                        checked={handoffToWhatsApp}
+                        onChange={(event) => setHandoffToWhatsApp(event.target.checked)}
+                        className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
+                      />
+                      Saat handoff terjadi, arahkan customer ke WhatsApp admin bila channel itu aktif
+                    </label>
+                  </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Verify token</label>
-                <Input
-                  value={verifyToken}
-                  onChange={(event) => setVerifyToken(event.target.value)}
-                />
-              </div>
-
-              <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={waAutoReply}
-                  onChange={(event) => setWaAutoReply(event.target.checked)}
-                  className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
-                />
-                Aktifkan auto reply WhatsApp menggunakan AI Agent dashboard
-              </label>
-
-              <div className="rounded-lg border border-white/8 bg-white/4 p-4 text-[11px] leading-normal text-slate-400">
-                <p className="flex items-center gap-1 font-bold text-slate-300">
-                  <AlertCircle className="h-4 w-4 text-cyan-400" />
-                  Gunakan data ini pada Facebook Developer webhook setup
-                </p>
-                <div className="mt-2 space-y-2">
-                  <div>
-                    <span className="block text-[10px] font-semibold uppercase text-slate-500">
-                      Callback URL
-                    </span>
-                    <code className="mt-0.5 block rounded bg-[#020611] p-1 font-mono text-cyan-300">
-                      {whatsappWebhookUrl}
+                  <div className="rounded-lg border border-white/8 bg-white/4 p-4 text-[11px] leading-normal text-slate-400">
+                    <p className="font-bold text-slate-300">Webhook web chat</p>
+                    <code className="mt-2 block rounded bg-[#020611] p-2 font-mono text-cyan-300">
+                      {webchatWebhookUrl}
                     </code>
                   </div>
-                  <div>
-                    <span className="block text-[10px] font-semibold uppercase text-slate-500">
-                      Verify Token
-                    </span>
-                    <code className="mt-0.5 block rounded bg-[#020611] p-1 font-mono text-cyan-300">
-                      {verifyToken}
-                    </code>
+
+                  <div className="flex items-center justify-between">
+                    {webchatSaved ? (
+                      <span className="text-xs font-bold text-emerald-400">
+                        Konfigurasi web chat disimpan.
+                      </span>
+                    ) : (
+                      <div />
+                    )}
+                    <Button type="submit">Simpan web chat</Button>
                   </div>
                 </div>
-              </div>
 
-              {waSaved ? (
-                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-xs text-emerald-300">
-                  Konfigurasi WhatsApp tersimpan.
-                </div>
-              ) : null}
-
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-slate-500">
-                  Semua data WhatsApp ini sekarang bersumber dari dashboard.
-                </div>
-                <div className="flex gap-3">
-                  {waStatus === "connected" ? (
-                    <Button
+                <div className="glass-panel space-y-4 rounded-xl p-5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400">
+                      Embed code HTML
+                    </h3>
+                    <button
+                      onClick={() => void handleCopyCode()}
                       type="button"
-                      variant="secondary"
-                      className="px-4"
-                      onClick={disconnectWhatsApp}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-cyan-400 transition hover:text-cyan-300"
                     >
-                      Putuskan
-                    </Button>
-                  ) : null}
-                  <Button type="submit" className="px-5">
-                    Simpan WA
-                  </Button>
+                      {copied ? (
+                        <>
+                          <Check className="h-4 w-4" /> Disalin
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4" /> Salin code
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <pre className="custom-scrollbar overflow-x-auto whitespace-pre-wrap rounded-lg border border-white/8 bg-[#020611] p-4 font-mono text-[9px] leading-relaxed text-slate-300">
+                    {embedCode}
+                  </pre>
+                </div>
+              </form>
+
+              <div className="glass-panel relative flex h-[470px] flex-col overflow-hidden rounded-xl bg-gradient-to-b from-[#04091a] to-[#020611] p-5">
+                <h3 className="mb-4 flex items-center gap-1.5 shrink-0 text-xs font-bold uppercase tracking-wider text-cyan-400">
+                  <Eye className="h-4.5 w-4.5" />
+                  Pratinjau widget
+                </h3>
+                <div className="relative flex flex-1 flex-col justify-between overflow-hidden rounded-lg border border-white/8 bg-white/2 p-4">
+                  <div className="pointer-events-none select-none space-y-2 opacity-30">
+                    <div className="h-4 w-24 rounded bg-white/20" />
+                    <div className="h-3 w-full rounded bg-white/10" />
+                    <div className="h-3 w-4/5 rounded bg-white/10" />
+                  </div>
+
+                  <div className="absolute bottom-16 right-4 flex w-56 flex-col rounded-xl border border-white/8 bg-[#091223] text-[10px] shadow-2xl">
+                    <div
+                      className="rounded-t-xl px-3 py-2.5 font-bold text-white"
+                      style={{ backgroundColor: widgetColor }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 font-bold">
+                          B
+                        </div>
+                        <div>
+                          <div className="text-[9px] font-bold">{config.workspace.name}</div>
+                          <div className="text-[7px] font-normal text-white/80">
+                            AI membalas kilat
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex-1 space-y-2 bg-[#04091a]/40 p-3">
+                      <div className="max-w-[85%] rounded-lg rounded-tl-none bg-white/6 px-2.5 py-1.5 text-[9px] text-slate-300">
+                        {welcomeText}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg"
+                    style={{ backgroundColor: widgetColor }}
+                  >
+                    <MessageCircle className="h-4.5 w-4.5" />
+                  </div>
                 </div>
               </div>
-            </form>
-          </div>
-
-          <div className="glass-panel space-y-4 rounded-xl p-5">
-            <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-400">
-              <TestTube2 className="h-4.5 w-4.5" />
-              Test channel
-            </h3>
-            <p className="text-[11px] leading-6 text-slate-400">
-              Gunakan panel ini untuk simulasi pesan inbound ke inbox atau kirim outbound test lewat adapter channel.
-            </p>
-            {renderTestPanel()}
-          </div>
-        </div>
-      ) : null}
-
-      {activeChannel === "instagram" ? (
-        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="space-y-5 rounded-xl border border-white/8 bg-[#04091a]/70 p-6 backdrop-blur-md">
-            <div className="flex items-center justify-between border-b border-white/8 pb-3">
-              <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-fuchsia-300">
-                <Instagram className="h-5 w-5 text-fuchsia-300" />
-                Instagram DM & Comment Automation
-              </h3>
-              <Badge className="border-fuchsia-400/20 bg-fuchsia-950/40 text-fuchsia-200">
-                {igStatus}
-              </Badge>
             </div>
+          )}
 
-            <form onSubmit={persistInstagram} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Username Instagram</label>
-                  <Input
-                    value={igUsername}
-                    onChange={(event) => setIgUsername(event.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Instagram Account ID</label>
-                  <Input
-                    value={igAccountId}
-                    onChange={(event) => setIgAccountId(event.target.value)}
-                  />
-                </div>
+          {/* ============================================== */}
+          {/* ACTIVE TAB: WHATSAPP */}
+          {/* ============================================== */}
+          {activeChannel === "whatsapp" && (
+            <div className="space-y-5 rounded-xl border border-white/8 bg-[#04091a]/70 p-6 backdrop-blur-md max-w-3xl">
+              <div className="flex items-center justify-between border-b border-white/8 pb-3">
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-400">
+                  <MessageCircle className="h-5 w-5 text-emerald-400" />
+                  Integrasi WhatsApp Cloud API
+                </h3>
+                <Badge className="border-emerald-400/20 bg-emerald-950/40 text-emerald-200">
+                  {waStatus}
+                </Badge>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <form onSubmit={persistWhatsApp} className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-300">Label nomor bisnis</label>
+                    <Input value={waLabel} onChange={(event) => setWaLabel(event.target.value)} className="h-10 text-xs" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-300">Phone Number ID</label>
+                    <Input value={phoneId} onChange={(event) => setPhoneId(event.target.value)} className="h-10 text-xs" />
+                  </div>
+                </div>
+
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Meta access token</label>
+                  <label className="text-xs font-semibold text-slate-300">Permanent access token</label>
                   <Input
                     type="password"
-                    value={igAccessToken}
-                    onChange={(event) => setIgAccessToken(event.target.value)}
+                    value={accessToken}
+                    onChange={(event) => setAccessToken(event.target.value)}
+                    className="h-10 text-xs"
                   />
                 </div>
+
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-300">Verify token</label>
                   <Input
-                    value={igVerifyToken}
-                    onChange={(event) => setIgVerifyToken(event.target.value)}
-                    placeholder="Contoh: MANADO123"
+                    value={verifyToken}
+                    onChange={(event) => setVerifyToken(event.target.value)}
+                    className="h-10 text-xs"
                   />
                 </div>
+
+                <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={waAutoReply}
+                    onChange={(event) => setWaAutoReply(event.target.checked)}
+                    className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
+                  />
+                  Aktifkan auto reply WhatsApp menggunakan AI Agent dashboard
+                </label>
+
+                <div className="rounded-lg border border-white/8 bg-white/4 p-4 text-[11px] leading-normal text-slate-400">
+                  <p className="flex items-center gap-1 font-bold text-slate-300">
+                    <AlertCircle className="h-4 w-4 text-cyan-400" />
+                    Gunakan data ini pada Facebook Developer webhook setup
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    <div>
+                      <span className="block text-[10px] font-semibold uppercase text-slate-500">Callback URL</span>
+                      <code className="mt-0.5 block rounded bg-[#020611] p-1 font-mono text-cyan-300">{whatsappWebhookUrl}</code>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] font-semibold uppercase text-slate-500">Verify Token</span>
+                      <code className="mt-0.5 block rounded bg-[#020611] p-1 font-mono text-cyan-300">{verifyToken}</code>
+                    </div>
+                  </div>
+                </div>
+
+                {waSaved ? (
+                  <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-xs text-emerald-300">
+                    Konfigurasi WhatsApp tersimpan.
+                  </div>
+                ) : null}
+
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-slate-500">Semua data WhatsApp bersumber dari dashboard.</div>
+                  <div className="flex gap-3">
+                    {waStatus === "connected" && (
+                      <Button type="button" variant="secondary" className="px-4" onClick={disconnectWhatsApp}>
+                        Putuskan
+                      </Button>
+                    )}
+                    <Button type="submit" className="px-5">Simpan WA</Button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* ============================================== */}
+          {/* ACTIVE TAB: INSTAGRAM */}
+          {/* ============================================== */}
+          {activeChannel === "instagram" && (
+            <div className="space-y-5 rounded-xl border border-white/8 bg-[#04091a]/70 p-6 backdrop-blur-md max-w-3xl">
+              <div className="flex items-center justify-between border-b border-white/8 pb-3">
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-fuchsia-300">
+                  <Instagram className="h-5 w-5 text-fuchsia-300" />
+                  Instagram DM & Comment Automation
+                </h3>
+                <Badge className="border-fuchsia-400/20 bg-fuchsia-950/40 text-fuchsia-200">
+                  {igStatus}
+                </Badge>
               </div>
 
-              <div className="rounded-lg border border-white/8 bg-white/4 p-4 text-[11px] leading-normal text-slate-400">
-                <p className="flex items-center gap-1 font-bold text-slate-300">
-                  <AlertCircle className="h-4 w-4 text-cyan-400" />
-                  Gunakan data ini pada Meta Developer webhook setup (Instagram)
-                </p>
-                <div className="mt-2 space-y-2">
-                  <div>
-                    <span className="block text-[10px] font-semibold uppercase text-slate-500">
-                      Callback URL
-                    </span>
-                    <code className="mt-0.5 block rounded bg-[#020611] p-1.5 font-mono text-cyan-300">
-                      {instagramWebhookUrl}
-                    </code>
+              <form onSubmit={persistInstagram} className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-300">Username Instagram</label>
+                    <Input value={igUsername} onChange={(event) => setIgUsername(event.target.value)} className="h-10 text-xs" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-300">Instagram Account ID</label>
+                    <Input value={igAccountId} onChange={(event) => setIgAccountId(event.target.value)} className="h-10 text-xs" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-300">Meta access token</label>
+                    <Input type="password" value={igAccessToken} onChange={(event) => setIgAccessToken(event.target.value)} className="h-10 text-xs" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-300">Verify token</label>
+                    <Input value={igVerifyToken} onChange={(event) => setIgVerifyToken(event.target.value)} className="h-10 text-xs" placeholder="Contoh: MANADO123" />
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-white/8 bg-white/4 p-4 text-[11px] leading-normal text-slate-400">
+                  <p className="flex items-center gap-1 font-bold text-slate-300">
+                    <AlertCircle className="h-4 w-4 text-cyan-400" />
+                    Gunakan data ini pada Meta Developer webhook setup (Instagram)
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    <div>
+                      <span className="block text-[10px] font-semibold uppercase text-slate-500">Callback URL</span>
+                      <code className="mt-0.5 block rounded bg-[#020611] p-1.5 font-mono text-cyan-300">{instagramWebhookUrl}</code>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] font-semibold uppercase text-slate-500">Verify Token</span>
+                      <code className="mt-0.5 block rounded bg-[#020611] p-1.5 font-mono text-cyan-300">{igVerifyToken || "MANADO123"}</code>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={igAutoReplyDm}
+                      onChange={(event) => setIgAutoReplyDm(event.target.checked)}
+                      className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
+                    />
+                    Aktifkan auto reply untuk DM Instagram
+                  </label>
+                  <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={igCommentGuard}
+                      onChange={(event) => setIgCommentGuard(event.target.checked)}
+                      className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
+                    />
+                    Aktifkan comment guard untuk spam, judol, dan kata kasar
+                  </label>
+                  <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={igCommentToDm}
+                      onChange={(event) => setIgCommentToDm(event.target.checked)}
+                      className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
+                    />
+                    Otomatis arahkan komentar berkualitas ke DM untuk follow-up sales
+                  </label>
+                </div>
+
+                <div className="rounded-lg border border-fuchsia-400/15 bg-fuchsia-950/15 p-4 text-xs leading-6 text-slate-300 font-medium">
+                  <Shield className="h-4 w-4 text-fuchsia-400 inline mr-2" />
+                  Pengaturan ini menjadi source of truth untuk DM automation, comment guard, dan private DM converter.
+                </div>
+
+                {igSaved ? (
+                  <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-xs text-emerald-300">
+                    Konfigurasi Instagram berhasil disimpan ke dashboard.
+                  </div>
+                ) : null}
+
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-slate-500">Status menjadi `connected` saat account ID dan token tersedia.</div>
+                  <Button type="submit" className="px-5">Simpan Instagram</Button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* ============================================== */}
+          {/* ACTIVE TAB: QONTAK CRM SYSTEM INTERNAL */}
+          {/* ============================================== */}
+          {activeChannel === "qontak" && (
+            <Card className="glass-panel p-6 border-white/8">
+              <div className="flex items-center justify-between border-b border-white/8 pb-4 mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-2xl border border-emerald-500/20 bg-emerald-950/30 p-3 text-emerald-300">
+                    <Link2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <span className="block text-[10px] font-semibold uppercase text-slate-500">
-                      Verify Token
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-white">Qontak CRM Integration</h2>
+                    <p className="text-xs text-slate-400">Sistem Internal: Integrasi dua arah dengan database CRM Anda.</p>
+                  </div>
+                </div>
+                <Badge className="border-emerald-400/20 bg-emerald-950/40 text-emerald-300 text-[10px] px-2 py-0.5 font-bold animate-pulse">
+                  ACTIVE 2-WAY SYNC
+                </Badge>
+              </div>
+
+              <div className="space-y-6">
+                <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4 text-xs text-slate-300 leading-relaxed">
+                  Ini memastikan setiap interaksi prospek baru yang ditangani bot secara otomatis terdaftar di dalam database Contacts atau jalur penjualan (Sales Pipeline) bengkel Anda.
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="border border-white/8 bg-white/[0.01] p-4 rounded-xl text-center">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block">Total Synced Contacts</span>
+                    <span className="text-xl font-extrabold text-white mt-1 block">1,245</span>
+                  </div>
+                  <div className="border border-white/8 bg-white/[0.01] p-4 rounded-xl text-center">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block">Active Deal Pipelines</span>
+                    <span className="text-xl font-extrabold text-cyan-450 text-cyan-400 mt-1 block">34</span>
+                  </div>
+                  <div className="border border-white/8 bg-white/[0.01] p-4 rounded-xl text-center">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block">Last Sync Status</span>
+                    <span className="text-xs font-bold text-emerald-400 mt-2 block flex items-center justify-center gap-1">
+                      <Check className="h-3.5 w-3.5" /> Success (Just Now)
                     </span>
-                    <code className="mt-0.5 block rounded bg-[#020611] p-1.5 font-mono text-cyan-300">
-                      {igVerifyToken || "MANADO123"}
-                    </code>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Preferensi Sinkronisasi</h4>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/[0.02] p-3 text-xs text-slate-300">
+                      <input type="checkbox" defaultChecked className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500" />
+                      Kirim log ringkasan AI summary obrolan ke timeline CRM
+                    </label>
+                    <label className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/[0.02] p-3 text-xs text-slate-300">
+                      <input type="checkbox" defaultChecked className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500" />
+                      Daftarkan WhatsApp ID otomatis sebagai primary phone number
+                    </label>
                   </div>
                 </div>
               </div>
+            </Card>
+          )}
 
-              <div className="grid grid-cols-1 gap-3">
-                <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={igAutoReplyDm}
-                    onChange={(event) => setIgAutoReplyDm(event.target.checked)}
-                    className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
-                  />
-                  Aktifkan auto reply untuk DM Instagram
-                </label>
-                <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={igCommentGuard}
-                    onChange={(event) => setIgCommentGuard(event.target.checked)}
-                    className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
-                  />
-                  Aktifkan comment guard untuk spam, judol, dan kata kasar
-                </label>
-                <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={igCommentToDm}
-                    onChange={(event) => setIgCommentToDm(event.target.checked)}
-                    className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
-                  />
-                  Otomatis arahkan komentar berkualitas ke DM untuk follow-up sales
-                </label>
+          {/* ============================================== */}
+          {/* ACTIVE TAB: OTHER MOCK CHANNELS */}
+          {/* ============================================== */}
+          {["facebook", "telegram", "x", "line", "call", "ecommerce", "email"].includes(activeChannel) && (
+            <Card className="glass-panel p-6 border-white/8 flex flex-col items-center justify-center text-center min-h-[350px]">
+              <div className="h-14 w-14 rounded-2xl bg-cyan-950/40 border border-cyan-400/20 flex items-center justify-center text-cyan-400 mb-4">
+                {activeChannel === "facebook" && <Facebook className="h-7 w-7" />}
+                {activeChannel === "telegram" && <Send className="h-7 w-7" />}
+                {activeChannel === "x" && <MessageSquare className="h-7 w-7" />}
+                {activeChannel === "line" && <MessageSquare className="h-7 w-7" />}
+                {activeChannel === "call" && <Phone className="h-7 w-7 text-amber-400" />}
+                {activeChannel === "ecommerce" && <ShoppingCart className="h-7 w-7 text-fuchsia-400" />}
+                {activeChannel === "email" && <Mail className="h-7 w-7" />}
               </div>
 
-              <div className="rounded-lg border border-fuchsia-400/15 bg-fuchsia-950/15 p-4 text-xs leading-6 text-slate-300">
-                <div className="mb-2 flex items-center gap-2 font-bold text-fuchsia-200">
-                  <Shield className="h-4 w-4" />
-                  Instagram control from dashboard
-                </div>
-                Pengaturan ini menjadi source of truth untuk DM automation,
-                comment guard, dan private DM converter.
-              </div>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-2">
+                {activeChannel === "facebook" && "Facebook Messenger Integration"}
+                {activeChannel === "telegram" && "Telegram Bot Integration"}
+                {activeChannel === "x" && "X (Twitter) DM Integration"}
+                {activeChannel === "line" && "Line Official Account Integration"}
+                {activeChannel === "call" && "Cloud Phone & Call Center (VoIP)"}
+                {activeChannel === "ecommerce" && "E-commerce System Integration"}
+                {activeChannel === "email" && "Email Inbox & Campaign Tools"}
+              </h3>
 
-              {igSaved ? (
-                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-xs text-emerald-300">
-                  Konfigurasi Instagram berhasil disimpan ke dashboard.
-                </div>
-              ) : null}
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/20 bg-cyan-950/40 px-3 py-0.5 text-[9px] font-bold text-cyan-300 uppercase mb-4">
+                Coming Soon / Roadmap
+              </span>
 
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-slate-500">
-                  Status menjadi `connected` saat account ID dan token tersedia.
-                </div>
-                <Button type="submit" className="px-5">
-                  Simpan Instagram
-                </Button>
-              </div>
-            </form>
-          </div>
+              <p className="text-xs text-slate-400 max-w-md leading-relaxed mb-6">
+                {activeChannel === "facebook" && "Hubungkan halaman Facebook Business Anda untuk merespons pesan masuk dari pelanggan langsung ke Unified Inbox Balesin AI secara terpusat."}
+                {activeChannel === "telegram" && "Tautkan bot Telegram Anda menggunakan API Token dari @BotFather untuk menangani percakapan customer via asisten cerdas Balesin."}
+                {activeChannel === "x" && "Kelola Direct Message (DM) dan mention penting dari akun X bisnis Anda secara real-time dan terintegrasi."}
+                {activeChannel === "line" && "Koneksikan akun LINE Official Account Anda melalui Channel Access Token agar pesan masuk ter-routing otomatis."}
+                {activeChannel === "call" && "Call (panggilan telepon). Hubungkan VoIP cloud telephony bengkel Anda ke asisten bot, rekam percakapan panggilan masuk, dan lakukan dial-out instan."}
+                {activeChannel === "ecommerce" && "E-commerce. Sinkronisasikan database toko online seperti Tokopedia, Shopee, atau WooCommerce agar bot dapat mengecek status pesanan pelanggan secara mandiri."}
+                {activeChannel === "email" && "Email. Integrasikan inbox bisnis GMail atau Outlook Anda untuk menyatukan percakapan email customer serta mengelola Broadcast Campaign."}
+              </p>
 
-          <div className="glass-panel space-y-4 rounded-xl p-5">
-            <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-fuchsia-300">
-              <TestTube2 className="h-4.5 w-4.5" />
-              Test DM / comment
-            </h3>
-            <p className="text-[11px] leading-6 text-slate-400">
-              Simulasikan pesan Instagram ke inbox tanpa menunggu webhook provider hidup.
-            </p>
-            {renderTestPanel()}
-          </div>
+              <Button className="bg-[#0a0e1c] hover:bg-white/4 border border-white/8 text-slate-300 hover:text-white px-5 text-xs">
+                Request Beta Access
+              </Button>
+            </Card>
+          )}
         </div>
-      ) : null}
-
-      {renderHiddenTestPanel()}
+      </div>
     </div>
   );
 
-  function renderTestPanel() {
-    return (
-      <div className="space-y-4">
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-300">Nama customer test</label>
-          <Input
-            value={testDisplayName}
-            onChange={(event) => setTestDisplayName(event.target.value)}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">
-              Nomor / recipient ID
-            </label>
-            <Input
-              value={testPhone}
-              onChange={(event) => {
-                setTestPhone(event.target.value);
-                setTestOutboundRecipient(event.target.value);
-              }}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Username</label>
-            <Input
-              value={testUsername}
-              onChange={(event) => setTestUsername(event.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-300">Inbound test message</label>
-          <Textarea
-            rows={4}
-            value={testMessage}
-            onChange={(event) => setTestMessage(event.target.value)}
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-300">Outbound test message</label>
-          <Textarea
-            rows={3}
-            value={testOutboundMessage}
-            onChange={(event) => setTestOutboundMessage(event.target.value)}
-          />
-        </div>
-
-        {testFeedback ? (
-          <div className="rounded-lg border border-cyan-400/15 bg-cyan-950/15 p-3 text-[11px] leading-6 text-cyan-100">
-            {testFeedback}
-          </div>
-        ) : null}
-
-        <div className="flex flex-wrap gap-3">
-          <Button
-            type="button"
-            variant="secondary"
-            className="text-xs"
-            onClick={() => void runInboundTest()}
-            disabled={isTesting}
-          >
-            <TestTube2 className="mr-1.5 h-4 w-4" />
-            Simulasi inbound
-          </Button>
-          <Button
-            type="button"
-            className="text-xs"
-            onClick={() => void runOutboundTest()}
-            disabled={isTesting}
-          >
-            <Send className="mr-1.5 h-4 w-4" />
-            Test outbound
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  function renderHiddenTestPanel() {
-    if (activeChannel !== "webchat") {
-      return null;
-    }
-
-    return (
-      <div className="glass-panel space-y-4 rounded-xl p-5">
-        <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-400">
-          <TestTube2 className="h-4.5 w-4.5" />
-          Test web chat
-        </h3>
-        <p className="text-[11px] leading-6 text-slate-400">
-          Simulasikan pesan customer website langsung ke inbox untuk mengecek alur auto-reply, handoff, dan follow-up.
-        </p>
-        {renderTestPanel()}
-      </div>
-    );
-  }
 }

@@ -13,6 +13,7 @@ import { ConversationListPanel } from "./conversation-list-panel";
 import { ConversationThreadPanel } from "./conversation-thread-panel";
 import { CustomerContextPanel } from "./customer-context-panel";
 import { InboxLayoutSkeleton } from "./inbox-layout-skeleton";
+import { InboxSidebar } from "./inbox-sidebar";
 import {
   type InboxFilterState,
   type InboxSortId,
@@ -35,7 +36,7 @@ export function InboxWorkspace() {
   const [mobileView, setMobileView] = useState<"list" | "detail" | "context">(
     "list",
   );
-  const [showContextPanel, setShowContextPanel] = useState(true);
+  const [showContextPanel, setShowContextPanel] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSaved, setNoteSaved] = useState(false);
@@ -47,6 +48,8 @@ export function InboxWorkspace() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReplyTyping, setIsReplyTyping] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showSearchInList, setShowSearchInList] = useState(false);
   const [filters, setFilters] = useState<InboxFilterState>({
     quickFilter: "all",
     channel: "all",
@@ -88,17 +91,10 @@ export function InboxWorkspace() {
 
   const activeConversation =
     filteredConversations.find((conversation) => conversation.id === selectedId) ??
-    filteredConversations[0] ??
     null;
   const activeContext = activeConversation
     ? getConversationContext(data, activeConversation)
     : null;
-
-  useEffect(() => {
-    if (!selectedId && filteredConversations[0]?.id) {
-      setSelectedId(filteredConversations[0].id);
-    }
-  }, [filteredConversations, selectedId]);
 
   useEffect(() => {
     if (
@@ -106,7 +102,7 @@ export function InboxWorkspace() {
       filteredConversations.length > 0 &&
       !filteredConversations.some((conversation) => conversation.id === selectedId)
     ) {
-      setSelectedId(filteredConversations[0].id);
+      setSelectedId("");
     }
   }, [filteredConversations, selectedId]);
 
@@ -305,53 +301,15 @@ export function InboxWorkspace() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
-      {/* Top Header Bar */}
-      <section className="shrink-0 rounded-xl border border-white/[0.06] bg-[#0a0e1c] px-4 py-3">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-semibold text-slate-100">Inbox</h1>
-              <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                customer desk
-              </span>
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
-              <span className="rounded-full bg-white/[0.06] px-3 py-1">
-                Semua {summary.allCount}
-              </span>
-              <span className="rounded-full bg-white/[0.06] px-3 py-1">
-                Belum dibaca {summary.unhandledCount}
-              </span>
-              <span className="rounded-full bg-white/[0.06] px-3 py-1">
-                Butuh Admin {summary.needAdminCount}
-              </span>
-              <span className="rounded-full bg-white/[0.06] px-3 py-1">
-                AI Aktif {summary.aiActiveCount}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => void refreshData()}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.08]"
-            >
-              <RefreshCcw className="h-4 w-4" />
-              Refresh
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowContextPanel((current) => !current)}
-              className="hidden h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.08] lg:inline-flex"
-            >
-              <PanelRight className="h-4 w-4" />
-              {showContextPanel ? "Tutup Detail" : "Lihat Detail"}
-            </button>
-          </div>
-        </div>
-      </section>
+    <div className="flex h-full min-h-0 flex-row gap-3">
+      <InboxSidebar
+        quickFilter={filters.quickFilter}
+        onQuickFilterChange={(value) => setFilterValue("quickFilter", value)}
+        summary={summary}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onSearchClick={() => setShowSearchInList(!showSearchInList)}
+      />
 
       {data.conversations.length === 0 ? (
         <section className="flex min-h-0 flex-1 rounded-xl border border-white/[0.06] bg-[#0a0e1c] p-6">
@@ -372,18 +330,19 @@ export function InboxWorkspace() {
           </div>
         </section>
       ) : (
-        <div
-          className={cn(
-            "grid min-h-0 flex-1 gap-3 lg:overflow-hidden",
-            "lg:grid-cols-[16rem_minmax(0,1fr)_15rem]",
-          )}
-        >
-          <div className={mobileView === "list" ? "block min-h-0 lg:overflow-hidden" : "hidden min-h-0 lg:block lg:overflow-hidden"}>
+        <div className="flex-1 min-h-0 flex gap-3 lg:overflow-hidden">
+          <div
+            className={cn(
+              mobileView === "list" ? "block" : "hidden lg:block",
+              "shrink-0 min-h-0 lg:overflow-hidden w-[20rem] h-full"
+            )}
+          >
             <ConversationListPanel
               conversations={filteredConversations}
               selectedId={activeConversation?.id ?? ""}
               searchQuery={filters.search}
               onSearchChange={(value) => setFilterValue("search", value)}
+              showSearchInput={showSearchInList}
               quickFilter={filters.quickFilter}
               onQuickFilterChange={(value) =>
                 setFilterValue("quickFilter", value)
@@ -407,82 +366,90 @@ export function InboxWorkspace() {
                 setSelectedId(conversationId);
                 setMobileView("detail");
               }}
+              onRefresh={() => void refreshData()}
             />
           </div>
 
           <div
-            className={
-              mobileView === "detail" ? "block min-h-0 lg:overflow-hidden" : "hidden min-h-0 lg:block lg:overflow-hidden"
-            }
+            className={cn(
+              mobileView === "detail" || mobileView === "context" ? "block" : "hidden lg:block",
+              "flex-1 min-h-0 min-w-0 h-full"
+            )}
           >
-            <ConversationThreadPanel
-              conversation={activeConversation}
-              config={config}
-              replyText={replyText}
-              onReplyTextChange={setReplyText}
-              noteDraft={noteDraft}
-              onNoteDraftChange={setNoteDraft}
-              composerMode={composerMode}
-              onComposerModeChange={setComposerMode}
-              suggestionVariant={suggestionVariant}
-              suggestionVersion={suggestionVersion}
-              onSuggestionVariantChange={setSuggestionVariant}
-              onSuggestionVersionChange={(updater) =>
-                setSuggestionVersion((current) => updater(current))
-              }
-              onUseSuggestion={setReplyText}
-              onSendReply={() => void handleSendReply()}
-              onSaveNote={() => void handleSaveNote()}
-              onCreateTicket={() => void handleCreateTicket()}
-              onTakeOver={() =>
-                void handleStatusUpdate(
-                  "assigned_to_admin",
-                  "Percakapan berhasil diambil alih admin.",
-                )
-              }
-              onPauseAi={() =>
-                void handleStatusUpdate("ai_paused", "AI berhasil dipause.")
-              }
-              onActivateAi={() =>
-                void handleStatusUpdate(
-                  "ai_active",
-                  "AI berhasil diaktifkan kembali.",
-                )
-              }
-              onResolve={() =>
-                void handleStatusUpdate(
-                  "resolved",
-                  "Percakapan berhasil ditandai selesai.",
-                )
-              }
-              onDeleteConversation={() => void handleDeleteConversation()}
-              isSubmitting={isSubmitting}
-              isReplyTyping={isReplyTyping}
-              noteSaved={noteSaved}
-              showContextPanel={showContextPanel}
-              onToggleContextPanel={() => {
-                setShowContextPanel((current) => !current);
-                setMobileView((current) =>
-                  current === "context" ? "detail" : "context",
-                );
-              }}
-              onBackToList={() => setMobileView("list")}
-            />
-          </div>
+            <div className="flex h-full w-full min-w-0 gap-3">
+              <div className="flex-1 min-w-0 h-full">
+                <ConversationThreadPanel
+                  conversation={activeConversation}
+                  config={config}
+                  replyText={replyText}
+                  onReplyTextChange={setReplyText}
+                  noteDraft={noteDraft}
+                  onNoteDraftChange={setNoteDraft}
+                  composerMode={composerMode}
+                  onComposerModeChange={setComposerMode}
+                  suggestionVariant={suggestionVariant}
+                  suggestionVersion={suggestionVersion}
+                  onSuggestionVariantChange={setSuggestionVariant}
+                  onSuggestionVersionChange={(updater) =>
+                    setSuggestionVersion((current) => updater(current))
+                  }
+                  onUseSuggestion={setReplyText}
+                  onSendReply={() => void handleSendReply()}
+                  onSaveNote={() => void handleSaveNote()}
+                  onCreateTicket={() => void handleCreateTicket()}
+                  onTakeOver={() =>
+                    void handleStatusUpdate(
+                      "assigned_to_admin",
+                      "Percakapan berhasil diambil alih admin.",
+                    )
+                  }
+                  onPauseAi={() =>
+                    void handleStatusUpdate("ai_paused", "AI berhasil dipause.")
+                  }
+                  onActivateAi={() =>
+                    void handleStatusUpdate(
+                      "ai_active",
+                      "AI berhasil diaktifkan kembali.",
+                    )
+                  }
+                  onResolve={() =>
+                    void handleStatusUpdate(
+                      "resolved",
+                      "Percakapan berhasil ditandai selesai.",
+                    )
+                  }
+                  onDeleteConversation={() => void handleDeleteConversation()}
+                  isSubmitting={isSubmitting}
+                  isReplyTyping={isReplyTyping}
+                  noteSaved={noteSaved}
+                  showContextPanel={showContextPanel}
+                  onToggleContextPanel={() => {
+                    setShowContextPanel((current) => !current);
+                    setMobileView((current) =>
+                      current === "context" ? "detail" : "context",
+                    );
+                  }}
+                  onBackToList={() => setMobileView("list")}
+                />
+              </div>
 
-          <div
-            className={
-              showContextPanel || mobileView === "context"
-                ? "block min-h-0 lg:overflow-hidden"
-                : "hidden min-h-0 lg:block lg:overflow-hidden"
-            }
-          >
-            <CustomerContextPanel
-              conversation={activeConversation}
-              context={activeContext}
-              onCreateTicket={() => void handleCreateTicket()}
-              hiddenOnDesktop={!showContextPanel}
-            />
+              {activeConversation && (
+                <div
+                  className={cn(
+                    showContextPanel || mobileView === "context"
+                      ? "block shrink-0 h-full w-[16rem]"
+                      : "hidden"
+                  )}
+                >
+                  <CustomerContextPanel
+                    conversation={activeConversation}
+                    context={activeContext}
+                    onCreateTicket={() => void handleCreateTicket()}
+                    hiddenOnDesktop={!showContextPanel}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

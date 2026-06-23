@@ -16,25 +16,16 @@ import type {
 } from "@/types/operations";
 
 import { CrmActionModals } from "./components/crm-action-modals";
-import { ContactDetailPanel } from "./components/contact-detail-panel";
 import { ContactsTablePanel } from "./components/contacts-table-panel";
 import { CreateContactModal } from "./components/create-contact-modal";
-import { CrmPageHeader } from "./components/crm-page-header";
-import { DealsPanel } from "./components/deals-panel";
-import { SegmentsPanel } from "./components/segments-panel";
-import { TasksPanel } from "./components/tasks-panel";
 import {
   deriveContactDetail,
   deriveContactRows,
-  deriveDeals,
   deriveOwnerOptions,
   deriveQuickFilterSummary,
-  deriveSegments,
   deriveSegmentOptions,
   deriveTagOptions,
-  deriveTasks,
   type CrmFilters,
-  type CrmViewId,
 } from "./components/crm-view-model";
 
 const initialFilters: CrmFilters = {
@@ -44,11 +35,11 @@ const initialFilters: CrmFilters = {
   owner: "all",
   channel: "all",
   quickFilter: "all",
+  dateRange: "all",
 };
 
 export default function CustomersPage() {
   const { data, isLoading, patchData } = useDashboardOperations();
-  const [activeView, setActiveView] = useState<CrmViewId>("contacts");
   const [filters, setFilters] = useState<CrmFilters>(initialFilters);
   const [selectedId, setSelectedId] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -69,9 +60,7 @@ export default function CustomersPage() {
   const segmentOptions = useMemo(() => deriveSegmentOptions(data), [data]);
   const tagOptions = useMemo(() => deriveTagOptions(data), [data]);
   const ownerOptions = useMemo(() => deriveOwnerOptions(data), [data]);
-  const segments = useMemo(() => deriveSegments(data), [data]);
-  const deals = useMemo(() => deriveDeals(data), [data]);
-  const tasks = useMemo(() => deriveTasks(data), [data]);
+
 
   useEffect(() => {
     if (!selectedId && allRows[0]) {
@@ -279,8 +268,6 @@ export default function CustomersPage() {
       ...current,
       crmDeals: [nextDeal, ...current.crmDeals],
     }));
-
-    setActiveView("deals");
   };
 
   const handleCreateTask = (payload: {
@@ -318,8 +305,6 @@ export default function CustomersPage() {
       ...current,
       crmTasks: [nextTask, ...current.crmTasks],
     }));
-
-    setActiveView("tasks");
   };
 
   if (isLoading) {
@@ -336,24 +321,13 @@ export default function CustomersPage() {
   if (allRows.length === 0) {
     return (
       <div className="space-y-6">
-        <CrmPageHeader
-          activeView={activeView}
-          onViewChange={setActiveView}
-          quickFilters={quickFilters}
-          onQuickFilterSelect={(quickFilter) =>
-            setFilters((current) => ({ ...current, quickFilter }))
-          }
-          activeQuickFilter={filters.quickFilter}
-          onCreateContact={() => setIsCreateOpen(true)}
-        />
-
-        <Card className="p-0">
+        <Card className="p-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[24px] overflow-hidden">
           <EmptyState
-            icon={<Users2 className="h-10 w-10" />}
+            icon={<Users2 className="h-10 w-10 text-[var(--color-brand)]" />}
             title="Belum ada contact tersimpan"
             description="Tambahkan contact pertama agar inbox, booking, ticket, segment, deal, dan task memiliki sumber data CRM yang sama."
             action={
-              <Button className="h-11 rounded-xl px-4" onClick={() => setIsCreateOpen(true)}>
+              <Button className="h-11 rounded-xl px-4 bg-[var(--color-brand)] text-slate-950 hover:bg-[var(--color-brand-hover)]" onClick={() => setIsCreateOpen(true)}>
                 Tambah Contact
               </Button>
             }
@@ -372,45 +346,20 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <CrmPageHeader
-        activeView={activeView}
-        onViewChange={setActiveView}
-        quickFilters={quickFilters}
-        onQuickFilterSelect={(quickFilter) =>
-          setFilters((current) => ({ ...current, quickFilter }))
-        }
-        activeQuickFilter={filters.quickFilter}
-        onCreateContact={() => setIsCreateOpen(true)}
-      />
-
-      {activeView === "contacts" ? (
-        <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)]">
-          <ContactsTablePanel
-            rows={filteredRows}
-            selectedId={selectedRow?.id ?? ""}
-            onSelect={setSelectedId}
-            filters={filters}
-            onFiltersChange={(next) => setFilters((current) => ({ ...current, ...next }))}
-            segmentOptions={segmentOptions}
-            tagOptions={tagOptions}
-            ownerOptions={ownerOptions}
-            quickFilters={quickFilters}
-            onCreateContact={() => setIsCreateOpen(true)}
-          />
-
-          <ContactDetailPanel
-            detail={selectedDetail}
-            onSendMessage={() => setActiveActionModal("message")}
-            onCreateDeal={() => setActiveActionModal("deal")}
-            onAddTask={() => setActiveActionModal("task")}
-            onDeleteContact={handleDeleteContact}
-          />
-        </div>
-      ) : null}
-
-      {activeView === "segments" ? <SegmentsPanel segments={segments} /> : null}
-      {activeView === "deals" ? <DealsPanel deals={deals} /> : null}
-      {activeView === "tasks" ? <TasksPanel tasks={tasks} /> : null}
+      <div className="w-full">
+        <ContactsTablePanel
+          rows={filteredRows}
+          selectedId={selectedRow?.id ?? ""}
+          onSelect={setSelectedId}
+          filters={filters}
+          onFiltersChange={(next) => setFilters((current) => ({ ...current, ...next }))}
+          segmentOptions={segmentOptions}
+          tagOptions={tagOptions}
+          ownerOptions={ownerOptions}
+          quickFilters={quickFilters}
+          onCreateContact={() => setIsCreateOpen(true)}
+        />
+      </div>
 
       <CreateContactModal
         isOpen={isCreateOpen}

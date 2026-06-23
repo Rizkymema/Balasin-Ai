@@ -71,11 +71,11 @@ export default function DashboardPage() {
       badgeText: `${automationCoverage}% Auto-Rule`,
     },
     {
-      label: "KATALOG & FAQ",
+      label: "KATALOG & LAYANAN",
       value: `${data.products.length + data.services.length}`,
       icon: Package2,
       color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
-      note: `${data.services.length} layanan | ${config.knowledgeBase.faqs.length} FAQ aktif`,
+      note: `${data.services.length} layanan | ${data.products.length} produk terdaftar`,
       badgeColor: "bg-emerald-400/10 text-emerald-400 border-emerald-400/20",
       badgeText: `${data.products.length} Produk`,
     },
@@ -84,8 +84,8 @@ export default function DashboardPage() {
   const controlCenterCards = [
     {
       title: "AI Assistant",
-      detail: "Konfigurasi sistem kecerdasan, intent, respons otomatis, FAQ, dan basis pengetahuan jawaban.",
-      href: "/ai-agent",
+      detail: "Konfigurasi sistem kecerdasan, intent, respons otomatis, instruksi, dan pangkalan pengetahuan AI.",
+      href: "/automation?tab=ai_agents",
       icon: Zap,
     },
     {
@@ -101,15 +101,15 @@ export default function DashboardPage() {
       icon: Package2,
     },
     {
-      title: "Ticket & Escalation",
-      detail: "Kelola antrean komplain pelanggan, status tiket eskalasi, dan histori handoff agen.",
-      href: "/tickets",
-      icon: Ticket,
+      title: "Integrasi Channel",
+      detail: "Hubungkan akun WhatsApp, Instagram, Live Chat, dan pantau status koneksi saluran media sosial.",
+      href: "/channels",
+      icon: Wifi,
     },
     {
       title: "Automation Rules",
       detail: "Atur trigger operasional, pesan berkala, pengalihan di luar jam kerja, dan moderasi bot.",
-      href: "/automation",
+      href: "/automation?tab=settings",
       icon: Workflow,
     },
     {
@@ -140,12 +140,11 @@ export default function DashboardPage() {
     },
     {
       title: "Knowledge Base",
-      href: "/knowledge-base",
+      href: "/automation?tab=knowledge_base",
       complete:
-        config.knowledgeBase.faqs.length > 0 &&
-        (config.knowledgeBase.documents.length > 0 ||
-          config.knowledgeBase.websiteUrls.length > 0),
-      note: `${config.knowledgeBase.faqs.length} FAQ | ${config.knowledgeBase.documents.length} dokumen`,
+        config.knowledgeBase.documents.length > 0 ||
+        config.knowledgeBase.websiteUrls.length > 0,
+      note: `${config.knowledgeBase.websiteUrls.length} URL | ${config.knowledgeBase.documents.length} dokumen`,
     },
     {
       title: "Katalog Produk & Servis",
@@ -164,7 +163,7 @@ export default function DashboardPage() {
     },
     {
       title: "Konfigurasi AI Provider",
-      href: "/ai-agent",
+      href: "/automation?tab=ai_agents",
       complete:
         !config.aiProvider.enabled ||
         (Boolean(config.aiProvider.apiKey.trim()) &&
@@ -175,7 +174,7 @@ export default function DashboardPage() {
     },
     {
       title: "Aturan Automasi",
-      href: "/automation",
+      href: "/automation?tab=settings",
       complete: activeRules > 0,
       note: `${activeRules}/${config.automation.rules.length} rule aktif`,
     },

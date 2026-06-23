@@ -35,6 +35,7 @@ export function SiteHeader() {
           <a
             href="/login"
             className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-900 hover:bg-slate-800 text-white px-4.5 text-xs font-bold transition duration-200 shadow-[0_2px_8px_rgba(0,0,0,0.1)] hover:scale-[1.02]"
+            style={{ color: "#ffffff" }}
           >
             Masuk / Demo
           </a>
