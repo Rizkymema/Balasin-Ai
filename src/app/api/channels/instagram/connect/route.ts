@@ -3,7 +3,13 @@ import { NextResponse } from "next/server";
 const META_GRAPH = "https://graph.facebook.com";
 const API_VERSION = process.env.WHATSAPP_API_VERSION ?? "v21.0";
 const APP_SECRET = process.env.INSTAGRAM_APP_SECRET ?? process.env.META_APP_SECRET ?? "";
-const APP_ID = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID ?? process.env.NEXT_PUBLIC_META_APP_ID ?? "";
+// Server-side: prefer non-prefixed vars, fallback to NEXT_PUBLIC_* for backward compat
+const APP_ID =
+  process.env.INSTAGRAM_APP_ID ??
+  process.env.META_APP_ID ??
+  process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID ??
+  process.env.NEXT_PUBLIC_META_APP_ID ??
+  "";
 
 interface IgPage {
   id: string;
@@ -44,7 +50,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "NEXT_PUBLIC_INSTAGRAM_APP_ID (atau NEXT_PUBLIC_META_APP_ID) dan INSTAGRAM_APP_SECRET (atau META_APP_SECRET) belum dikonfigurasi di environment.",
+            "Instagram App ID dan App Secret belum dikonfigurasi. " +
+            "Pastikan INSTAGRAM_APP_ID (atau META_APP_ID) dan INSTAGRAM_APP_SECRET (atau META_APP_SECRET) sudah diset di environment variables.",
         },
         { status: 500 }
       );
