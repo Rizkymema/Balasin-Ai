@@ -26,8 +26,6 @@ import {
   PlusCircle,
   Link2,
   Settings,
-  ChevronDown,
-  ChevronRight,
   Unplug,
   Zap
 } from "lucide-react";
@@ -1522,70 +1520,6 @@ struct ChatView: View {
                       )}
                     </Button>
                   </div>
-
-                  {/* Collapsible manual setup */}
-                  <button
-                    type="button"
-                    onClick={() => setWaAdvancedOpen((v) => !v)}
-                    className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 hover:text-slate-300 transition w-full text-left"
-                  >
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${waAdvancedOpen ? "rotate-180" : ""}`} />
-                    Setup manual (Phone Number ID, Token, Verify Token)
-                  </button>
-
-                  {waAdvancedOpen && (
-                    <form onSubmit={persistWhatsApp} className="rounded-xl border border-white/8 bg-white/[0.02] p-5 space-y-4">
-                      <p className="text-[10px] text-amber-400/80 bg-amber-950/20 border border-amber-500/15 rounded-lg p-3">
-                        ⚠️ Setup manual digunakan jika Anda sudah memiliki token dari Meta Developer Console dan ingin mengkonfigurasi tanpa OAuth. Pastikan Callback URL sudah didaftarkan di Meta Developer.
-                      </p>
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-slate-300">Label nomor bisnis</label>
-                          <Input value={waLabel} onChange={(e) => setWaLabel(e.target.value)} className="h-10 text-xs" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-slate-300">Phone Number ID</label>
-                          <Input value={phoneId} onChange={(e) => setPhoneId(e.target.value)} className="h-10 text-xs" />
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-300">Permanent access token</label>
-                        <Input type="password" value={accessToken} onChange={(e) => setAccessToken(e.target.value)} className="h-10 text-xs" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-300">Verify token</label>
-                        <Input value={verifyToken} onChange={(e) => setVerifyToken(e.target.value)} className="h-10 text-xs" />
-                      </div>
-                      <div className="rounded-lg border border-white/8 bg-white/4 p-3 text-[11px] text-slate-400">
-                        <p className="flex items-center gap-1 font-bold text-slate-300 mb-2">
-                          <AlertCircle className="h-3.5 w-3.5 text-cyan-400" />
-                          Gunakan data ini pada Facebook Developer webhook setup
-                        </p>
-                        <div className="space-y-2">
-                          <div>
-                            <span className="block text-[10px] font-semibold uppercase text-slate-500">Callback URL</span>
-                            <code className="mt-0.5 block rounded bg-[#020611] p-1 font-mono text-cyan-300 text-[10px]">{whatsappWebhookUrl}</code>
-                          </div>
-                          <div>
-                            <span className="block text-[10px] font-semibold uppercase text-slate-500">Verify Token</span>
-                            <code className="mt-0.5 block rounded bg-[#020611] p-1 font-mono text-cyan-300 text-[10px]">{verifyToken || "(isi di atas dulu)"}</code>
-                          </div>
-                        </div>
-                      </div>
-                      <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300 cursor-pointer">
-                        <input type="checkbox" checked={waAutoReply} onChange={(e) => setWaAutoReply(e.target.checked)} className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500" />
-                        Aktifkan auto reply WhatsApp menggunakan AI Agent
-                      </label>
-                      {waSaved && (
-                        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-300">
-                          Konfigurasi tersimpan.
-                        </div>
-                      )}
-                      <div className="flex justify-end">
-                        <Button type="submit" className="px-5 text-xs h-9">Simpan Manual</Button>
-                      </div>
-                    </form>
-                  )}
                 </div>
               )}
             </div>
@@ -1818,71 +1752,6 @@ struct ChatView: View {
                     </Button>
                   </div>
 
-                  {/* Collapsible manual setup */}
-                  <button
-                    type="button"
-                    onClick={() => setIgAdvancedOpen((v) => !v)}
-                    className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 hover:text-slate-300 transition w-full text-left"
-                  >
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${igAdvancedOpen ? "rotate-180" : ""}`} />
-                    Setup manual (Account ID, Token, Verify Token)
-                  </button>
-
-                  {igAdvancedOpen && (
-                    <form onSubmit={persistInstagram} className="rounded-xl border border-white/8 bg-white/[0.02] p-5 space-y-4">
-                      <p className="text-[10px] text-amber-400/80 bg-amber-950/20 border border-amber-500/15 rounded-lg p-3">
-                        ⚠️ Setup manual untuk konfigurasi token dari Meta Developer Console. Pastikan Callback URL sudah didaftarkan.
-                      </p>
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-slate-300">Username Instagram</label>
-                          <Input value={igUsername} onChange={(e) => setIgUsername(e.target.value)} className="h-10 text-xs" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-slate-300">Instagram Account ID</label>
-                          <Input value={igAccountId} onChange={(e) => setIgAccountId(e.target.value)} className="h-10 text-xs" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-slate-300">Meta access token</label>
-                          <Input type="password" value={igAccessToken} onChange={(e) => setIgAccessToken(e.target.value)} className="h-10 text-xs" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-slate-300">Verify token</label>
-                          <Input value={igVerifyToken} onChange={(e) => setIgVerifyToken(e.target.value)} className="h-10 text-xs" placeholder="Contoh: balesin_verify" />
-                        </div>
-                      </div>
-                      <div className="rounded-lg border border-white/8 bg-white/4 p-3 text-[11px] text-slate-400">
-                        <p className="flex items-center gap-1 font-bold text-slate-300 mb-2">
-                          <AlertCircle className="h-3.5 w-3.5 text-cyan-400" />
-                          Data untuk Meta Developer webhook setup (Instagram)
-                        </p>
-                        <div className="space-y-2">
-                          <div>
-                            <span className="block text-[10px] font-semibold uppercase text-slate-500">Callback URL</span>
-                            <code className="mt-0.5 block rounded bg-[#020611] p-1.5 font-mono text-cyan-300 text-[10px]">{instagramWebhookUrl}</code>
-                          </div>
-                          <div>
-                            <span className="block text-[10px] font-semibold uppercase text-slate-500">Verify Token</span>
-                            <code className="mt-0.5 block rounded bg-[#020611] p-1.5 font-mono text-cyan-300 text-[10px]">{igVerifyToken || "(isi di atas dulu)"}</code>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="rounded-lg border border-fuchsia-400/15 bg-fuchsia-950/15 p-3 text-xs text-slate-300">
-                        <Shield className="h-4 w-4 text-fuchsia-400 inline mr-2" />
-                        Pengaturan ini menjadi source of truth untuk DM automation, comment guard, dan DM converter.
-                      </div>
-                      {igSaved && (
-                        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-300">
-                          Konfigurasi Instagram tersimpan.
-                        </div>
-                      )}
-                      <div className="flex justify-end">
-                        <Button type="submit" className="px-5 text-xs h-9">Simpan Manual</Button>
-                      </div>
-                    </form>
-                  )}
                 </div>
               )}
             </div>
