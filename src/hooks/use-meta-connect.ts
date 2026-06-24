@@ -60,7 +60,9 @@ export interface MetaWhatsAppResult {
 
 type ConnectStatus = "idle" | "loading" | "success" | "error";
 
+// App ID utama Meta (satu App untuk WA + IG)
 const WHATSAPP_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID ?? "";
+// Instagram menggunakan App ID yang sama kecuali ada override
 const INSTAGRAM_APP_ID = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID ?? WHATSAPP_APP_ID;
 const WA_CONFIG_ID = process.env.NEXT_PUBLIC_META_WA_CONFIG_ID ?? "";
 const IG_CONFIG_ID = process.env.NEXT_PUBLIC_META_IG_CONFIG_ID ?? "";
@@ -210,7 +212,11 @@ export function useMetaConnect() {
               const res = await fetch("/api/channels/whatsapp/connect", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ accessToken: auth.accessToken, code: auth.code }),
+                // Kirim keduanya — server akan pakai salah satu yang tersedia
+                body: JSON.stringify({
+                  accessToken: auth.accessToken ?? undefined,
+                  code: auth.code ?? undefined,
+                }),
               });
 
               if (!res.ok) {
@@ -232,9 +238,9 @@ export function useMetaConnect() {
         },
         WA_CONFIG_ID ? {
           config_id: WA_CONFIG_ID,
-          auth_type: "rerequest", // Paksa prompt u/ tambah akun
+          auth_type: "rerequest",
           response_type: "code",
-          override_default_response_type: true
+          override_default_response_type: true,
         } : {
           scope: [
             "business_management",
@@ -243,11 +249,9 @@ export function useMetaConnect() {
           ].join(","),
           extras: {
             feature: "whatsapp_embedded_signup",
-            setup: {
-              business: { name: "" }, // kosong = user isi sendiri di wizard
-            },
+            setup: {},
           },
-          auth_type: "rerequest"
+          auth_type: "rerequest",
         }
       );
     });
