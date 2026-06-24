@@ -26,6 +26,7 @@ import {
   PlusCircle,
   Link2,
   Settings,
+  ChevronDown,
   Unplug,
   Zap
 } from "lucide-react";
