@@ -83,24 +83,11 @@ export function useDashboardConfig() {
   }, []);
 
   const replaceConfig = useCallback(async (next: DashboardConfig) => {
+    const previous = configRef.current;
     setConfig(next);
     configRef.current = next;
-    await fetch("/api/dashboard-config", {
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(next),
-    });
-  }, []);
-
-  const patchConfig = useCallback(
-    async (updater: (current: DashboardConfig) => DashboardConfig) => {
-      const next = updater(configRef.current);
-      setConfig(next);
-      configRef.current = next;
-      await fetch("/api/dashboard-config", {
+    try {
+      const response = await fetch("/api/dashboard-config", {
         method: "PUT",
         credentials: "include",
         headers: {
@@ -108,6 +95,43 @@ export function useDashboardConfig() {
         },
         body: JSON.stringify(next),
       });
+      if (!response.ok) {
+        const errPayload = await response.json().catch(() => ({}));
+        throw new Error(errPayload.error || "Gagal menyimpan pengaturan.");
+      }
+    } catch (e) {
+      setConfig(previous);
+      configRef.current = previous;
+      alert(e instanceof Error ? e.message : "Terjadi kesalahan saat menyimpan.");
+      throw e;
+    }
+  }, []);
+
+  const patchConfig = useCallback(
+    async (updater: (current: DashboardConfig) => DashboardConfig) => {
+      const previous = configRef.current;
+      const next = updater(previous);
+      setConfig(next);
+      configRef.current = next;
+      try {
+        const response = await fetch("/api/dashboard-config", {
+          method: "PUT",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(next),
+        });
+        if (!response.ok) {
+          const errPayload = await response.json().catch(() => ({}));
+          throw new Error(errPayload.error || "Gagal menyimpan pengaturan.");
+        }
+      } catch (e) {
+        setConfig(previous);
+        configRef.current = previous;
+        alert(e instanceof Error ? e.message : "Terjadi kesalahan saat menyimpan.");
+        throw e;
+      }
     },
     [],
   );

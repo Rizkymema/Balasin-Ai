@@ -2,6 +2,8 @@ import { getDashboardConfigRecord, saveDashboardConfigRecord } from "@/server/re
 import type { DashboardConfig } from "@/types/dashboard-config";
 import { jsonError, jsonOk, requireApiSession } from "@/server/http";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const { response } = await requireApiSession();
   if (response) {

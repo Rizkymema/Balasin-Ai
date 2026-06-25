@@ -3,6 +3,8 @@ import type { DashboardOperationsData } from "@/types/operations";
 import { jsonError, jsonOk, requireApiSession } from "@/server/http";
 import { scheduleOperationalJobs } from "@/server/services/automation-service";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const { response } = await requireApiSession();
   if (response) {
