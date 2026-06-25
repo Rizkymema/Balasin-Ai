@@ -58,6 +58,40 @@ export type ConversationFlow = {
   lastUpdate: string;
 };
 
+export type AIAgentTrainingSource = {
+  id: string;
+  name: string;
+  type: "PDF" | "DOCX" | "TXT" | "CSV" | "XLSX" | "Markdown" | "URL";
+  uploadedAt: string;
+  status: "Processing" | "Indexed" | "Failed";
+};
+
+export type AIAgent = {
+  id: string;
+  name: string;
+  description: string;
+  prompt: string;
+  toneOfVoice: "Formal" | "Ramah" | "Santai" | "Profesional" | "Singkat";
+  trainingSources: AIAgentTrainingSource[];
+  allowedActions: {
+    replyMessage: boolean;
+    createLead: boolean;
+    createBooking: boolean;
+    updateTicket: boolean;
+    sendToApi: boolean;
+    handoverToHuman: boolean;
+  };
+  handover: {
+    enabled: boolean;
+    assignTeam: string;
+    fallbackMessage: string;
+  };
+  responseMode: "Answer Only" | "Answer + Suggest Menu" | "Answer + Execute Action" | "Answer + Handover if Needed";
+  channelUsage: string;
+  lastUpdate: string;
+  status: "Active" | "Draft" | "Inactive";
+};
+
 export type AIProviderKind =
   | "demo"
   | "openai"
@@ -171,6 +205,7 @@ export type DashboardConfig = {
     sentimentGuard: boolean;
     rules: AutomationRule[];
     conversations: ConversationFlow[];
+    aiAgents: AIAgent[];
   };
   team: {
     members: TeamMember[];
