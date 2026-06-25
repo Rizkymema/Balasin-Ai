@@ -127,6 +127,10 @@ export function useDashboardConfig() {
           body: JSON.stringify(next),
         });
         if (!response.ok) {
+          if (response.status === 401) {
+            window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+            return;
+          }
           const errPayload = await response.json().catch(() => ({}));
           throw new Error(errPayload.error || "Gagal menyimpan pengaturan.");
         }
