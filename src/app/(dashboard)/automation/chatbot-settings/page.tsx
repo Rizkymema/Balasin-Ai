@@ -1,614 +1,900 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import {
-  ArrowLeft,
-  Check,
-  Clock3,
-  Globe,
-  Loader2,
-  MessageSquare,
-  Radio,
-  Settings2,
   Sliders,
-  UserCheck,
-  Zap,
+  Clock,
+  Plug,
+  GitMerge,
+  Loader2,
+  Save,
+  RotateCcw,
+  Check,
+  Plus,
+  Trash2,
+  Edit2,
+  FlaskConical,
+  Eye,
+  EyeOff,
+  X,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  ChevronDown,
 } from "lucide-react";
-import Link from "next/link";
-
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import type { AIProviderKind, VectorStoreKind } from "@/types/dashboard-config";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-const PROVIDER_MODELS: Record<AIProviderKind, { value: string; label: string }[]> = {
-  demo: [{ value: "balesin-demo-model", label: "Balesin Demo Model" }],
-  openai: [
-    { value: "gpt-4o", label: "GPT-4o (Flagship / Recommended)" },
-    { value: "gpt-4o-mini", label: "GPT-4o Mini (Fast & Cheap)" },
-    { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
-    { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
+// ─── Types ────────────────────────────────────────────────────────────────────
+type ApiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+type ApiAuthType = "No Auth" | "Bearer Token" | "API Key" | "Basic Auth" | "Custom Header";
+type ApiStatus = "Active" | "Draft" | "Inactive";
+type ApiTestResult = "Success" | "Failed" | "Timeout" | "Unauthorized" | "Not tested";
+
+interface ApiIntegration {
+  id: string;
+  name: string;
+  method: ApiMethod;
+  endpoint: string;
+  authType: ApiAuthType;
+  authToken: string;
+  headers: string;
+  requestBody: string;
+  responseMapping: string;
+  status: ApiStatus;
+  lastTest: ApiTestResult;
+}
+
+interface ChatbotSettingsState {
+  aiConfig: {
+    aiMessageThreshold: number;
+    listenTime: number;
+    handoverEnabled: boolean;
+    handoverTargetType: string;
+    handoverTarget: string;
+    handoverMessage: string;
+  };
+  idleAction: {
+    enabled: boolean;
+    idleTimeout: number;
+    idleTimeoutUnit: "hours" | "days";
+    triggerTarget: string;
+    actionType: string;
+    idleMessage: string;
+    autoClose: boolean;
+  };
+  apiIntegrations: ApiIntegration[];
+  crmIntegration: {
+    enabled: boolean;
+    provider: string;
+    syncTrigger: string;
+    contactMapping: { customerField: string; crmField: string }[];
+    duplicateHandling: string;
+  };
+}
+
+const DEFAULT_SETTINGS: ChatbotSettingsState = {
+  aiConfig: {
+    aiMessageThreshold: 10,
+    listenTime: 2,
+    handoverEnabled: true,
+    handoverTargetType: "Specific team",
+    handoverTarget: "Mekanik",
+    handoverMessage: "Baik kak, saya teruskan percakapan ini ke admin Johan Garage agar bisa dibantu lebih lanjut.",
+  },
+  idleAction: {
+    enabled: true,
+    idleTimeout: 48,
+    idleTimeoutUnit: "hours",
+    triggerTarget: "Customer inactive",
+    actionType: "Send reminder then close",
+    idleMessage: "Halo kak, apakah masih membutuhkan bantuan? Jika tidak ada balasan, percakapan ini akan kami tutup otomatis.",
+    autoClose: true,
+  },
+  apiIntegrations: [
+    {
+      id: "api_001",
+      name: "Check Service Status",
+      method: "POST",
+      endpoint: "https://api.johangarage.com/service-status",
+      authType: "Bearer Token",
+      authToken: "sk_live_***************",
+      headers: '{"Content-Type": "application/json"}',
+      requestBody: '{"phone": "{{customer.phone}}", "plate_number": "{{conversation.plate_number}}"}',
+      responseMapping: "serviceStatus = response.status\nmechanicName = response.mechanic",
+      status: "Active",
+      lastTest: "Success",
+    },
+    {
+      id: "api_002",
+      name: "Check Sparepart Stock",
+      method: "GET",
+      endpoint: "https://api.johangarage.com/spareparts",
+      authType: "API Key",
+      authToken: "",
+      headers: "",
+      requestBody: "",
+      responseMapping: "",
+      status: "Draft",
+      lastTest: "Not tested",
+    },
   ],
-  gemini: [
-    { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Recommended)" },
-    { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-    { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash" },
-    { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
-  ],
-  anthropic: [
-    { value: "claude-3-7-sonnet-latest", label: "Claude 3.7 Sonnet (Latest)" },
-    { value: "claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet" },
-    { value: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku" },
-    { value: "claude-3-opus-latest", label: "Claude 3 Opus" },
-  ],
-  openrouter: [
-    { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash (via OpenRouter)" },
-    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini (via OpenRouter)" },
-    { value: "anthropic/claude-3.7-sonnet", label: "Claude 3.7 Sonnet (via OpenRouter)" },
-    { value: "meta-llama/llama-3.3-70b-instruct", label: "Llama 3.3 70B (via OpenRouter)" },
-    { value: "deepseek/deepseek-chat", label: "DeepSeek V3 (via OpenRouter)" },
-    { value: "deepseek/deepseek-r1", label: "DeepSeek R1 (via OpenRouter)" },
-  ],
+  crmIntegration: {
+    enabled: true,
+    provider: "Internal CRM",
+    syncTrigger: "When lead intent is detected",
+    contactMapping: [
+      { customerField: "Customer Name", crmField: "CRM Contact Name" },
+      { customerField: "Customer Phone", crmField: "CRM Phone Number" },
+      { customerField: "Customer Email", crmField: "CRM Email" },
+    ],
+    duplicateHandling: "Update existing contact",
+  },
 };
 
-export default function ChatbotSettingsPage() {
-  const { config, patchConfig, isLoading } = useDashboardConfig();
-  const [isSaved, setIsSaved] = useState(false);
-  const [settingsSubsection, setSettingsSubsection] = useState("ai_config");
+const TABS = [
+  { id: "ai_config", label: "AI Configuration", icon: Sliders },
+  { id: "idle_action", label: "Idle Action", icon: Clock },
+  { id: "api_integration", label: "API Integration", icon: Plug },
+  { id: "crm_integration", label: "CRM Integration", icon: GitMerge },
+];
 
-  // AI Config
-  const [providerEnabled, setProviderEnabled] = useState(false);
-  const [provider, setProvider] = useState<AIProviderKind>("openai");
-  const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("");
-  const [embeddingModel, setEmbeddingModel] = useState("");
-  const [baseUrl, setBaseUrl] = useState("");
-  const [vectorStore, setVectorStore] = useState<VectorStoreKind>("none");
-  const [maxTokens, setMaxTokens] = useState(2000);
-  const [quotaLimit, setQuotaLimit] = useState(999999999);
-
-  // Idle Action
-  const [idleActionType, setIdleActionType] = useState<"followup" | "close" | "handoff">("followup");
-  const [idleTimeoutHours, setIdleTimeoutHours] = useState(24);
-  const [idleMessage, setIdleMessage] = useState(
-    "Halo Kak! Apakah ada hal lain yang bisa kami bantu? Jika tidak ada respon, sesi chat ini akan ditutup otomatis ya."
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="relative inline-flex cursor-pointer items-center">
+      <input type="checkbox" className="peer sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <div className="h-5 w-9 rounded-full bg-slate-700 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[var(--color-brand)] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none" />
+    </label>
   );
+}
 
-  // API Integration
-  const [qontakApiUrl, setQontakApiUrl] = useState("https://api.qontak.com/v1/");
-  const [qontakAccessToken, setQontakAccessToken] = useState("");
-  const [inventoryApiUrl, setInventoryApiUrl] = useState("https://api.johangarage.local/inventory/");
-  const [isQontakConnected, setIsQontakConnected] = useState(false);
-  const [isInventoryConnected, setIsInventoryConnected] = useState(false);
+function FieldLabel({ label, hint }: { label: string; hint?: string }) {
+  return (
+    <div className="mb-2">
+      <label className="text-sm font-semibold text-slate-300">{label}</label>
+      {hint && <p className="text-xs text-slate-500 mt-0.5">{hint}</p>}
+    </div>
+  );
+}
 
-  // CRM Integration
-  const [autoSyncToCrm, setAutoSyncToCrm] = useState(true);
-  const [defaultLeadStage, setDefaultLeadStage] = useState("Interested");
-  const [crmOwner, setCrmOwner] = useState("AI Assistant");
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-brand)] mb-4">{children}</h3>;
+}
 
-  useEffect(() => {
-    if (!config) return;
-    setProviderEnabled(config.aiProvider.enabled);
-    setProvider(config.aiProvider.provider);
-    setApiKey(config.aiProvider.apiKey);
-    setModel(config.aiProvider.model);
-    setEmbeddingModel(config.aiProvider.embeddingModel);
-    setBaseUrl(config.aiProvider.baseUrl);
-    setVectorStore(config.aiProvider.vectorStore);
-    setMaxTokens(config.aiProvider.maxTokens ?? 2000);
-    setQuotaLimit(config.aiProvider.quotaLimit ?? 999999999);
-    setIdleTimeoutHours(config.automation.followUpDelayHours);
-  }, [config]);
+function TestBadge({ result }: { result: ApiTestResult }) {
+  const map: Record<ApiTestResult, { color: string; icon: React.ReactNode }> = {
+    "Success": { color: "text-emerald-400 bg-emerald-500/10", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+    "Failed": { color: "text-red-400 bg-red-500/10", icon: <XCircle className="h-3.5 w-3.5" /> },
+    "Timeout": { color: "text-amber-400 bg-amber-500/10", icon: <AlertTriangle className="h-3.5 w-3.5" /> },
+    "Unauthorized": { color: "text-red-400 bg-red-500/10", icon: <XCircle className="h-3.5 w-3.5" /> },
+    "Not tested": { color: "text-slate-400 bg-slate-500/10", icon: <FlaskConical className="h-3.5 w-3.5" /> },
+  };
+  const { color, icon } = map[result];
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${color}`}>
+      {icon}{result}
+    </span>
+  );
+}
 
-  const handleProviderChange = (newProvider: AIProviderKind) => {
-    setProvider(newProvider);
-    const models = PROVIDER_MODELS[newProvider] || [];
-    if (models.length > 0) setModel(models[0].value);
-    else setModel("");
+// ─── AI Configuration Tab ─────────────────────────────────────────────────────
+function AIConfigPanel({
+  config,
+  onChange,
+  onSave,
+  isSaved,
+}: {
+  config: ChatbotSettingsState["aiConfig"];
+  onChange: (v: ChatbotSettingsState["aiConfig"]) => void;
+  onSave: () => void;
+  isSaved: boolean;
+}) {
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-lg font-bold text-white">AI Configuration</h2>
+        <p className="text-sm text-slate-400 mt-1">Atur parameter dasar perilaku AI saat membalas pesan pelanggan.</p>
+      </div>
+
+      <Card className="p-6 border-white/10 bg-white/[0.02] space-y-6">
+        <SectionTitle>Message Threshold & Listen Time</SectionTitle>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <FieldLabel
+              label="AI Message Threshold"
+              hint="Batas maksimal jumlah pesan AI dalam satu sesi. Setelah batas ini, percakapan diteruskan ke human agent."
+            />
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min={1}
+                max={100}
+                value={config.aiMessageThreshold}
+                onChange={(e) => onChange({ ...config, aiMessageThreshold: Number(e.target.value) })}
+                className="bg-black/20 max-w-[120px]"
+              />
+              <span className="text-sm text-slate-400">messages</span>
+            </div>
+          </div>
+          <div>
+            <FieldLabel
+              label="Listen Time"
+              hint="Waktu tunggu sebelum bot membalas, agar pesan pelanggan yang terpecah bisa terkumpul dulu."
+            />
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min={0}
+                max={60}
+                value={config.listenTime}
+                onChange={(e) => onChange({ ...config, listenTime: Number(e.target.value) })}
+                className="bg-black/20 max-w-[120px]"
+              />
+              <span className="text-sm text-slate-400">seconds</span>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-6 border-white/10 bg-white/[0.02] space-y-6">
+        <div className="flex items-center justify-between">
+          <SectionTitle>Human Agent Handover</SectionTitle>
+          <Toggle checked={config.handoverEnabled} onChange={(v) => onChange({ ...config, handoverEnabled: v })} />
+        </div>
+
+        {config.handoverEnabled && (
+          <div className="space-y-5 pt-2 border-t border-[var(--color-border)]">
+            <div>
+              <FieldLabel label="Handover Target Type" />
+              <select
+                className="flex h-10 w-full max-w-xs rounded-md border border-[var(--color-border)] bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+                value={config.handoverTargetType}
+                onChange={(e) => onChange({ ...config, handoverTargetType: e.target.value })}
+              >
+                <option value="Any available agent">Any available agent</option>
+                <option value="Specific team">Specific team</option>
+                <option value="Specific agent">Specific agent</option>
+              </select>
+            </div>
+
+            {config.handoverTargetType !== "Any available agent" && (
+              <div>
+                <FieldLabel label={config.handoverTargetType === "Specific team" ? "Team Name" : "Agent Name"} />
+                <Input
+                  placeholder={config.handoverTargetType === "Specific team" ? "Mekanik, Customer Service, ..." : "Nama agent..."}
+                  value={config.handoverTarget}
+                  onChange={(e) => onChange({ ...config, handoverTarget: e.target.value })}
+                  className="bg-black/20 max-w-xs"
+                />
+              </div>
+            )}
+
+            <div>
+              <FieldLabel
+                label="Handover Message"
+                hint="Pesan yang dikirim ke pelanggan sebelum percakapan dialihkan ke admin."
+              />
+              <Textarea
+                value={config.handoverMessage}
+                onChange={(e) => onChange({ ...config, handoverMessage: e.target.value })}
+                className="min-h-[90px] bg-black/20"
+              />
+            </div>
+          </div>
+        )}
+      </Card>
+
+      <div className="flex items-center gap-3">
+        <Button onClick={onSave} className="gap-2">
+          {isSaved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+          {isSaved ? "Tersimpan!" : "Save Settings"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Idle Action Tab ──────────────────────────────────────────────────────────
+function IdleActionPanel({
+  config,
+  onChange,
+  onSave,
+  isSaved,
+}: {
+  config: ChatbotSettingsState["idleAction"];
+  onChange: (v: ChatbotSettingsState["idleAction"]) => void;
+  onSave: () => void;
+  isSaved: boolean;
+}) {
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-lg font-bold text-white">Idle Action</h2>
+        <p className="text-sm text-slate-400 mt-1">Atur tindakan otomatis ketika percakapan tidak aktif dalam periode tertentu.</p>
+      </div>
+
+      <Card className="p-6 border-white/10 bg-white/[0.02] space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-semibold text-white">Enable Idle Action</div>
+            <div className="text-xs text-slate-500">Aktifkan tindakan otomatis saat percakapan tidak aktif.</div>
+          </div>
+          <Toggle checked={config.enabled} onChange={(v) => onChange({ ...config, enabled: v })} />
+        </div>
+
+        {config.enabled && (
+          <div className="space-y-5 pt-4 border-t border-[var(--color-border)]">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <FieldLabel label="Idle Timeout" />
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    value={config.idleTimeout}
+                    onChange={(e) => onChange({ ...config, idleTimeout: Number(e.target.value) })}
+                    className="bg-black/20"
+                  />
+                  <select
+                    className="h-10 rounded-md border border-[var(--color-border)] bg-black/20 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--color-brand)]"
+                    value={config.idleTimeoutUnit}
+                    onChange={(e) => onChange({ ...config, idleTimeoutUnit: e.target.value as "hours" | "days" })}
+                  >
+                    <option value="hours">hours</option>
+                    <option value="days">days</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <FieldLabel label="Trigger Target" />
+                <select
+                  className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--color-brand)]"
+                  value={config.triggerTarget}
+                  onChange={(e) => onChange({ ...config, triggerTarget: e.target.value })}
+                >
+                  <option value="Customer inactive">Customer inactive</option>
+                  <option value="Agent inactive">Agent inactive</option>
+                  <option value="Both customer and agent inactive">Both inactive</option>
+                </select>
+              </div>
+              <div>
+                <FieldLabel label="Action Type" />
+                <select
+                  className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--color-brand)]"
+                  value={config.actionType}
+                  onChange={(e) => onChange({ ...config, actionType: e.target.value })}
+                >
+                  <option value="Send reminder then close">Send reminder then close</option>
+                  <option value="Mark as resolved">Mark as resolved</option>
+                  <option value="Close conversation">Close conversation</option>
+                  <option value="Assign to agent">Assign to agent</option>
+                  <option value="Add label">Add label</option>
+                  <option value="Trigger webhook">Trigger webhook</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <FieldLabel
+                label="Idle Message"
+                hint="Pesan otomatis yang dikirim ke pelanggan saat percakapan idle."
+              />
+              <Textarea
+                value={config.idleMessage}
+                onChange={(e) => onChange({ ...config, idleMessage: e.target.value })}
+                className="min-h-[90px] bg-black/20"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-lg border border-[var(--color-border)] bg-white/[0.01]">
+              <div>
+                <div className="text-sm font-semibold text-white">Auto Close Conversation</div>
+                <div className="text-xs text-slate-500">Tutup percakapan otomatis setelah timeout jika tidak ada respons.</div>
+              </div>
+              <Toggle checked={config.autoClose} onChange={(v) => onChange({ ...config, autoClose: v })} />
+            </div>
+          </div>
+        )}
+      </Card>
+
+      <div className="flex items-center gap-3">
+        <Button onClick={onSave} className="gap-2">
+          {isSaved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+          {isSaved ? "Tersimpan!" : "Save Settings"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── API Integration Tab ──────────────────────────────────────────────────────
+function ApiModal({
+  initialData,
+  onClose,
+  onSave,
+}: {
+  initialData?: ApiIntegration;
+  onClose: () => void;
+  onSave: (data: Omit<ApiIntegration, "id" | "lastTest">) => void;
+}) {
+  const [name, setName] = useState(initialData?.name ?? "");
+  const [method, setMethod] = useState<ApiMethod>(initialData?.method ?? "GET");
+  const [endpoint, setEndpoint] = useState(initialData?.endpoint ?? "");
+  const [authType, setAuthType] = useState<ApiAuthType>(initialData?.authType ?? "No Auth");
+  const [authToken, setAuthToken] = useState(initialData?.authToken ?? "");
+  const [showToken, setShowToken] = useState(false);
+  const [headers, setHeaders] = useState(initialData?.headers ?? "");
+  const [requestBody, setRequestBody] = useState(initialData?.requestBody ?? "");
+  const [responseMapping, setResponseMapping] = useState(initialData?.responseMapping ?? "");
+  const [status, setStatus] = useState<ApiStatus>(initialData?.status ?? "Draft");
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
+      <div className="relative w-full max-w-2xl rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl my-8">
+        <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4 sticky top-0 bg-[var(--color-surface)] z-10 rounded-t-xl">
+          <h2 className="font-bold text-white">{initialData ? "Edit API Integration" : "Create API Integration"}</h2>
+          <button onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-white/10 hover:text-white"><X className="h-5 w-5" /></button>
+        </div>
+
+        <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <FieldLabel label="API Name" />
+              <Input placeholder="Check Service Status" value={name} onChange={(e) => setName(e.target.value)} className="bg-black/20" />
+            </div>
+            <div className="space-y-2">
+              <FieldLabel label="HTTP Method" />
+              <select
+                className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+                value={method}
+                onChange={(e) => setMethod(e.target.value as ApiMethod)}
+              >
+                {["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <FieldLabel label="Endpoint URL" />
+            <Input placeholder="https://api.example.com/endpoint" value={endpoint} onChange={(e) => setEndpoint(e.target.value)} className="bg-black/20 font-mono text-sm" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <FieldLabel label="Authentication Type" />
+              <select
+                className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+                value={authType}
+                onChange={(e) => setAuthType(e.target.value as ApiAuthType)}
+              >
+                {["No Auth", "Bearer Token", "API Key", "Basic Auth", "Custom Header"].map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+            {authType !== "No Auth" && (
+              <div className="space-y-2">
+                <FieldLabel label="Auth Token / Key" />
+                <div className="relative">
+                  <Input
+                    type={showToken ? "text" : "password"}
+                    placeholder="sk_live_..."
+                    value={authToken}
+                    onChange={(e) => setAuthToken(e.target.value)}
+                    className="bg-black/20 pr-10 font-mono text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowToken(!showToken)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <FieldLabel label="Headers (JSON)" hint='Opsional. Contoh: {"Content-Type": "application/json"}' />
+            <Textarea placeholder='{"Content-Type": "application/json"}' value={headers} onChange={(e) => setHeaders(e.target.value)} className="min-h-[80px] bg-black/20 font-mono text-sm" />
+          </div>
+
+          {method !== "GET" && (
+            <div className="space-y-2">
+              <FieldLabel label="Request Body (JSON)" hint='Gunakan {{variable}} untuk data dinamis dari percakapan.' />
+              <Textarea placeholder='{"phone": "{{customer.phone}}"}' value={requestBody} onChange={(e) => setRequestBody(e.target.value)} className="min-h-[80px] bg-black/20 font-mono text-sm" />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <FieldLabel label="Response Mapping" hint="Petakan field dari response API ke variabel chatbot." />
+            <Textarea placeholder={"serviceStatus = response.status\nmechanicName = response.mechanic"} value={responseMapping} onChange={(e) => setResponseMapping(e.target.value)} className="min-h-[80px] bg-black/20 font-mono text-sm" />
+          </div>
+
+          <div className="space-y-2">
+            <FieldLabel label="Status" />
+            <select
+              className="flex h-10 w-40 rounded-md border border-[var(--color-border)] bg-black/20 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as ApiStatus)}
+            >
+              <option value="Draft">Draft</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between border-t border-[var(--color-border)] px-6 py-4 bg-[var(--color-surface)] rounded-b-xl">
+          <Button variant="secondary" onClick={onClose} className="text-slate-400 bg-transparent border-transparent hover:text-white">Cancel</Button>
+          <Button onClick={() => onSave({ name, method, endpoint, authType, authToken, headers, requestBody, responseMapping, status })} className="gap-2">
+            <Save className="h-4 w-4" />
+            Save API
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ApiIntegrationPanel({ integrations, onChange }: { integrations: ApiIntegration[]; onChange: (v: ApiIntegration[]) => void }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingApi, setEditingApi] = useState<ApiIntegration | null>(null);
+  const [testingId, setTestingId] = useState<string | null>(null);
+
+  const handleSave = (data: Omit<ApiIntegration, "id" | "lastTest">) => {
+    if (editingApi) {
+      onChange(integrations.map((a) => a.id === editingApi.id ? { ...a, ...data } : a));
+    } else {
+      onChange([...integrations, { ...data, id: "api_" + Date.now(), lastTest: "Not tested" }]);
+    }
+    setIsModalOpen(false);
+    setEditingApi(null);
   };
 
-  const handleSaveAIConfig = (event: FormEvent) => {
-    event.preventDefault();
-    patchConfig((current) => ({
-      ...current,
-      aiProvider: { enabled: providerEnabled, provider, apiKey, model, embeddingModel, baseUrl, vectorStore, maxTokens, quotaLimit },
-    }));
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2500);
+  const handleTest = (id: string) => {
+    setTestingId(id);
+    setTimeout(() => {
+      onChange(integrations.map((a) => a.id === id ? { ...a, lastTest: Math.random() > 0.3 ? "Success" : "Failed" } : a));
+      setTestingId(null);
+    }, 1500);
   };
 
-  const handleSaveIdleAction = (event: FormEvent) => {
-    event.preventDefault();
-    patchConfig((current) => ({
-      ...current,
-      automation: { ...current.automation, followUpDelayHours: idleTimeoutHours },
-    }));
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2500);
+  const methodColors: Record<ApiMethod, string> = {
+    GET: "text-emerald-400 bg-emerald-500/10",
+    POST: "text-blue-400 bg-blue-500/10",
+    PUT: "text-amber-400 bg-amber-500/10",
+    PATCH: "text-purple-400 bg-purple-500/10",
+    DELETE: "text-red-400 bg-red-500/10",
   };
 
-  const handleSaveApiIntegration = (event: FormEvent) => {
-    event.preventDefault();
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2500);
-  };
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-white">API Integration</h2>
+          <p className="text-sm text-slate-400 mt-1">Hubungkan chatbot dengan sistem eksternal menggunakan HTTP/REST API.</p>
+        </div>
+        <Button onClick={() => { setEditingApi(null); setIsModalOpen(true); }} className="gap-2 shrink-0">
+          <Plus className="h-4 w-4" />
+          Create API
+        </Button>
+      </div>
 
-  const handleSaveCrmIntegration = (event: FormEvent) => {
-    event.preventDefault();
+      {integrations.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--color-border)] py-14 text-center">
+          <Plug className="h-10 w-10 text-slate-600 mb-3" />
+          <p className="text-sm text-slate-400">Belum ada API integration. Klik &quot;Create API&quot; untuk memulai.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+          <table className="w-full text-left text-sm text-slate-300">
+            <thead className="bg-white/[0.02] text-xs uppercase text-slate-500">
+              <tr>
+                <th className="px-5 py-3 font-semibold">API Name</th>
+                <th className="px-5 py-3 font-semibold">Method</th>
+                <th className="px-5 py-3 font-semibold">Endpoint</th>
+                <th className="px-5 py-3 font-semibold">Auth</th>
+                <th className="px-5 py-3 font-semibold">Last Test</th>
+                <th className="px-5 py-3 font-semibold">Status</th>
+                <th className="px-5 py-3 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--color-border)]">
+              {integrations.map((api) => (
+                <tr key={api.id} className="hover:bg-white/[0.01] transition-colors">
+                  <td className="px-5 py-3 font-medium text-white">{api.name}</td>
+                  <td className="px-5 py-3">
+                    <span className={`px-2 py-0.5 rounded text-xs font-bold font-mono ${methodColors[api.method]}`}>{api.method}</span>
+                  </td>
+                  <td className="px-5 py-3 text-slate-400 font-mono text-xs max-w-[200px] truncate">{api.endpoint}</td>
+                  <td className="px-5 py-3 text-slate-400 text-xs">{api.authType}</td>
+                  <td className="px-5 py-3"><TestBadge result={api.lastTest} /></td>
+                  <td className="px-5 py-3">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      api.status === "Active" ? "text-emerald-400 bg-emerald-500/10" :
+                      api.status === "Draft" ? "text-amber-400 bg-amber-500/10" :
+                      "text-slate-400 bg-slate-500/10"
+                    }`}>{api.status}</span>
+                  </td>
+                  <td className="px-5 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => handleTest(api.id)}
+                        disabled={testingId === api.id}
+                        className="rounded p-1.5 text-slate-400 hover:bg-white/10 hover:text-[var(--color-brand)] transition disabled:opacity-50"
+                        title="Test API"
+                      >
+                        {testingId === api.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <FlaskConical className="h-4 w-4" />}
+                      </button>
+                      <button onClick={() => { setEditingApi(api); setIsModalOpen(true); }} className="rounded p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition" title="Edit">
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => onChange(integrations.filter((a) => a.id !== api.id))} className="rounded p-1.5 text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition" title="Delete">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {isModalOpen && (
+        <ApiModal
+          initialData={editingApi ?? undefined}
+          onClose={() => { setIsModalOpen(false); setEditingApi(null); }}
+          onSave={handleSave}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── CRM Integration Tab ──────────────────────────────────────────────────────
+function CRMIntegrationPanel({
+  config,
+  onChange,
+  onSave,
+  isSaved,
+}: {
+  config: ChatbotSettingsState["crmIntegration"];
+  onChange: (v: ChatbotSettingsState["crmIntegration"]) => void;
+  onSave: () => void;
+  isSaved: boolean;
+}) {
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-lg font-bold text-white">CRM Integration</h2>
+        <p className="text-sm text-slate-400 mt-1">Sinkronkan data pelanggan dari percakapan chatbot ke sistem CRM secara otomatis.</p>
+      </div>
+
+      <Card className="p-6 border-white/10 bg-white/[0.02] space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-semibold text-white">Enable CRM Integration</div>
+            <div className="text-xs text-slate-500">Aktifkan sinkronisasi otomatis data pelanggan ke CRM.</div>
+          </div>
+          <Toggle checked={config.enabled} onChange={(v) => onChange({ ...config, enabled: v })} />
+        </div>
+
+        {config.enabled && (
+          <div className="space-y-5 pt-4 border-t border-[var(--color-border)]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <FieldLabel label="CRM Provider" />
+                <select
+                  className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+                  value={config.provider}
+                  onChange={(e) => onChange({ ...config, provider: e.target.value })}
+                >
+                  {["Internal CRM", "Mekari CRM", "HubSpot", "Zoho CRM", "Salesforce", "Custom CRM API"].map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <FieldLabel label="Sync Trigger" />
+                <select
+                  className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+                  value={config.syncTrigger}
+                  onChange={(e) => onChange({ ...config, syncTrigger: e.target.value })}
+                >
+                  {[
+                    "When new conversation starts",
+                    "When customer shares phone number",
+                    "When customer selects booking menu",
+                    "When conversation is handed over",
+                    "When conversation is closed",
+                    "When lead intent is detected",
+                  ].map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <FieldLabel label="Duplicate Handling" />
+              <select
+                className="flex h-10 w-60 rounded-md border border-[var(--color-border)] bg-black/20 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+                value={config.duplicateHandling}
+                onChange={(e) => onChange({ ...config, duplicateHandling: e.target.value })}
+              >
+                {[
+                  "Update existing contact",
+                  "Create new contact anyway",
+                  "Merge with existing contact",
+                  "Skip duplicate contact",
+                ].map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <SectionTitle>Contact Mapping</SectionTitle>
+              <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
+                <table className="w-full text-sm">
+                  <thead className="bg-white/[0.02] text-xs uppercase text-slate-500">
+                    <tr>
+                      <th className="px-4 py-2.5 text-left font-semibold">Customer Field</th>
+                      <th className="px-4 py-2.5 text-center text-slate-600">→</th>
+                      <th className="px-4 py-2.5 text-left font-semibold">CRM Field</th>
+                      <th className="px-4 py-2.5"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--color-border)]">
+                    {config.contactMapping.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-white/[0.01]">
+                        <td className="px-4 py-2.5">
+                          <Input
+                            value={row.customerField}
+                            onChange={(e) => {
+                              const next = [...config.contactMapping];
+                              next[idx] = { ...next[idx], customerField: e.target.value };
+                              onChange({ ...config, contactMapping: next });
+                            }}
+                            className="bg-black/20 h-8 text-sm"
+                          />
+                        </td>
+                        <td className="px-4 py-2.5 text-center text-slate-500">→</td>
+                        <td className="px-4 py-2.5">
+                          <Input
+                            value={row.crmField}
+                            onChange={(e) => {
+                              const next = [...config.contactMapping];
+                              next[idx] = { ...next[idx], crmField: e.target.value };
+                              onChange({ ...config, contactMapping: next });
+                            }}
+                            className="bg-black/20 h-8 text-sm"
+                          />
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <button
+                            onClick={() => onChange({ ...config, contactMapping: config.contactMapping.filter((_, i) => i !== idx) })}
+                            className="text-slate-500 hover:text-red-400 transition"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="px-4 py-2 border-t border-[var(--color-border)]">
+                  <button
+                    onClick={() => onChange({ ...config, contactMapping: [...config.contactMapping, { customerField: "", crmField: "" }] })}
+                    className="flex items-center gap-1.5 text-xs text-[var(--color-brand)] hover:opacity-80 transition"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Add mapping
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      <div className="flex items-center gap-3">
+        <Button onClick={onSave} className="gap-2">
+          {isSaved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+          {isSaved ? "Tersimpan!" : "Save Settings"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+export default function ChatbotSettingsPage() {
+  const { isLoading } = useDashboardConfig();
+  const [activeTab, setActiveTab] = useState("ai_config");
+  const [settings, setSettings] = useState<ChatbotSettingsState>(DEFAULT_SETTINGS);
+  const [isSaved, setIsSaved] = useState(false);
+
+  const handleSave = () => {
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2500);
   };
 
   if (isLoading) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-brand)]" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Link href="/automation" className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-white transition">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Automation
-            </Link>
-          </div>
-          <h1 className="flex items-center gap-2.5 text-2xl font-bold text-white">
-            <Settings2 className="h-6 w-6 text-cyan-400" />
-            Chatbot settings
-          </h1>
-          <p className="mt-1 text-xs text-slate-400">
-            Konfigurasi teknis AI provider, idle action, dan integrasi sistem eksternal.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-950/20 px-4 py-2.5 text-xs">
-          <MessageSquare className="h-4 w-4 text-cyan-400" />
-          <span className="text-slate-300">
-            Terhubung ke{" "}
-            <Link href="/inbox" className="font-bold text-cyan-400 hover:underline">
-              Inbox
-            </Link>{" "}
-            — pengaturan backend aktif
-          </span>
-          <span className={`flex h-2 w-2 rounded-full ${providerEnabled ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold font-heading text-white">Chatbot Settings</h1>
+        <p className="text-sm text-slate-400 mt-1">
+          Konfigurasi teknis perilaku bot, batas respons AI, idle session, integrasi API, dan sinkronisasi CRM.
+        </p>
       </div>
 
-      {/* Provider Status Banner */}
-      <div className={`rounded-xl border p-4 flex items-center gap-4 ${
-        providerEnabled
-          ? "border-emerald-500/20 bg-emerald-950/10"
-          : "border-amber-500/20 bg-amber-950/10"
-      }`}>
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-          providerEnabled ? "bg-emerald-950/30 text-emerald-400" : "bg-amber-950/30 text-amber-400"
-        }`}>
-          <Zap className="h-5 w-5" />
-        </div>
-        <div>
-          <div className={`text-sm font-bold ${providerEnabled ? "text-emerald-300" : "text-amber-300"}`}>
-            {providerEnabled ? `Provider Aktif: ${provider}` : "Demo Mode (Rule-based Engine)"}
-          </div>
-          <p className={`text-[11px] ${providerEnabled ? "text-emerald-400/70" : "text-amber-400/70"}`}>
-            {providerEnabled
-              ? `AI Inbox menggunakan ${model || "model kustom"} untuk membalas pertanyaan customer.`
-              : "AI Inbox menggunakan rule-based engine bawaan (tidak memerlukan API key)."}
-          </p>
-        </div>
+      {/* Inner Tabs */}
+      <div className="border-b border-[var(--color-border)]">
+        <nav className="flex gap-1 overflow-x-auto">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-all duration-150 ${
+                  isActive
+                    ? "border-[var(--color-brand)] text-[var(--color-brand)]"
+                    : "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600"
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
-      {/* Sub Tabs */}
-      <div className="flex border-b border-white/8 space-x-6 overflow-x-auto">
-        {[
-          { id: "ai_config", label: "AI Configuration" },
-          { id: "idle_action", label: "Idle Action" },
-          { id: "api_integration", label: "API Integration" },
-          { id: "crm_integration", label: "CRM Integration" },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setSettingsSubsection(tab.id)}
-            className={`pb-3 text-xs font-semibold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${
-              settingsSubsection === tab.id
-                ? "border-cyan-400 text-cyan-400 font-bold"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Tab Content */}
+      <div>
+        {activeTab === "ai_config" && (
+          <AIConfigPanel
+            config={settings.aiConfig}
+            onChange={(v) => setSettings({ ...settings, aiConfig: v })}
+            onSave={handleSave}
+            isSaved={isSaved}
+          />
+        )}
+        {activeTab === "idle_action" && (
+          <IdleActionPanel
+            config={settings.idleAction}
+            onChange={(v) => setSettings({ ...settings, idleAction: v })}
+            onSave={handleSave}
+            isSaved={isSaved}
+          />
+        )}
+        {activeTab === "api_integration" && (
+          <ApiIntegrationPanel
+            integrations={settings.apiIntegrations}
+            onChange={(v) => setSettings({ ...settings, apiIntegrations: v })}
+          />
+        )}
+        {activeTab === "crm_integration" && (
+          <CRMIntegrationPanel
+            config={settings.crmIntegration}
+            onChange={(v) => setSettings({ ...settings, crmIntegration: v })}
+            onSave={handleSave}
+            isSaved={isSaved}
+          />
+        )}
       </div>
-
-      {/* Subsection: AI Configuration */}
-      {settingsSubsection === "ai_config" && (
-        <Card className="glass-panel p-6 max-w-3xl">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-2xl border border-cyan-400/20 bg-cyan-950/30 p-3 text-cyan-300">
-              <Sliders className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold uppercase tracking-wider text-white">AI Configuration</h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Pilih model AI dan konfigurasi parameter teknis backend yang digunakan untuk membalas pesan di Inbox.
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSaveAIConfig} className="space-y-5">
-            <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
-              <input
-                type="checkbox"
-                checked={providerEnabled}
-                onChange={(e) => setProviderEnabled(e.target.checked)}
-                className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
-              />
-              Aktifkan provider AI production dari dashboard config
-            </label>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Provider Utama</label>
-                <Select value={provider} onChange={(e) => handleProviderChange(e.target.value as AIProviderKind)}>
-                  <option value="demo">Demo / Playground</option>
-                  <option value="openai">OpenAI</option>
-                  <option value="openrouter">OpenRouter</option>
-                  <option value="anthropic">Anthropic</option>
-                  <option value="gemini">Gemini</option>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Pilihan Model</label>
-                <Select
-                  value={(PROVIDER_MODELS[provider] || []).some((m) => m.value === model) ? model : "custom"}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setModel(val === "custom" ? "" : val);
-                  }}
-                >
-                  {(PROVIDER_MODELS[provider] || []).map((m) => (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
-                    </option>
-                  ))}
-                  <option value="custom">Model Kustom...</option>
-                </Select>
-                {(!(PROVIDER_MODELS[provider] || []).some((m) => m.value === model) || model === "") && (
-                  <div className="mt-2">
-                    <Input
-                      value={model}
-                      onChange={(e) => setModel(e.target.value)}
-                      placeholder="Nama model kustom (misal: gpt-4o-mini)"
-                      className="text-xs h-9"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">API Key Provider</label>
-                <Input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Masukkan API key"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Base URL Custom</label>
-                <Input
-                  value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
-                  placeholder="Opsional (untuk custom endpoint)"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Max Tokens</label>
-                <Input
-                  type="number"
-                  value={maxTokens}
-                  onChange={(e) => setMaxTokens(Number(e.target.value))}
-                  placeholder="Contoh: 2000"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Kuota Limit Bulanan</label>
-                <Input
-                  type="number"
-                  value={quotaLimit}
-                  onChange={(e) => setQuotaLimit(Number(e.target.value))}
-                  placeholder="Contoh: 999999999"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Embedding Model</label>
-                <Input value={embeddingModel} onChange={(e) => setEmbeddingModel(e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Vector Store</label>
-                <Select value={vectorStore} onChange={(e) => setVectorStore(e.target.value as VectorStoreKind)}>
-                  <option value="none">Belum dipakai</option>
-                  <option value="pgvector">PostgreSQL / pgvector</option>
-                  <option value="pinecone">Pinecone</option>
-                  <option value="supabase">Supabase Vector</option>
-                </Select>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between border-t border-white/8 pt-4">
-              {isSaved ? (
-                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-                  <Check className="h-4 w-4" />
-                  AI configuration berhasil disimpan!
-                </span>
-              ) : (
-                <div />
-              )}
-              <Button type="submit" className="px-6 h-9.5 text-xs">
-                Simpan AI Config
-              </Button>
-            </div>
-          </form>
-        </Card>
-      )}
-
-      {/* Subsection: Idle Action */}
-      {settingsSubsection === "idle_action" && (
-        <Card className="glass-panel p-6 max-w-3xl">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-2xl border border-cyan-400/20 bg-cyan-950/30 p-3 text-cyan-300">
-              <Clock3 className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold uppercase tracking-wider text-white">Idle Action</h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Atur apa yang dilakukan sistem jika obrolan di Inbox menganggur tanpa respons.
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSaveIdleAction} className="space-y-5">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Jeda Waktu Idle (Jam)</label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={idleTimeoutHours}
-                  onChange={(e) => setIdleTimeoutHours(Number(e.target.value))}
-                />
-                <p className="text-[10px] text-slate-500">Sesi dinyatakan idle jika tidak ada pesan baru selama rentang ini.</p>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Aksi Otomatis Saat Idle</label>
-                <Select
-                  value={idleActionType}
-                  onChange={(e) => setIdleActionType(e.target.value as "followup" | "close" | "handoff")}
-                >
-                  <option value="followup">Kirim pesan follow-up otomatis</option>
-                  <option value="close">Tutup sesi percakapan otomatis (Auto Close)</option>
-                  <option value="handoff">Pindahkan tiket ke antrean Handoff Admin</option>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Teks Pesan Idle</label>
-              <Textarea
-                value={idleMessage}
-                onChange={(e) => setIdleMessage(e.target.value)}
-                rows={4}
-                placeholder="Tulis pesan penutup atau follow-up otomatis..."
-              />
-            </div>
-
-            <div className="flex items-center justify-between border-t border-white/8 pt-4">
-              {isSaved ? (
-                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-                  <Check className="h-4 w-4" />
-                  Idle action berhasil disimpan!
-                </span>
-              ) : (
-                <div />
-              )}
-              <Button type="submit" className="px-6 h-9.5 text-xs">
-                Simpan Idle Action
-              </Button>
-            </div>
-          </form>
-        </Card>
-      )}
-
-      {/* Subsection: API Integration */}
-      {settingsSubsection === "api_integration" && (
-        <Card className="glass-panel p-6 max-w-3xl">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-2xl border border-cyan-400/20 bg-cyan-950/30 p-3 text-cyan-300">
-              <Globe className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold uppercase tracking-wider text-white">API Integration</h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Hubungkan chatbot dengan sistem eksternal melalui API agar bisa mengambil data real-time.
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSaveApiIntegration} className="space-y-6">
-            {/* Qontak API */}
-            <div className="rounded-xl border border-white/8 bg-white/[0.02] p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Radio className={`h-3 w-3 ${isQontakConnected ? "text-emerald-400 animate-pulse" : "text-slate-500"}`} />
-                  Qontak OMNI API
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsQontakConnected(!isQontakConnected)}
-                  className={`text-[10px] font-bold px-3 py-1 rounded border transition ${
-                    isQontakConnected
-                      ? "border-emerald-400/20 bg-emerald-950/20 text-emerald-300"
-                      : "border-white/10 bg-white/5 text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {isQontakConnected ? "Connected" : "Connect API"}
-                </button>
-              </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-semibold text-slate-300">Endpoint URL Qontak</label>
-                  <Input value={qontakApiUrl} onChange={(e) => setQontakApiUrl(e.target.value)} className="h-9 text-xs" disabled={isQontakConnected} />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-semibold text-slate-300">Access Token / Bearer Token</label>
-                  <Input type="password" value={qontakAccessToken} onChange={(e) => setQontakAccessToken(e.target.value)} placeholder="••••••••••••••••••••••••" className="h-9 text-xs" disabled={isQontakConnected} />
-                </div>
-              </div>
-            </div>
-
-            {/* Inventory API */}
-            <div className="rounded-xl border border-white/8 bg-white/[0.02] p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Radio className={`h-3 w-3 ${isInventoryConnected ? "text-emerald-400 animate-pulse" : "text-slate-500"}`} />
-                  Inventory API (Stok Suku Cadang)
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsInventoryConnected(!isInventoryConnected)}
-                  className={`text-[10px] font-bold px-3 py-1 rounded border transition ${
-                    isInventoryConnected
-                      ? "border-emerald-400/20 bg-emerald-950/20 text-emerald-300"
-                      : "border-white/10 bg-white/5 text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {isInventoryConnected ? "Connected" : "Connect API"}
-                </button>
-              </div>
-              <div className="space-y-1.5 max-w-md">
-                <label className="text-[10px] font-semibold text-slate-300">Local Inventory API Endpoint</label>
-                <Input value={inventoryApiUrl} onChange={(e) => setInventoryApiUrl(e.target.value)} className="h-9 text-xs" disabled={isInventoryConnected} />
-                <p className="text-[9px] text-slate-500">Bot dapat mengecek ketersediaan stok secara real-time saat ditanya pelanggan.</p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between border-t border-white/8 pt-4">
-              {isSaved ? (
-                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-                  <Check className="h-4 w-4" />
-                  API integrations berhasil diperbarui!
-                </span>
-              ) : (
-                <div />
-              )}
-              <Button type="submit" className="px-6 h-9.5 text-xs">
-                Simpan Integrasi API
-              </Button>
-            </div>
-          </form>
-        </Card>
-      )}
-
-      {/* Subsection: CRM Integration */}
-      {settingsSubsection === "crm_integration" && (
-        <Card className="glass-panel p-6 max-w-3xl">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-2xl border border-cyan-400/20 bg-cyan-950/30 p-3 text-cyan-300">
-              <UserCheck className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold uppercase tracking-wider text-white">CRM Integration</h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Sinkronisasi data dari chatbot ke CRM agar setiap prospek baru terdaftar otomatis di Contacts.
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSaveCrmIntegration} className="space-y-5">
-            <label className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300">
-              <input
-                type="checkbox"
-                checked={autoSyncToCrm}
-                onChange={(e) => setAutoSyncToCrm(e.target.checked)}
-                className="h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
-              />
-              Aktifkan sinkronisasi otomatis kontak baru langsung ke CRM database
-            </label>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Tahap Pipeline Default</label>
-                <Select value={defaultLeadStage} onChange={(e) => setDefaultLeadStage(e.target.value)}>
-                  <option value="Interested">Interested / Tertarik</option>
-                  <option value="Qualified Lead">Qualified Lead / Prospek Layak</option>
-                  <option value="Proposal Sent">Proposal Sent / Penawaran Terkirim</option>
-                  <option value="Negotiation">Negotiation / Negosiasi</option>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Owner Default Prospek Baru</label>
-                <Select value={crmOwner} onChange={(e) => setCrmOwner(e.target.value)}>
-                  <option value="AI Assistant">AI Assistant (Otomatis)</option>
-                  <option value="Johan (Mekanik)">Johan (Mekanik Utama)</option>
-                  <option value="Admin Office">Admin Office</option>
-                </Select>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4 space-y-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mapping Kolom CRM</span>
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <p className="text-slate-500">Kolom Chatbot</p>
-                  <ul className="mt-1 space-y-1.5 text-slate-300 font-semibold">
-                    <li>Nomor Pengirim (WhatsApp ID)</li>
-                    <li>Nama Pelanggan (WhatsApp Profile)</li>
-                    <li>Summary Percakapan AI</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-slate-500">Kolom CRM Contacts</p>
-                  <ul className="mt-1 space-y-1.5 text-cyan-400 font-semibold">
-                    <li>→ Nomor Telepon Utama</li>
-                    <li>→ Nama Lengkap</li>
-                    <li>→ Catatan & Context (Notes)</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between border-t border-white/8 pt-4">
-              {isSaved ? (
-                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-                  <Check className="h-4 w-4" />
-                  CRM integration berhasil disimpan!
-                </span>
-              ) : (
-                <div />
-              )}
-              <Button type="submit" className="px-6 h-9.5 text-xs">
-                Simpan Setelan CRM
-              </Button>
-            </div>
-          </form>
-        </Card>
-      )}
     </div>
   );
 }
