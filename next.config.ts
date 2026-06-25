@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   typescript: {
     tsconfigPath: "./tsconfig.json",
   },
+  serverExternalPackages: ["better-sqlite3", "pdf-parse", "mammoth"],
   eslint: {
     ignoreDuringBuilds: false,
   },
