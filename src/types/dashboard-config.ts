@@ -37,6 +37,27 @@ export type AutomationRule = {
   risk: "low" | "medium" | "high";
 };
 
+export type ConversationFlow = {
+  id: string;
+  name: string;
+  channel: string;
+  trigger: string;
+  initialMessage: string;
+  interactiveMenu: Array<{
+    id: string;
+    label: string;
+    response: string;
+  }>;
+  fallbackMessage: string;
+  humanAgentHandoff: {
+    enabled: boolean;
+    condition: string;
+  };
+  status: "Published" | "Draft" | "Inactive";
+  botResponse: number;
+  lastUpdate: string;
+};
+
 export type AIProviderKind =
   | "demo"
   | "openai"
@@ -149,6 +170,7 @@ export type DashboardConfig = {
     spamGuard: boolean;
     sentimentGuard: boolean;
     rules: AutomationRule[];
+    conversations: ConversationFlow[];
   };
   team: {
     members: TeamMember[];
