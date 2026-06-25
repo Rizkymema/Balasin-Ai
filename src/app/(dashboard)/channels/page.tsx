@@ -1521,6 +1521,50 @@ struct ChatView: View {
                       )}
                     </Button>
                   </div>
+
+                  {/* ── Divider manual ── */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-white/8" />
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">atau isi manual</span>
+                    <div className="flex-1 h-px bg-white/8" />
+                  </div>
+
+                  {/* ── Form Manual WhatsApp ── */}
+                  <form onSubmit={persistWhatsApp} className="rounded-xl border border-white/8 bg-white/[0.02] p-5 space-y-4">
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Jika Anda sudah punya token dari Meta Developer Console, isi langsung di bawah ini.
+                    </p>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-300">Label nomor bisnis</label>
+                        <Input value={waLabel} onChange={(e) => setWaLabel(e.target.value)} className="h-10 text-xs" placeholder="Contoh: Johan Garage WA" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-300">Phone Number ID</label>
+                        <Input value={phoneId} onChange={(e) => setPhoneId(e.target.value)} className="h-10 text-xs" placeholder="Dari Meta Developer" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-300">Permanent access token</label>
+                      <Input type="password" value={accessToken} onChange={(e) => setAccessToken(e.target.value)} className="h-10 text-xs" placeholder="EAABwzLixnjY..." />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-300">Verify token</label>
+                      <Input value={verifyToken} onChange={(e) => setVerifyToken(e.target.value)} className="h-10 text-xs" placeholder="Contoh: balesin_verify" />
+                    </div>
+                    <div className="rounded-lg border border-white/8 bg-[#020611] p-3 text-[10px] text-slate-400 space-y-1">
+                      <span className="block font-semibold text-slate-400 uppercase tracking-wider">Webhook Callback URL</span>
+                      <code className="block font-mono text-cyan-300 break-all">{whatsappWebhookUrl}</code>
+                    </div>
+                    {waSaved && (
+                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-300">
+                        ✓ Konfigurasi WhatsApp tersimpan.
+                      </div>
+                    )}
+                    <div className="flex justify-end">
+                      <Button type="submit" className="px-6 text-xs h-9 bg-emerald-600 hover:bg-emerald-500">Simpan & Hubungkan</Button>
+                    </div>
+                  </form>
                 </div>
               )}
             </div>
@@ -1753,6 +1797,49 @@ struct ChatView: View {
                     </Button>
                   </div>
 
+                  {/* ── Divider manual ── */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-white/8" />
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">atau isi manual</span>
+                    <div className="flex-1 h-px bg-white/8" />
+                  </div>
+
+                  {/* ── Form Manual Instagram ── */}
+                  <form onSubmit={persistInstagram} className="rounded-xl border border-white/8 bg-white/[0.02] p-5 space-y-4">
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Jika login Facebook bermasalah, isi token Instagram secara manual di bawah ini.
+                    </p>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-300">Username Instagram</label>
+                        <Input value={igUsername} onChange={(e) => setIgUsername(e.target.value)} className="h-10 text-xs" placeholder="namaakun (tanpa @)" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-300">Instagram Account ID</label>
+                        <Input value={igAccountId} onChange={(e) => setIgAccountId(e.target.value)} className="h-10 text-xs" placeholder="17841400000000000" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-300">Meta access token</label>
+                      <Input type="password" value={igAccessToken} onChange={(e) => setIgAccessToken(e.target.value)} className="h-10 text-xs" placeholder="EAABwzLixnjY..." />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-300">Verify token</label>
+                      <Input value={igVerifyToken} onChange={(e) => setIgVerifyToken(e.target.value)} className="h-10 text-xs" placeholder="Contoh: balesin_verify" />
+                    </div>
+                    <div className="rounded-lg border border-white/8 bg-[#020611] p-3 text-[10px] text-slate-400 space-y-1">
+                      <span className="block font-semibold text-slate-400 uppercase tracking-wider">Webhook Callback URL</span>
+                      <code className="block font-mono text-cyan-300 break-all">{instagramWebhookUrl}</code>
+                    </div>
+                    {igSaved && (
+                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-300">
+                        ✓ Konfigurasi Instagram tersimpan.
+                      </div>
+                    )}
+                    <div className="flex justify-end">
+                      <Button type="submit" className="px-6 text-xs h-9 bg-fuchsia-600 hover:bg-fuchsia-500">Simpan & Hubungkan</Button>
+                    </div>
+                  </form>
                 </div>
               )}
             </div>
