@@ -106,7 +106,8 @@ export default function AutomationPage() {
   };
 
   const handleToggleStatus = (flow: ConversationFlow) => {
-    const newStatus = flow.status === "Inactive" || flow.status === "Draft" ? "Published" : "Inactive";
+    const newStatus: ConversationFlow["status"] =
+      flow.status === "Inactive" || flow.status === "Draft" ? "Published" : "Inactive";
     const nextConversations = conversations.map((f) =>
       f.id === flow.id ? { ...f, status: newStatus } : f
     );
