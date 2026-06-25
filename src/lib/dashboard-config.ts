@@ -43,6 +43,8 @@ export const defaultDashboardConfig: DashboardConfig = {
     embeddingModel: "text-embedding-3-small",
     baseUrl: "",
     vectorStore: "none",
+    maxTokens: 2000,
+    quotaLimit: 999999999,
   },
   knowledgeBase: {
     faqs: [],

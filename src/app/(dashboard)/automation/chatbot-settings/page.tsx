@@ -98,6 +98,8 @@ export default function ChatbotSettingsPage() {
     setEmbeddingModel(config.aiProvider.embeddingModel);
     setBaseUrl(config.aiProvider.baseUrl);
     setVectorStore(config.aiProvider.vectorStore);
+    setMaxTokens(config.aiProvider.maxTokens ?? 2000);
+    setQuotaLimit(config.aiProvider.quotaLimit ?? 999999999);
     setIdleTimeoutHours(config.automation.followUpDelayHours);
   }, [config]);
 
@@ -112,7 +114,7 @@ export default function ChatbotSettingsPage() {
     event.preventDefault();
     patchConfig((current) => ({
       ...current,
-      aiProvider: { enabled: providerEnabled, provider, apiKey, model, embeddingModel, baseUrl, vectorStore },
+      aiProvider: { enabled: providerEnabled, provider, apiKey, model, embeddingModel, baseUrl, vectorStore, maxTokens, quotaLimit },
     }));
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2500);

@@ -83,6 +83,8 @@ export type DashboardConfig = {
     embeddingModel: string;
     baseUrl: string;
     vectorStore: VectorStoreKind;
+    maxTokens: number;
+    quotaLimit: number;
   };
   knowledgeBase: {
     faqs: FAQItem[];
