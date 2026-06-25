@@ -120,7 +120,7 @@ export function CreateConversationModal({ initialData, onClose, onSave }: Create
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <label className="text-sm font-semibold text-slate-300">Interactive Menu (Buttons/List)</label>
-              <Button type="button" variant="outline" size="sm" onClick={addMenuItem} className="h-8 gap-2 bg-transparent text-xs">
+              <Button type="button" variant="secondary" onClick={addMenuItem} className="h-8 px-3 py-1.5 gap-2 bg-transparent text-xs">
                 <Plus className="h-3.5 w-3.5" />
                 Add Menu
               </Button>
@@ -207,11 +207,11 @@ export function CreateConversationModal({ initialData, onClose, onSave }: Create
         </div>
 
         <div className="flex items-center justify-between border-t border-[var(--color-border)] px-6 py-4 bg-[var(--color-surface)] rounded-b-xl">
-          <Button variant="ghost" onClick={onClose} className="text-slate-400 hover:text-white">
+          <Button variant="secondary" onClick={onClose} className="text-slate-400 hover:text-white bg-transparent border-transparent">
             Cancel
           </Button>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => handleSave("Draft")} className="gap-2 bg-transparent">
+            <Button variant="secondary" onClick={() => handleSave("Draft")} className="gap-2 bg-transparent">
               <Save className="h-4 w-4" />
               Save as Draft
             </Button>

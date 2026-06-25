@@ -179,8 +179,8 @@ export default function AutomationPage() {
             <div className="flex items-center justify-between border-t border-[var(--color-border)] pt-4">
               <span className="text-xs text-slate-500">Menampilkan {filteredConversations.length} dari {conversations.length} conversations</span>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" disabled className="bg-transparent border-white/10 text-slate-400">Previous</Button>
-                <Button variant="outline" size="sm" disabled className="bg-transparent border-white/10 text-slate-400">Next</Button>
+                <Button variant="secondary" disabled className="px-3 py-1.5 text-xs bg-transparent border-white/10 text-slate-400">Previous</Button>
+                <Button variant="secondary" disabled className="px-3 py-1.5 text-xs bg-transparent border-white/10 text-slate-400">Next</Button>
               </div>
             </div>
           </>

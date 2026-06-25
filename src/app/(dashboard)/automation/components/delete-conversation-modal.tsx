@@ -34,7 +34,7 @@ export function DeleteConversationModal({
         </p>
 
         <div className="flex gap-3 justify-center">
-          <Button variant="ghost" onClick={onClose} className="text-slate-400 hover:text-white flex-1 max-w-[120px]">
+          <Button variant="secondary" onClick={onClose} className="text-slate-400 hover:text-white flex-1 max-w-[120px] bg-transparent border-transparent">
             Batal
           </Button>
           <Button
