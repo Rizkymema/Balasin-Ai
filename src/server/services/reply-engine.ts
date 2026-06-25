@@ -1245,7 +1245,6 @@ function resolveProviderEndpoint(config: DashboardConfig) {
     if (/\/(chat\/completions|responses)$/i.test(customBaseUrl)) {
       return customBaseUrl;
     }
-
     return `${customBaseUrl.replace(/\/+$/, "")}/chat/completions`;
   }
 
@@ -1254,16 +1253,47 @@ function resolveProviderEndpoint(config: DashboardConfig) {
       return "https://openrouter.ai/api/v1/chat/completions";
     case "openai":
       return "https://api.openai.com/v1/chat/completions";
+    case "gemini": {
+      const model = config.aiProvider.model.trim();
+      const apiKey = config.aiProvider.apiKey.trim();
+      return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    }
+    case "anthropic":
+      return "https://api.anthropic.com/v1/messages";
     default:
       return "";
   }
 }
 
-function extractAiResponseText(payload: unknown) {
+function extractAiResponseText(payload: unknown, provider?: string) {
   if (!payload || typeof payload !== "object") {
     return "";
   }
 
+  // Anthropic response: { content: [{ type: "text", text: "..." }] }
+  if (provider === "anthropic") {
+    const anthropic = payload as { content?: Array<{ type?: string; text?: string }> };
+    const text = anthropic.content
+      ?.filter((item) => item.type === "text")
+      .map((item) => item.text?.trim() ?? "")
+      .filter(Boolean)
+      .join("\n");
+    return text?.trim() ?? "";
+  }
+
+  // Gemini response: { candidates: [{ content: { parts: [{ text: "..." }] } }] }
+  if (provider === "gemini") {
+    const gemini = payload as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    };
+    const text = gemini.candidates?.[0]?.content?.parts
+      ?.map((p) => p.text?.trim() ?? "")
+      .filter(Boolean)
+      .join("\n");
+    return text?.trim() ?? "";
+  }
+
+  // OpenAI / OpenRouter response
   const response = payload as {
     choices?: Array<{
       message?: {
@@ -1383,47 +1413,85 @@ PERTANYAAN CUSTOMER
 ${messageText}
 `.trim();
 
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${config.aiProvider.apiKey.trim()}`,
-    "Content-Type": "application/json",
-  };
-
-  if (config.aiProvider.provider === "openrouter") {
-    headers["HTTP-Referer"] = resolveAppUrl();
-    headers["X-Title"] = config.workspace.name || "Balesin Desk";
-  }
+  const provider = config.aiProvider.provider;
+  const apiKey = config.aiProvider.apiKey.trim();
 
   try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model: config.aiProvider.model.trim(),
-        temperature: 0.25,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
+    let response: Response;
+
+    // ── Gemini (Google AI) ──────────────────────────────────────────────
+    if (provider === "gemini") {
+      response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+          generationConfig: { temperature: 0.25, maxOutputTokens: 1024 },
+        }),
+      });
+    }
+    // ── Anthropic (Claude) ──────────────────────────────────────────────
+    else if (provider === "anthropic") {
+      response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: config.aiProvider.model.trim(),
+          max_tokens: 1024,
+          system: systemPrompt,
+          messages: [{ role: "user", content: userPrompt }],
+        }),
+      });
+    }
+    // ── OpenAI / OpenRouter (default) ───────────────────────────────────
+    else {
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      };
+      if (provider === "openrouter") {
+        headers["HTTP-Referer"] = resolveAppUrl();
+        headers["X-Title"] = config.workspace.name || "Balesin Desk";
+      }
+      response = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: config.aiProvider.model.trim(),
+          temperature: 0.25,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        }),
+      });
+    }
 
     if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      console.error(`[reply-engine] provider=${provider} status=${response.status}`, errText.slice(0, 400));
       return null;
     }
 
     const payload = (await response.json()) as unknown;
-    const reply = extractAiResponseText(payload);
+    const reply = extractAiResponseText(payload, provider);
     if (!reply) {
+      console.error("[reply-engine] empty reply from provider", provider);
       return null;
     }
 
     return {
       reply,
       grounded: faqContext.length > 0 || documentContext.length > 0,
-      usedContext:
-        faqContext.length > 0 || documentContext.length > 0,
+      usedContext: faqContext.length > 0 || documentContext.length > 0,
     };
-  } catch {
+  } catch (err) {
+    console.error("[reply-engine] generateProviderReply threw", err);
     return null;
   }
 }
