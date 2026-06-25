@@ -29,7 +29,7 @@ export function DeleteConversationModal({
         <h3 className="mb-2 text-lg font-bold text-white">Hapus Conversation?</h3>
         <p className="mb-6 text-sm text-slate-400">
           Apakah Anda yakin ingin menghapus conversation flow{" "}
-          <span className="font-semibold text-white">"{conversationName}"</span>? 
+          <span className="font-semibold text-white">&quot;{conversationName}&quot;</span>? 
           Tindakan ini tidak dapat dibatalkan.
         </p>
 
