@@ -40,6 +40,7 @@ import {
   RefreshCw
 } from "lucide-react";
 
+import Link from "next/link";
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import type {
   AIProviderKind,
@@ -694,7 +695,37 @@ export default function AutomationPage() {
         </div>
       </div>
 
-      {/* Main Tabs */}
+      {/* Quick Nav to standalone pages */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {[
+          { href: "/automation", label: "Conversations", desc: "Aturan otomasi", icon: GitBranch, active: true },
+          { href: "/automation/ai-agent", label: "AI agents", desc: "Persona & tone AI", icon: Bot, badge: "NEW" },
+          { href: "/automation/knowledge-base", label: "Knowledge Base", desc: "FAQ & dokumen", icon: Database },
+          { href: "/automation/chatbot-settings", label: "Chatbot settings", desc: "Provider AI", icon: Settings2 },
+        ].map(({ href, label, desc, icon: Icon, active, badge }) => (
+          <Link
+            key={href}
+            href={href}
+            className={`flex items-start gap-3 rounded-xl border p-3.5 transition hover:border-cyan-400/30 hover:bg-white/[0.03] ${
+              active && href !== "/automation"
+                ? "border-cyan-400/25 bg-cyan-950/10"
+                : "border-white/8 bg-white/[0.02]"
+            }`}
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-400/15 bg-cyan-950/30 text-cyan-400">
+              <Icon className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-bold text-white">{label}</span>
+                {badge && <span className="rounded bg-cyan-500 px-1 py-0.5 text-[8px] font-extrabold text-slate-950">{badge}</span>}
+              </div>
+              <span className="text-[10px] text-slate-500">{desc}</span>
+            </div>
+          </Link>
+        ))}
+      </div>
+
       <Tabs
         tabs={[
           { id: "conversations", label: "Conversations" },

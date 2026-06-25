@@ -1,0 +1,623 @@
+"use client";
+
+import { useEffect, useMemo, useState, useRef, type FormEvent } from "react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Check,
+  Database,
+  FileText,
+  Link2,
+  Loader2,
+  MessageSquare,
+  Search,
+  Trash2,
+  Upload,
+} from "lucide-react";
+import Link from "next/link";
+
+import { useDashboardConfig } from "@/hooks/use-dashboard-config";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { EmptyState } from "@/components/ui/empty-state";
+
+export default function KnowledgeBasePage() {
+  const { config, patchConfig, refreshConfig, isLoading } = useDashboardConfig();
+  const [isSaved, setIsSaved] = useState(false);
+  const [kbSubsection, setKbSubsection] = useState("resources");
+
+  const [unansweredQuestions, setUnansweredQuestions] = useState<string[]>([
+    "Apakah Johan Garage menerima servis motor listrik?",
+    "Berapa biaya ganti ban tubeless untuk motor NMax?",
+    "Apakah Johan Garage buka saat libur Idul Fitri?",
+  ]);
+
+  const [inputMethodActive, setInputMethodActive] = useState<"none" | "url" | "text">("none");
+  const [kbUrlInput, setKbUrlInput] = useState("");
+  const [kbTextTitle, setKbTextTitle] = useState("");
+  const [kbTextContent, setKbTextContent] = useState("");
+  const [isSyncingKbSources, setIsSyncingKbSources] = useState(false);
+  const [isIngestingText, setIsIngestingText] = useState(false);
+  const [isUploadingKbFile, setIsUploadingKbFile] = useState(false);
+  const [kbSearchQuery, setKbSearchQuery] = useState("");
+
+  const [personaConfig, setPersonaConfig] = useState("");
+  const [toneOfVoice, setToneOfVoice] = useState("");
+  const [guardrails, setGuardrails] = useState("");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!config) return;
+    const rawPrompt = config.aiAgent.replyInstructions || "";
+    const personaMatch = rawPrompt.match(/\[PERSONA\]\n([\s\S]*?)(?=\n\n\[TONE\]|$)/);
+    const toneMatch = rawPrompt.match(/\[TONE\]\n([\s\S]*?)(?=\n\n\[GUARDRAILS\]|$)/);
+    const guardMatch = rawPrompt.match(/\[GUARDRAILS\]\n([\s\S]*?)$/);
+
+    if (personaMatch || toneMatch || guardMatch) {
+      setPersonaConfig(personaMatch ? personaMatch[1].trim() : "");
+      setToneOfVoice(toneMatch ? toneMatch[1].trim() : "");
+      setGuardrails(guardMatch ? guardMatch[1].trim() : "");
+    } else {
+      setPersonaConfig(rawPrompt);
+      setToneOfVoice("");
+      setGuardrails("");
+    }
+  }, [config]);
+
+  const urlCount = useMemo(() => config?.knowledgeBase.websiteUrls.length || 0, [config]);
+  const docCount = useMemo(
+    () => config?.knowledgeBase.documents.filter((d) => d.sourceType === "upload" && !d.name.endsWith(".txt")).length || 0,
+    [config]
+  );
+  const textCount = useMemo(
+    () => config?.knowledgeBase.documents.filter((d) => d.name.endsWith(".txt")).length || 0,
+    [config]
+  );
+
+  const filteredKbDocs = useMemo(() => {
+    const docs = config?.knowledgeBase.documents || [];
+    if (!kbSearchQuery.trim()) return docs;
+    return docs.filter((doc) => doc.name.toLowerCase().includes(kbSearchQuery.toLowerCase()));
+  }, [config, kbSearchQuery]);
+
+  const handleSyncKbUrl = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!kbUrlInput.trim()) return;
+    setIsSyncingKbSources(true);
+    const incomingUrls = kbUrlInput
+      .split("\n")
+      .map((u) => u.trim())
+      .filter(Boolean);
+    try {
+      const existingUrls = config.knowledgeBase.websiteUrls;
+      const combinedUrls = Array.from(new Set([...existingUrls, ...incomingUrls]));
+      const response = await fetch("/api/knowledge/sources/sync", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ websiteUrls: combinedUrls, googleSheetUrls: config.knowledgeBase.googleSheetUrls }),
+      });
+      if (!response.ok) throw new Error("Gagal menyelaraskan URL.");
+      await refreshConfig();
+      setKbUrlInput("");
+      setInputMethodActive("none");
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2500);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Sinkronisasi URL gagal.");
+    } finally {
+      setIsSyncingKbSources(false);
+    }
+  };
+
+  const handleIngestKbText = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!kbTextTitle.trim() || !kbTextContent.trim()) return;
+    setIsIngestingText(true);
+    try {
+      const response = await fetch("/api/knowledge/text", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: kbTextTitle.trim() + ".txt", content: kbTextContent.trim() }),
+      });
+      if (!response.ok) throw new Error("Gagal menyimpan teks fakta.");
+      setUnansweredQuestions((prev) => prev.filter((q) => q !== kbTextTitle.trim()));
+      await refreshConfig();
+      setKbTextTitle("");
+      setKbTextContent("");
+      setInputMethodActive("none");
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2500);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Simpan teks gagal.");
+    } finally {
+      setIsIngestingText(false);
+    }
+  };
+
+  const handleUploadKbFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsUploadingKbFile(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/knowledge/documents/upload", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      if (!response.ok) throw new Error("Gagal mengunggah file.");
+      await refreshConfig();
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2500);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Gagal mengunggah berkas.");
+    } finally {
+      setIsUploadingKbFile(false);
+    }
+  };
+
+  const handleDeleteKbDocument = async (id: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus referensi ini?")) return;
+    try {
+      await fetch(`/api/knowledge/documents/${id}`, { method: "DELETE", credentials: "include" });
+      await refreshConfig();
+    } catch {
+      alert("Gagal menghapus dokumen.");
+    }
+  };
+
+  const handleAnswerQuestion = (question: string) => {
+    setKbTextTitle(question);
+    setKbTextContent("");
+    setInputMethodActive("text");
+    setKbSubsection("resources");
+  };
+
+  const handleDismissQuestion = (question: string) => {
+    setUnansweredQuestions((prev) => prev.filter((q) => q !== question));
+  };
+
+  const handleSaveInstructions = (event: FormEvent) => {
+    event.preventDefault();
+    const assembledPrompt = `[PERSONA]\n${personaConfig.trim()}\n\n[TONE]\n${toneOfVoice.trim()}\n\n[GUARDRAILS]\n${guardrails.trim()}`;
+    patchConfig((current) => ({
+      ...current,
+      aiAgent: { ...current.aiAgent, replyInstructions: assembledPrompt },
+    }));
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 2500);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Link href="/automation" className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-white transition">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Automation
+            </Link>
+          </div>
+          <h1 className="flex items-center gap-2.5 text-2xl font-bold text-white">
+            <Database className="h-6 w-6 text-cyan-400" />
+            Knowledge Base
+          </h1>
+          <p className="mt-1 text-xs text-slate-400">
+            Kelola sumber pengetahuan AI — FAQ, dokumen, URL, dan custom instructions.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-950/20 px-4 py-2.5 text-xs">
+          <MessageSquare className="h-4 w-4 text-cyan-400" />
+          <span className="text-slate-300">
+            Terhubung ke{" "}
+            <Link href="/inbox" className="font-bold text-cyan-400 hover:underline">
+              Inbox
+            </Link>{" "}
+            — AI membaca data ini saat menjawab
+          </span>
+          <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+        </div>
+      </div>
+
+      {/* KB Stats Banner */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "URL Tersinkron", count: urlCount, icon: Link2, color: "cyan" },
+          { label: "File Upload", count: docCount, icon: Upload, color: "purple" },
+          { label: "Teks Fakta", count: textCount, icon: FileText, color: "emerald" },
+        ].map(({ label, count, icon: Icon, color }) => (
+          <div
+            key={label}
+            className={`rounded-xl border border-${color}-500/15 bg-${color}-950/10 p-4 text-center`}
+          >
+            <Icon className={`mx-auto mb-1.5 h-5 w-5 text-${color}-400`} />
+            <div className={`text-2xl font-extrabold text-${color}-300`}>{count}</div>
+            <div className="text-[10px] text-slate-500 mt-0.5">{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Sub Tabs */}
+      <div className="flex border-b border-white/8 space-x-6">
+        {[
+          { id: "resources", label: "AI Resources" },
+          { id: "instructions", label: "Custom Instructions" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setKbSubsection(tab.id)}
+            className={`pb-3 text-xs font-semibold uppercase tracking-wider border-b-2 transition ${
+              kbSubsection === tab.id
+                ? "border-cyan-400 text-cyan-400 font-bold"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* SubSection: AI Resources */}
+      {kbSubsection === "resources" && (
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+          <div className="space-y-6 lg:col-span-2">
+            {/* Existing Sources */}
+            <Card className="glass-panel p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-white">Existing Sources</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Seluruh referensi yang sudah dipelajari AI.</p>
+                </div>
+                <div className="relative w-full sm:max-w-xs">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                  <Input
+                    placeholder="Cari referensi..."
+                    className="h-9 pl-9 text-xs"
+                    value={kbSearchQuery}
+                    onChange={(e) => setKbSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {filteredKbDocs.length === 0 ? (
+                  <EmptyState
+                    icon={<Database className="h-10 w-10 text-slate-500" />}
+                    title="Belum ada referensi"
+                    description="Gunakan Metode Input di samping kanan untuk memasukkan data."
+                    className="min-h-[200px]"
+                  />
+                ) : (
+                  filteredKbDocs.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="rounded-xl border border-white/6 bg-white/2 p-4 flex items-center justify-between gap-4"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cyan-400/10 bg-cyan-950/20 text-cyan-400">
+                          {doc.name.endsWith(".txt") ? (
+                            <FileText className="h-4.5 w-4.5" />
+                          ) : doc.sourceType === "website" ? (
+                            <Link2 className="h-4.5 w-4.5" />
+                          ) : (
+                            <Upload className="h-4.5 w-4.5" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="block truncate text-xs font-bold text-white">{doc.name}</span>
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-slate-500">
+                            <span>{doc.size}</span>
+                            <span className="rounded-full border border-white/8 px-2 py-0.5 text-[9px] uppercase tracking-wider text-slate-400">
+                              {doc.name.endsWith(".txt") ? "Text Content" : doc.sourceType === "website" ? "External URL" : "File Upload"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1 rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                          <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                          Terserap AI
+                        </span>
+                        <button
+                          onClick={() => handleDeleteKbDocument(doc.id)}
+                          className="rounded p-1.5 text-slate-500 transition hover:text-red-400"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
+
+            {/* Unanswered Questions */}
+            <Card className="glass-panel p-6 border-amber-500/25">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="h-5 w-5 text-amber-400" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-white">Unanswered Questions</h3>
+              </div>
+              <p className="text-xs text-slate-400 mb-4 leading-normal">
+                Pertanyaan pelanggan yang gagal dijawab AI. Tambahkan ke Knowledge Base untuk meningkatkan akurasi.
+              </p>
+              <div className="space-y-3">
+                {unansweredQuestions.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.01] p-6 text-center text-xs font-semibold text-slate-500">
+                    Tidak ada pertanyaan tak terjawab saat ini. Sistem bekerja sempurna!
+                  </div>
+                ) : (
+                  unansweredQuestions.map((question, idx) => (
+                    <div
+                      key={idx}
+                      className="rounded-xl border border-white/8 bg-white/[0.02] p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                    >
+                      <p className="text-xs font-semibold text-slate-200">{question}</p>
+                      <div className="flex gap-2 shrink-0">
+                        <Button onClick={() => handleAnswerQuestion(question)} className="text-[10px] h-8 px-3 rounded-lg">
+                          Jawab via Text Content
+                        </Button>
+                        <button
+                          onClick={() => handleDismissQuestion(question)}
+                          className="text-[10px] h-8 px-3 rounded-lg border border-white/10 text-slate-400 hover:text-white"
+                        >
+                          Abaikan
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
+          </div>
+
+          {/* Methods Input Side Panel */}
+          <div className="space-y-6">
+            <Card className="glass-panel p-5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-4">Metode Input</h3>
+              <div className="space-y-3">
+                {/* External URL Card */}
+                <div
+                  onClick={() => setInputMethodActive("url")}
+                  className={`flex items-center justify-between p-4 rounded-xl border transition cursor-pointer ${
+                    inputMethodActive === "url"
+                      ? "border-cyan-400 bg-cyan-950/20"
+                      : "border-white/8 bg-white/[0.02] hover:border-cyan-400/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-950/50 text-cyan-400 border border-cyan-400/20">
+                      <Link2 className="h-4 w-4" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-white">External URL</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Tautkan link / katalog online</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full border border-cyan-400/20 bg-cyan-950 px-2.5 py-0.5 text-[10px] font-bold text-cyan-300">
+                    {urlCount}
+                  </span>
+                </div>
+
+                {/* File Upload Card */}
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center justify-between p-4 rounded-xl border border-white/8 bg-white/[0.02] hover:border-cyan-400/50 transition cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-950/50 text-cyan-400 border border-cyan-400/20">
+                      <Upload className="h-4 w-4" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-white">File upload</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Unggah berkas PDF / XLSX</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full border border-cyan-400/20 bg-cyan-950 px-2.5 py-0.5 text-[10px] font-bold text-cyan-300">
+                    {isUploadingKbFile ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : docCount}
+                  </span>
+                </div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleUploadKbFile}
+                  accept=".pdf,.docx,.xlsx,.xls,.csv,.txt,.md"
+                  className="hidden"
+                />
+
+                {/* Text Content Card */}
+                <div
+                  onClick={() => setInputMethodActive("text")}
+                  className={`flex items-center justify-between p-4 rounded-xl border transition cursor-pointer ${
+                    inputMethodActive === "text"
+                      ? "border-cyan-400 bg-cyan-950/20"
+                      : "border-white/8 bg-white/[0.02] hover:border-cyan-400/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-950/50 text-cyan-400 border border-cyan-400/20">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-white">Text content</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Ketik fakta manual</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full border border-cyan-400/20 bg-cyan-950 px-2.5 py-0.5 text-[10px] font-bold text-cyan-300">
+                    {textCount}
+                  </span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Form URL */}
+            {inputMethodActive === "url" && (
+              <Card className="glass-panel p-5 space-y-3.5">
+                <div className="flex items-center justify-between border-b border-white/8 pb-2">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">Input External URL</span>
+                  <button onClick={() => setInputMethodActive("none")} className="text-[10px] text-slate-500 hover:text-white">
+                    Batal
+                  </button>
+                </div>
+                <form onSubmit={handleSyncKbUrl} className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-slate-300">Tautan (Satu per baris)</label>
+                    <Textarea
+                      placeholder="https://johangarage.com/profile"
+                      value={kbUrlInput}
+                      onChange={(e) => setKbUrlInput(e.target.value)}
+                      rows={3}
+                      className="text-xs"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" disabled={isSyncingKbSources} className="w-full text-xs h-9">
+                    {isSyncingKbSources ? (
+                      <>
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        Sinkronisasi...
+                      </>
+                    ) : (
+                      "Tambahkan Tautan"
+                    )}
+                  </Button>
+                </form>
+              </Card>
+            )}
+
+            {/* Form Text Fact Ingest */}
+            {inputMethodActive === "text" && (
+              <Card className="glass-panel p-5 space-y-3.5">
+                <div className="flex items-center justify-between border-b border-white/8 pb-2">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">Ketik Fakta Manual</span>
+                  <button onClick={() => setInputMethodActive("none")} className="text-[10px] text-slate-500 hover:text-white">
+                    Batal
+                  </button>
+                </div>
+                <form onSubmit={handleIngestKbText} className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-slate-300">Nama Fakta / Pemicu</label>
+                    <Input
+                      placeholder="Contoh: Jadwal Buka Bengkel"
+                      value={kbTextTitle}
+                      onChange={(e) => setKbTextTitle(e.target.value)}
+                      className="h-9 text-xs"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-slate-300">Isi Konten Teks</label>
+                    <Textarea
+                      placeholder="Contoh: Johan Garage buka Senin-Sabtu pukul 08:00-17:00."
+                      value={kbTextContent}
+                      onChange={(e) => setKbTextContent(e.target.value)}
+                      rows={4}
+                      className="text-xs"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" disabled={isIngestingText} className="w-full text-xs h-9">
+                    {isIngestingText ? (
+                      <>
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      "Simpan Konten Fakta"
+                    )}
+                  </Button>
+                </form>
+              </Card>
+            )}
+
+            {isSaved && (
+              <div className="flex items-center gap-1.5 rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-3 text-xs font-bold text-emerald-400">
+                <Check className="h-4 w-4" />
+                Knowledge Base diperbarui! AI Inbox langsung menggunakan data baru ini.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* SubSection: Custom Instructions */}
+      {kbSubsection === "instructions" && (
+        <Card className="glass-panel p-6 max-w-3xl">
+          <div className="mb-6">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-white">Custom Instructions</h3>
+            <p className="text-xs text-slate-400 mt-1">
+              Atur instruksi tingkat tinggi sistem prompt AI untuk mengontrol identitas, nada, dan batasan respons.
+            </p>
+          </div>
+
+          <form onSubmit={handleSaveInstructions} className="space-y-5">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300">1. Persona Configuration (Identitas Bot)</label>
+              <Textarea
+                placeholder="Contoh: Kamu adalah asisten mekanik Johan Garage yang ramah dan ahli dalam mesin motor..."
+                value={personaConfig}
+                onChange={(e) => setPersonaConfig(e.target.value)}
+                rows={3}
+                className="text-xs"
+              />
+              <p className="text-[10px] text-slate-500 leading-normal">Menjelaskan identitas bot dan konteks operasional bisnis.</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300">2. Tone of Voice (Gaya Bahasa)</label>
+              <Textarea
+                placeholder="Contoh: Gunakan bahasa santai anak motor, panggil pelanggan dengan sapaan 'Om' atau 'Bang'..."
+                value={toneOfVoice}
+                onChange={(e) => setToneOfVoice(e.target.value)}
+                rows={3}
+                className="text-xs"
+              />
+              <p className="text-[10px] text-slate-500 leading-normal">Menentukan gaya penulisan, sapaan, dan nada emosi.</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300">3. Guardrails / Aturan Keamanan</label>
+              <Textarea
+                placeholder="Contoh: Dilarang memberikan estimasi harga perbaikan mesin berat sebelum inspeksi langsung..."
+                value={guardrails}
+                onChange={(e) => setGuardrails(e.target.value)}
+                rows={3}
+                className="text-xs"
+              />
+              <p className="text-[10px] text-slate-500 leading-normal">Instruksi mutlak untuk mencegah bot mengarang info palsu.</p>
+            </div>
+
+            <div className="flex items-center justify-between border-t border-white/8 pt-4">
+              {isSaved ? (
+                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                  <Check className="h-4 w-4" />
+                  Instruksi kustom berhasil disimpan!
+                </span>
+              ) : (
+                <div />
+              )}
+              <Button type="submit" className="px-6 h-9.5 text-xs">
+                Simpan Instruksi Custom
+              </Button>
+            </div>
+          </form>
+        </Card>
+      )}
+    </div>
+  );
+}

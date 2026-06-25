@@ -7,7 +7,7 @@ export default function AIAgentPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/automation?tab=ai_agents");
+    router.replace("/automation/ai-agent");
   }, [router]);
 
   return (

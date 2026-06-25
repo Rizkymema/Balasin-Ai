@@ -9,8 +9,9 @@ Webhook URL : https://balasin-ai-tau.vercel.app/api/webhooks/whatsapp
 
 INSTAGRAM :
 Instagram app ID : 
-1030137869695458
-Instagram app secret: 9e109dac458db40c862cc848e36fbc43
+1376438774303129
+Instagram app secret: a5d9b8b01a689b2ae71367ae5a85f7f8
 
 Configuration ID:
 996779333185787
+

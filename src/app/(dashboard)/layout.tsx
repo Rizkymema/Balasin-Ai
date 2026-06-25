@@ -6,14 +6,11 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   MessageSquare,
-  MessageCircleMore,
-  BookOpen,
   Package2,
   Wifi,
   Workflow,
   Users2,
   CalendarRange,
-  Ticket,
   SendHorizontal,
   BarChart2,
   Settings2,
@@ -26,8 +23,10 @@ import {
   Plus,
   ChevronsLeft,
   ChevronsRight,
-  ChevronLeft,
-  ChevronRight
+  Bot,
+  Database,
+  GitBranch,
+  Settings,
 } from "lucide-react";
 import { Dropdown } from "@/components/ui/dropdown";
 
@@ -37,11 +36,17 @@ const NAV_ITEMS = [
   { href: "/customers", label: "Contacts / CRM", icon: Users2 },
   { href: "/products-services", label: "Products & Services", icon: Package2 },
   { href: "/booking", label: "Booking", icon: CalendarRange },
-  { href: "/automation", label: "Automation", icon: Workflow },
   { href: "/broadcast", label: "Broadcast / Campaign", icon: SendHorizontal },
   { href: "/channels", label: "Channels", icon: Wifi },
   { href: "/analytics", label: "Reports", icon: BarChart2 },
   { href: "/settings", label: "Team & Settings", icon: Settings2 },
+];
+
+const AUTOMATION_SUBNAV = [
+  { href: "/automation", label: "Conversations", icon: GitBranch, exact: true },
+  { href: "/automation/ai-agent", label: "AI agents", icon: Bot, badge: "NEW" },
+  { href: "/automation/knowledge-base", label: "Knowledge Base", icon: Database },
+  { href: "/automation/chatbot-settings", label: "Chatbot settings", icon: Settings },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -259,7 +264,110 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Navigation Links */}
           <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto custom-scrollbar">
-            {NAV_ITEMS.map((item) => {
+            {/* Main nav items BEFORE automation (Dashboard, Inbox, Contacts, Products, Booking) */}
+            {NAV_ITEMS.slice(0, 5).map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname.startsWith(item.href) && (item.href === "/dashboard" ? pathname === "/dashboard" : true);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onMouseEnter={(e) => handleMouseEnter(e, item.label)}
+                  onMouseLeave={handleMouseLeave}
+                  onClick={() => {
+                    setIsSidebarOpen(false);
+                    handleMouseLeave();
+                  }}
+                  className={`group relative flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition duration-150 ${
+                    isActive
+                      ? "bg-[var(--color-surface)] border border-[var(--color-brand)]/25 text-[var(--color-brand)]"
+                      : "text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white"
+                  } ${isMainSidebarCollapsed ? "justify-center px-1" : ""}`}
+                >
+                  <span className="flex items-center gap-3">
+                    <Icon className={`h-4.5 w-4.5 ${isActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
+                    {!isMainSidebarCollapsed && item.label}
+                  </span>
+                  {!isMainSidebarCollapsed && item.badge && (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-brand)] text-[10px] font-bold text-slate-950">
+                      {item.badge}
+                    </span>
+                  )}
+                  {isMainSidebarCollapsed && item.badge && (
+                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-brand)] text-[8px] font-bold text-slate-950 shadow-[0_1px_4px_rgba(0,0,0,0.4)]">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+
+            {/* AUTOMATION GROUP with sub-menu */}
+            {(() => {
+              const isAutomationActive = pathname.startsWith("/automation");
+              const isExpanded = isAutomationActive;
+              return (
+                <div className="space-y-0.5">
+                  {/* Automation parent link */}
+                  <Link
+                    href="/automation"
+                    onMouseEnter={(e) => handleMouseEnter(e, "Automation")}
+                    onMouseLeave={handleMouseLeave}
+                    onClick={() => { setIsSidebarOpen(false); handleMouseLeave(); }}
+                    className={`group relative flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition duration-150 ${
+                      isAutomationActive
+                        ? "bg-[var(--color-surface)] border border-[var(--color-brand)]/25 text-[var(--color-brand)]"
+                        : "text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white"
+                    } ${isMainSidebarCollapsed ? "justify-center px-1" : ""}`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <Workflow className={`h-4.5 w-4.5 ${isAutomationActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
+                      {!isMainSidebarCollapsed && "Automation"}
+                    </span>
+                    {!isMainSidebarCollapsed && (
+                      <ChevronDown className={`h-3.5 w-3.5 text-slate-500 transition-transform duration-200 ${isExpanded ? "" : "-rotate-90"}`} />
+                    )}
+                  </Link>
+
+                  {/* Sub-items */}
+                  {!isMainSidebarCollapsed && isExpanded && (
+                    <div className="ml-3 pl-3 border-l border-white/[0.06] space-y-0.5 py-1">
+                      {AUTOMATION_SUBNAV.map((sub) => {
+                        const SubIcon = sub.icon;
+                        const subActive = sub.exact
+                          ? pathname === sub.href
+                          : pathname.startsWith(sub.href);
+                        return (
+                          <Link
+                            key={sub.href}
+                            href={sub.href}
+                            onClick={() => setIsSidebarOpen(false)}
+                            className={`flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold transition duration-150 ${
+                              subActive
+                                ? "text-[var(--color-brand)] bg-[var(--color-surface)]"
+                                : "text-slate-500 hover:text-slate-200 hover:bg-white/[0.04]"
+                            }`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <SubIcon className={`h-3.5 w-3.5 ${subActive ? "text-[var(--color-brand)]" : "text-slate-500"}`} />
+                              {sub.label}
+                            </span>
+                            {sub.badge && (
+                              <span className="rounded bg-cyan-500 px-1 py-0.5 text-[8px] font-extrabold text-slate-950">
+                                {sub.badge}
+                              </span>
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Remaining nav items (Broadcast, Channels, Reports, Settings) */}
+            {NAV_ITEMS.slice(5).map((item) => {
               const Icon = item.icon;
               const isActive = pathname.startsWith(item.href);
               return (

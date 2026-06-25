@@ -7,7 +7,7 @@ export default function KnowledgeBasePage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/automation?tab=knowledge_base");
+    router.replace("/automation/knowledge-base");
   }, [router]);
 
   return (
