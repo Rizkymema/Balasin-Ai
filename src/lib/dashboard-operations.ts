@@ -422,25 +422,39 @@ export function normalizeDashboardOperations(raw: unknown): DashboardOperationsD
 
   return {
     conversations: Array.isArray(source.conversations)
-      ? source.conversations.map(normalizeConversation)
+      ? source.conversations
+          .filter((c) => !c.id?.startsWith("conv-"))
+          .map(normalizeConversation)
       : [],
     customers: Array.isArray(source.customers)
-      ? source.customers.map(normalizeCustomer)
+      ? source.customers
+          .filter((c) => !c.id?.startsWith("cust-"))
+          .map(normalizeCustomer)
       : [],
     bookings: Array.isArray(source.bookings)
-      ? source.bookings.map(normalizeBooking)
+      ? source.bookings
+          .filter((b) => !b.id?.startsWith("booking-"))
+          .map(normalizeBooking)
       : [],
     tickets: Array.isArray(source.tickets)
-      ? source.tickets.map(normalizeTicket)
+      ? source.tickets
+          .filter((t) => !t.id?.startsWith("ticket-"))
+          .map(normalizeTicket)
       : [],
     products: Array.isArray(source.products)
-      ? source.products.map(normalizeProduct)
+      ? source.products
+          .filter((p) => !p.id?.startsWith("prod-"))
+          .map(normalizeProduct)
       : [],
     services: Array.isArray(source.services)
-      ? source.services.map(normalizeService)
+      ? source.services
+          .filter((s) => !s.id?.startsWith("svc-"))
+          .map(normalizeService)
       : [],
     broadcasts: Array.isArray(source.broadcasts)
-      ? source.broadcasts.map(normalizeBroadcast)
+      ? source.broadcasts
+          .filter((b) => !b.id?.startsWith("broadcast-"))
+          .map(normalizeBroadcast)
       : [],
     crmDeals: Array.isArray(source.crmDeals)
       ? source.crmDeals.map(normalizeCrmDeal)

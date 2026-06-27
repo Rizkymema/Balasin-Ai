@@ -39,6 +39,18 @@ const defaultAutomationCrmIntegration = {
   duplicateHandling: "Update existing contact",
 } as const;
 
+function normalizeSingleApiIntegration(
+  integrations?: DashboardConfig["automation"]["apiIntegrations"],
+) {
+  return Array.isArray(integrations)
+    ? integrations
+        .filter((integration): integration is DashboardConfig["automation"]["apiIntegrations"][number] =>
+          Boolean(integration && typeof integration === "object"),
+        )
+        .slice(0, 1)
+    : [];
+}
+
 const defaultInboxSettings = {
   templates: [],
   autoResponders: [],
@@ -171,7 +183,7 @@ export const defaultDashboardConfig: DashboardConfig = {
     idleAction: {
       ...defaultAutomationIdleAction,
     },
-    apiIntegrations: defaultAutomationApiIntegrations.map((item) => ({ ...item })),
+    apiIntegrations: normalizeSingleApiIntegration(defaultAutomationApiIntegrations),
     crmIntegration: {
       ...defaultAutomationCrmIntegration,
       contactMapping: defaultAutomationCrmIntegration.contactMapping.map((item) => ({
@@ -265,8 +277,9 @@ export function mergeDashboardConfig(
         ...base.automation.idleAction,
         ...incoming.automation?.idleAction,
       },
-      apiIntegrations:
+      apiIntegrations: normalizeSingleApiIntegration(
         incoming.automation?.apiIntegrations ?? base.automation.apiIntegrations,
+      ),
       crmIntegration: {
         ...base.automation.crmIntegration,
         ...incoming.automation?.crmIntegration,
@@ -277,7 +290,19 @@ export function mergeDashboardConfig(
       rules: incoming.automation?.rules ?? base.automation.rules,
       conversations: incoming.automation?.conversations ?? base.automation.conversations,
       aiAgents: incoming.automation?.aiAgents ?? base.automation.aiAgents,
-      inboxSettings: incoming.automation?.inboxSettings ?? base.automation.inboxSettings,
+      inboxSettings: incoming.automation?.inboxSettings ? {
+        ...base.automation.inboxSettings,
+        ...incoming.automation.inboxSettings,
+        templates: (incoming.automation.inboxSettings.templates ?? []).filter(
+          (t) => typeof t.id === "string" && String(t.id).startsWith("tpl_")
+        ),
+        autoResponders: (incoming.automation.inboxSettings.autoResponders ?? []).filter(
+          (r) => typeof r.id === "string" && String(r.id).startsWith("res_")
+        ),
+        tags: (incoming.automation.inboxSettings.tags ?? []).filter(
+          (t) => typeof t.id === "string" && String(t.id).startsWith("tag_")
+        ),
+      } : base.automation.inboxSettings,
     },
     team: {
       members: incoming.team?.members ?? base.team.members,

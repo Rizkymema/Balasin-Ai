@@ -535,16 +535,16 @@ export async function scheduleAutomationForConversationEvent(input: {
     );
   }
 
-  const activeApiIntegrations = input.config.automation.apiIntegrations.filter(
+  const activeApiIntegration = input.config.automation.apiIntegrations.find(
     (integration) => integration.status === "Active" && integration.endpoint.trim(),
   );
-  for (const integration of activeApiIntegrations) {
+  if (activeApiIntegration) {
     jobs.push(
       enqueueJob({
         type: "api_integration_call",
         payload: {
           conversationId: input.conversation.id,
-          integrationId: integration.id,
+          integrationId: activeApiIntegration.id,
           event: input.event,
         },
       }),

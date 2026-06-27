@@ -233,21 +233,19 @@ async function processConversationIdleCheck(payload: Record<string, unknown>) {
   }
 
   if (config.automation.idleAction.actionType === "Trigger webhook") {
-    const activeIntegrations = config.automation.apiIntegrations.filter(
+    const activeIntegration = config.automation.apiIntegrations.find(
       (integration) => integration.status === "Active" && integration.endpoint.trim(),
     );
-    await Promise.allSettled(
-      activeIntegrations.map((integration) =>
-        enqueueJob({
-          type: "api_integration_call",
-          payload: {
-            conversationId,
-            integrationId: integration.id,
-            event: "schedule_reached",
-          },
-        }),
-      ),
-    );
+    if (activeIntegration) {
+      await enqueueJob({
+        type: "api_integration_call",
+        payload: {
+          conversationId,
+          integrationId: activeIntegration.id,
+          event: "schedule_reached",
+        },
+      });
+    }
   }
 
   nextConversation = appendAutomationLog(nextConversation, {
@@ -577,6 +575,7 @@ export async function pruneObsoleteJobs() {
   const activeIntegrationIds = new Set(
     config.automation.apiIntegrations
       .filter((integration) => integration.status === "Active" && integration.endpoint.trim())
+      .slice(0, 1)
       .map((integration) => integration.id),
   );
   const conversationById = new Map(

@@ -80,8 +80,37 @@ export function useDashboardOperations() {
 
     void load();
 
+    // Set up polling for realtime updates every 5 seconds
+    const intervalId = setInterval(() => {
+      if (mounted && !document.hidden) {
+        void load();
+      }
+    }, 5000);
+
+    // Refresh on window focus to ensure data is fresh when user returns
+    const onFocus = () => {
+      if (mounted) {
+        void load();
+      }
+    };
+    
+    // Listen for cross-tab sync events
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "balesin_dashboard_operations" && mounted) {
+        void load();
+      }
+    };
+
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("balesin-dashboard-operations-change", load);
+
     return () => {
       mounted = false;
+      clearInterval(intervalId);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("balesin-dashboard-operations-change", load);
     };
   }, []);
 
@@ -96,6 +125,7 @@ export function useDashboardOperations() {
       },
       body: JSON.stringify(next),
     });
+    window.dispatchEvent(new Event("balesin-dashboard-operations-change"));
   }, []);
 
   const applyLocalPatch = useCallback(
@@ -103,6 +133,7 @@ export function useDashboardOperations() {
       const next = updater(dataRef.current);
       setData(next);
       dataRef.current = next;
+      window.dispatchEvent(new Event("balesin-dashboard-operations-change"));
     },
     [],
   );
@@ -120,6 +151,7 @@ export function useDashboardOperations() {
         },
         body: JSON.stringify(next),
       });
+      window.dispatchEvent(new Event("balesin-dashboard-operations-change"));
     },
     [],
   );

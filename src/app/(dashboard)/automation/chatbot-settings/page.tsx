@@ -64,34 +64,7 @@ const DEFAULT_SETTINGS: ChatbotSettingsState = {
     idleMessage: "Halo kak, apakah masih membutuhkan bantuan? Jika tidak ada balasan, percakapan ini akan kami tutup otomatis.",
     autoClose: true,
   },
-  apiIntegrations: [
-    {
-      id: "api_001",
-      name: "Check Service Status",
-      method: "POST",
-      endpoint: "https://api.johangarage.com/service-status",
-      authType: "Bearer Token",
-      authToken: "sk_live_***************",
-      headers: '{"Content-Type": "application/json"}',
-      requestBody: '{"phone": "{{customer.phone}}", "plate_number": "{{conversation.plate_number}}"}',
-      responseMapping: "serviceStatus = response.status\nmechanicName = response.mechanic",
-      status: "Active",
-      lastTest: "Success",
-    },
-    {
-      id: "api_002",
-      name: "Check Sparepart Stock",
-      method: "GET",
-      endpoint: "https://api.johangarage.com/spareparts",
-      authType: "API Key",
-      authToken: "",
-      headers: "",
-      requestBody: "",
-      responseMapping: "",
-      status: "Draft",
-      lastTest: "Not tested",
-    },
-  ],
+  apiIntegrations: [],
   crmIntegration: {
     enabled: true,
     provider: "Internal CRM",
@@ -149,6 +122,10 @@ function TestBadge({ result }: { result: ApiTestResult }) {
       {icon}{result}
     </span>
   );
+}
+
+function limitToSingleApiIntegration(integrations: ApiIntegration[]) {
+  return integrations.filter((integration) => Boolean(integration)).slice(0, 1);
 }
 
 // ─── AI Configuration Tab ─────────────────────────────────────────────────────
@@ -406,7 +383,7 @@ function ApiModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
       <div className="relative w-full max-w-2xl rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl my-8">
         <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4 sticky top-0 bg-[var(--color-surface)] z-10 rounded-t-xl">
-          <h2 className="font-bold text-white">{initialData ? "Edit API Integration" : "Create API Integration"}</h2>
+          <h2 className="font-bold text-white">{initialData ? "Edit API Utama" : "Setup API Utama"}</h2>
           <button onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-white/10 hover:text-white"><X className="h-5 w-5" /></button>
         </div>
 
@@ -502,7 +479,7 @@ function ApiModal({
           <Button variant="secondary" onClick={onClose} className="text-slate-400 bg-transparent border-transparent hover:text-white">Cancel</Button>
           <Button onClick={() => onSave({ name, method, endpoint, authType, authToken, headers, requestBody, responseMapping, status })} className="gap-2">
             <Save className="h-4 w-4" />
-            Save API
+            Simpan API
           </Button>
         </div>
       </div>
@@ -524,13 +501,13 @@ function ApiIntegrationPanel({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingApi, setEditingApi] = useState<ApiIntegration | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
+  const primaryIntegration = integrations[0] ?? null;
 
   const handleSave = (data: Omit<ApiIntegration, "id" | "lastTest">) => {
-    if (editingApi) {
-      onChange(integrations.map((a) => a.id === editingApi.id ? { ...a, ...data } : a));
-    } else {
-      onChange([...integrations, { ...data, id: "api_" + Date.now(), lastTest: "Not tested" }]);
-    }
+    const nextIntegration = editingApi
+      ? { ...editingApi, ...data }
+      : { ...data, id: "api_" + Date.now(), lastTest: "Not tested" as const };
+    onChange([nextIntegration]);
     setIsModalOpen(false);
     setEditingApi(null);
   };
@@ -555,74 +532,84 @@ function ApiIntegrationPanel({
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-white">API Integration</h2>
-          <p className="text-sm text-slate-400 mt-1">Hubungkan chatbot dengan sistem eksternal menggunakan HTTP/REST API.</p>
+          <h2 className="text-lg font-bold text-white">API Integration Utama</h2>
+          <p className="text-sm text-slate-400 mt-1">Chatbot hanya memakai satu integrasi API aktif untuk webhook, lookup data, dan trigger otomasi.</p>
         </div>
-        <Button onClick={() => { setEditingApi(null); setIsModalOpen(true); }} className="gap-2 shrink-0">
+        <Button onClick={() => { setEditingApi(primaryIntegration); setIsModalOpen(true); }} className="gap-2 shrink-0">
           <Plus className="h-4 w-4" />
-          Create API
+          {primaryIntegration ? "Ubah API Utama" : "Setup API Utama"}
         </Button>
       </div>
 
-      {integrations.length === 0 ? (
+      <Card className="border-white/10 bg-white/[0.02] p-4 text-sm text-slate-300">
+        Gunakan satu endpoint utama saja agar alur chatbot, idle action, dan automation ke Unified Inbox tetap konsisten.
+      </Card>
+
+      {!primaryIntegration ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--color-border)] py-14 text-center">
           <Plug className="h-10 w-10 text-slate-600 mb-3" />
-          <p className="text-sm text-slate-400">Belum ada API integration. Klik &quot;Create API&quot; untuk memulai.</p>
+          <p className="text-sm text-slate-300">Belum ada API utama yang terhubung.</p>
+          <p className="mt-1 text-xs text-slate-500">Sistem hanya mengizinkan satu integrasi API untuk fitur chatbot.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-white/[0.02] text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-5 py-3 font-semibold">API Name</th>
-                <th className="px-5 py-3 font-semibold">Method</th>
-                <th className="px-5 py-3 font-semibold">Endpoint</th>
-                <th className="px-5 py-3 font-semibold">Auth</th>
-                <th className="px-5 py-3 font-semibold">Last Test</th>
-                <th className="px-5 py-3 font-semibold">Status</th>
-                <th className="px-5 py-3 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--color-border)]">
-              {integrations.map((api) => (
-                <tr key={api.id} className="hover:bg-white/[0.01] transition-colors">
-                  <td className="px-5 py-3 font-medium text-white">{api.name}</td>
-                  <td className="px-5 py-3">
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold font-mono ${methodColors[api.method]}`}>{api.method}</span>
-                  </td>
-                  <td className="px-5 py-3 text-slate-400 font-mono text-xs max-w-[200px] truncate">{api.endpoint}</td>
-                  <td className="px-5 py-3 text-slate-400 text-xs">{api.authType}</td>
-                  <td className="px-5 py-3"><TestBadge result={api.lastTest} /></td>
-                  <td className="px-5 py-3">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      api.status === "Active" ? "text-emerald-400 bg-emerald-500/10" :
-                      api.status === "Draft" ? "text-amber-400 bg-amber-500/10" :
-                      "text-slate-400 bg-slate-500/10"
-                    }`}>{api.status}</span>
-                  </td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => handleTest(api.id)}
-                        disabled={testingId === api.id}
-                        className="rounded p-1.5 text-slate-400 hover:bg-white/10 hover:text-[var(--color-brand)] transition disabled:opacity-50"
-                        title="Test API"
-                      >
-                        {testingId === api.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <FlaskConical className="h-4 w-4" />}
-                      </button>
-                      <button onClick={() => { setEditingApi(api); setIsModalOpen(true); }} className="rounded p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition" title="Edit">
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => onChange(integrations.filter((a) => a.id !== api.id))} className="rounded p-1.5 text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition" title="Delete">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Card className="border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <h3 className="text-base font-semibold text-white">{primaryIntegration.name}</h3>
+                <span className={`rounded px-2 py-0.5 font-mono text-xs font-bold ${methodColors[primaryIntegration.method]}`}>
+                  {primaryIntegration.method}
+                </span>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  primaryIntegration.status === "Active"
+                    ? "bg-emerald-500/10 text-emerald-400"
+                    : primaryIntegration.status === "Draft"
+                      ? "bg-amber-500/10 text-amber-400"
+                      : "bg-slate-500/10 text-slate-400"
+                }`}>
+                  {primaryIntegration.status}
+                </span>
+                <TestBadge result={primaryIntegration.lastTest} />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Endpoint</div>
+                  <div className="mt-1 break-all font-mono text-xs text-slate-300">{primaryIntegration.endpoint}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Authentication</div>
+                  <div className="mt-1 text-sm text-slate-300">{primaryIntegration.authType}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleTest(primaryIntegration.id)}
+                disabled={testingId === primaryIntegration.id}
+                className="rounded-lg border border-[var(--color-border)] p-2 text-slate-400 transition hover:bg-white/10 hover:text-[var(--color-brand)] disabled:opacity-50"
+                title="Test API"
+              >
+                {testingId === primaryIntegration.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <FlaskConical className="h-4 w-4" />}
+              </button>
+              <button
+                onClick={() => { setEditingApi(primaryIntegration); setIsModalOpen(true); }}
+                className="rounded-lg border border-[var(--color-border)] p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                title="Edit"
+              >
+                <Edit2 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => onChange([])}
+                className="rounded-lg border border-[var(--color-border)] p-2 text-slate-400 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400"
+                title="Delete"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </Card>
       )}
 
       {isModalOpen && (
@@ -806,7 +793,9 @@ export default function ChatbotSettingsPage() {
     setSettings({
       aiConfig: { ...config.automation.aiConfig },
       idleAction: { ...config.automation.idleAction },
-      apiIntegrations: config.automation.apiIntegrations.map((item) => ({ ...item })),
+      apiIntegrations: limitToSingleApiIntegration(
+        config.automation.apiIntegrations.map((item) => ({ ...item })),
+      ),
       crmIntegration: {
         ...config.automation.crmIntegration,
         contactMapping: config.automation.crmIntegration.contactMapping.map((item) => ({
@@ -823,7 +812,7 @@ export default function ChatbotSettingsPage() {
         ...current.automation,
         aiConfig: settings.aiConfig,
         idleAction: settings.idleAction,
-        apiIntegrations: settings.apiIntegrations,
+        apiIntegrations: limitToSingleApiIntegration(settings.apiIntegrations),
         crmIntegration: settings.crmIntegration,
       },
     }));
@@ -893,7 +882,7 @@ export default function ChatbotSettingsPage() {
         {activeTab === "api_integration" && (
           <ApiIntegrationPanel
             integrations={settings.apiIntegrations}
-            onChange={(v) => setSettings({ ...settings, apiIntegrations: v })}
+            onChange={(v) => setSettings({ ...settings, apiIntegrations: limitToSingleApiIntegration(v) })}
             onSave={handleSave}
             isSaved={isSaved}
           />
