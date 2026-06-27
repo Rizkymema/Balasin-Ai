@@ -192,7 +192,7 @@ export function ConversationThreadPanel({
       })
       .finally(() => setIsGeneratingSuggestion(false));
   }, [
-    conversation?.id,
+    conversation,
     config,
     suggestionVariant,
     suggestionVersion,

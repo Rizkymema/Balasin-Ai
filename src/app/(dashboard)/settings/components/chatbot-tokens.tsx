@@ -5,7 +5,7 @@ import { Check, FileCode, Bot, KeyRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useDashboardConfig } from "@/lib/dashboard-config";
+import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import type { AIProviderKind } from "@/types/dashboard-config";
 
 export function ChatbotTokens() {

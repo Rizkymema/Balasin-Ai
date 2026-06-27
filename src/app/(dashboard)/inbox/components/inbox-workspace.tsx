@@ -8,6 +8,7 @@ import { Bot, Database, MessageSquare, PanelRight, RefreshCcw, Settings2, Sparkl
 import { Toast } from "@/components/ui/toast";
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import { useDashboardOperations } from "@/hooks/use-dashboard-operations";
+import { useRealtimeInbox } from "@/hooks/use-realtime-inbox";
 import { cn } from "@/lib/utils";
 import type { ConversationRecord, ConversationStatus } from "@/types/operations";
 
@@ -97,6 +98,16 @@ export function InboxWorkspace() {
   const activeContext = activeConversation
     ? getConversationContext(data, activeConversation)
     : null;
+
+  useRealtimeInbox({
+    patchData,
+    onNewMessage: (name, text) => {
+      setToast({
+        message: `Pesan baru dari ${name}: ${text}`,
+        type: "info",
+      });
+    },
+  });
 
   useEffect(() => {
     if (
