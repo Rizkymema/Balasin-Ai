@@ -422,16 +422,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <Icon className={`h-4.5 w-4.5 ${isActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
                     {!isMainSidebarCollapsed && item.label}
                   </span>
-                  {!isMainSidebarCollapsed && item.badge && (
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-brand)] text-[10px] font-bold text-slate-950">
-                      {item.badge}
-                    </span>
-                  )}
-                  {isMainSidebarCollapsed && item.badge && (
-                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-brand)] text-[8px] font-bold text-slate-950 shadow-[0_1px_4px_rgba(0,0,0,0.4)]">
-                      {item.badge}
-                    </span>
-                  )}
                 </Link>
               );
             })}
