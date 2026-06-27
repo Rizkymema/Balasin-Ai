@@ -160,10 +160,10 @@ export default function ChannelsPage() {
 
   // Mobile Widget Builder States
   const [isCreatingMobileWidget, setIsCreatingMobileWidget] = useState(false);
-  const [mobileWidgetName, setMobileWidgetName] = useState("Mobile App Widget Utama");
-  const [mobilePlatform, setMobilePlatform] = useState<"react-native" | "flutter" | "android" | "ios">("react-native");
-  const [mobileWidgetColor, setMobileWidgetColor] = useState("#00d2ff");
-  const [mobileWelcomeText, setMobileWelcomeText] = useState("Halo Kak! Ada yang bisa kami bantu?");
+  const [mobileWidgetName, setMobileWidgetName] = useState(config.channels.mobilechat?.widgetName || "Mobile App Widget Utama");
+  const [mobilePlatform, setMobilePlatform] = useState<"react-native" | "flutter" | "android" | "ios">(config.channels.mobilechat?.platform || "react-native");
+  const [mobileWidgetColor, setMobileWidgetColor] = useState(config.channels.mobilechat?.widgetColor || "#00d2ff");
+  const [mobileWelcomeText, setMobileWelcomeText] = useState(config.channels.mobilechat?.welcomeText || "Halo Kak! Ada yang bisa kami bantu?");
   const [mobileWidgetSaved, setMobileWidgetSaved] = useState(false);
   const [mobileCopied, setMobileCopied] = useState(false);
 
@@ -177,6 +177,13 @@ export default function ChannelsPage() {
     setWebchatEnabled(config.channels.webchat.enabled);
     setCaptureLead(config.channels.webchat.captureLead);
     setHandoffToWhatsApp(config.channels.webchat.handoffToWhatsApp);
+
+    if (config.channels.mobilechat) {
+      setMobileWidgetName(config.channels.mobilechat.widgetName);
+      setMobilePlatform(config.channels.mobilechat.platform);
+      setMobileWidgetColor(config.channels.mobilechat.widgetColor);
+      setMobileWelcomeText(config.channels.mobilechat.welcomeText);
+    }
 
     setWaLabel(config.channels.whatsapp.businessLabel);
     setPhoneId(config.channels.whatsapp.phoneNumberId);
@@ -1087,6 +1094,21 @@ struct ChatView: View {
                           </button>
                         )}
                         <Button onClick={() => {
+                          patchConfig((current) => ({
+                            ...current,
+                            channels: {
+                              ...current.channels,
+                              mobilechat: {
+                                ...current.channels.mobilechat,
+                                enabled: true,
+                                status: "connected",
+                                widgetName: mobileWidgetName,
+                                platform: mobilePlatform,
+                                widgetColor: mobileWidgetColor,
+                                welcomeText: mobileWelcomeText,
+                              }
+                            }
+                          }));
                           setMobileWidgetSaved(true);
                           setTimeout(() => {
                             setMobileWidgetSaved(false);

@@ -239,6 +239,14 @@ export type DashboardConfig = {
       captureLead: boolean;
       handoffToWhatsApp: boolean;
     };
+    mobilechat: {
+      enabled: boolean;
+      status: ChannelStatus;
+      widgetName: string;
+      platform: "react-native" | "flutter" | "android" | "ios";
+      widgetColor: string;
+      welcomeText: string;
+    };
     whatsapp: {
       enabled: boolean;
       status: ChannelStatus;

@@ -23,7 +23,8 @@ export async function PUT(request: Request) {
     const body = (await request.json()) as DashboardConfig;
     await saveDashboardConfigRecord(body);
     return jsonOk(await getDashboardConfigRecord());
-  } catch {
+  } catch (err) {
+    console.error("[DASHBOARD_CONFIG_SAVE_ERROR]", err);
     return jsonError("Gagal menyimpan dashboard config.", 500);
   }
 }

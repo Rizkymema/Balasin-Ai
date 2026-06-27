@@ -124,6 +124,14 @@ export const defaultDashboardConfig: DashboardConfig = {
       captureLead: true,
       handoffToWhatsApp: false,
     },
+    mobilechat: {
+      enabled: false,
+      status: "draft",
+      widgetName: "Mobile App Widget Utama",
+      platform: "react-native",
+      widgetColor: "#00d2ff",
+      welcomeText: "Halo Kak! Ada yang bisa kami bantu?",
+    },
     whatsapp: {
       enabled: false,
       status: "disconnected",
@@ -366,6 +374,7 @@ export function mergeDashboardConfig(
     },
     channels: {
       webchat: { ...base.channels.webchat, ...incoming.channels?.webchat },
+      mobilechat: { ...base.channels.mobilechat, ...incoming.channels?.mobilechat },
       whatsapp: { 
         ...base.channels.whatsapp, 
         ...incoming.channels?.whatsapp,
