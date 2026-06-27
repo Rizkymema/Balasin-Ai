@@ -3,18 +3,65 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-client";
 import type { ConversationRecord, DashboardOperationsData } from "@/types/operations";
 
 export function useRealtimeInbox({
-  patchData,
+  applyLocalPatch,
+  refreshData,
   onNewMessage,
+  pollIntervalMs = 5000,
 }: {
-  patchData: (updater: (current: DashboardOperationsData) => DashboardOperationsData) => void;
+  applyLocalPatch: (
+    updater: (current: DashboardOperationsData) => DashboardOperationsData,
+  ) => void;
+  refreshData: () => Promise<void>;
   onNewMessage?: (conversationName: string, textSnippet: string) => void;
+  pollIntervalMs?: number;
 }) {
   useEffect(() => {
+    let refreshTimer: number | null = null;
+
+    const scheduleRefresh = (delayMs = 400) => {
+      if (refreshTimer) {
+        clearTimeout(refreshTimer);
+      }
+
+      refreshTimer = window.setTimeout(() => {
+        refreshTimer = null;
+        void refreshData();
+      }, delayMs);
+    };
+
+    const handleVisibilitySync = () => {
+      if (document.visibilityState === "visible") {
+        scheduleRefresh(0);
+      }
+    };
+
+    const handleFocusSync = () => {
+      scheduleRefresh(0);
+    };
+
+    window.addEventListener("focus", handleFocusSync);
+    document.addEventListener("visibilitychange", handleVisibilitySync);
+
     const supabase = getSupabaseBrowserClient();
-    if (!supabase) return;
+    if (!supabase) {
+      const intervalId = window.setInterval(() => {
+        if (document.visibilityState === "visible") {
+          void refreshData();
+        }
+      }, pollIntervalMs);
+
+      return () => {
+        window.clearInterval(intervalId);
+        window.removeEventListener("focus", handleFocusSync);
+        document.removeEventListener("visibilitychange", handleVisibilitySync);
+        if (refreshTimer) {
+          clearTimeout(refreshTimer);
+        }
+      };
+    }
 
     const channel = supabase
-      .channel("public:conversations")
+      .channel("public:inbox-realtime")
       .on(
         "postgres_changes",
         {
@@ -25,10 +72,11 @@ export function useRealtimeInbox({
         (payload) => {
           if (payload.eventType === "DELETE") {
             const deletedId = payload.old.id;
-            patchData((current) => ({
+            applyLocalPatch((current) => ({
               ...current,
               conversations: current.conversations.filter((c) => c.id !== deletedId),
             }));
+            scheduleRefresh();
             return;
           }
 
@@ -39,7 +87,7 @@ export function useRealtimeInbox({
                 ? (JSON.parse(rowData.data_json) as ConversationRecord)
                 : (rowData.data_json as ConversationRecord);
 
-            patchData((current) => {
+            applyLocalPatch((current) => {
               const existingIndex = current.conversations.findIndex(
                 (c) => c.id === conversation.id
               );
@@ -47,7 +95,9 @@ export function useRealtimeInbox({
               // Check if unreadCount increased for notification
               if (onNewMessage) {
                 const isNewInsert = existingIndex === -1;
-                const previousUnread = isNewInsert ? 0 : current.conversations[existingIndex].unreadCount;
+                const previousUnread = isNewInsert
+                  ? 0
+                  : current.conversations[existingIndex].unreadCount;
                 if (conversation.unreadCount > previousUnread) {
                   onNewMessage(conversation.name, conversation.lastMessage || "New message");
                 }
@@ -65,13 +115,52 @@ export function useRealtimeInbox({
                 conversations: nextConversations,
               };
             });
+            scheduleRefresh();
           }
-        }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "customers",
+        },
+        () => {
+          scheduleRefresh();
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "tickets",
+        },
+        () => {
+          scheduleRefresh();
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "bookings",
+        },
+        () => {
+          scheduleRefresh();
+        },
       )
       .subscribe();
 
     return () => {
+      window.removeEventListener("focus", handleFocusSync);
+      document.removeEventListener("visibilitychange", handleVisibilitySync);
+      if (refreshTimer) {
+        clearTimeout(refreshTimer);
+      }
       supabase.removeChannel(channel);
     };
-  }, [patchData, onNewMessage]);
+  }, [applyLocalPatch, onNewMessage, pollIntervalMs, refreshData]);
 }

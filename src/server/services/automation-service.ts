@@ -1,4 +1,12 @@
-import { enqueueJob, listDueJobs, listJobs, markJobCompleted, markJobFailed, markJobProcessing } from "@/server/repositories/job-repository";
+import {
+  deleteJobsByIds,
+  enqueueJob,
+  listDueJobs,
+  listJobs,
+  markJobCompleted,
+  markJobFailed,
+  markJobProcessing,
+} from "@/server/repositories/job-repository";
 import {
   getDashboardConfigRecord,
   getDashboardOperationsRecord,
@@ -554,4 +562,72 @@ export async function scheduleOperationalJobs() {
 
 export async function getWorkerJobs(limit?: number) {
   return listJobs(limit);
+}
+
+export async function pruneObsoleteJobs() {
+  const [config, current, jobs] = await Promise.all([
+    getDashboardConfigRecord(),
+    getDashboardOperationsRecord(),
+    listJobs(500),
+  ]);
+
+  const conversationIds = new Set(current.conversations.map((item) => item.id));
+  const bookingIds = new Set(current.bookings.map((item) => item.id));
+  const broadcastIds = new Set(current.broadcasts.map((item) => item.id));
+  const activeIntegrationIds = new Set(
+    config.automation.apiIntegrations
+      .filter((integration) => integration.status === "Active" && integration.endpoint.trim())
+      .map((integration) => integration.id),
+  );
+  const conversationById = new Map(
+    current.conversations.map((conversation) => [conversation.id, conversation] as const),
+  );
+
+  const obsoleteJobIds = jobs
+    .filter((job) => {
+      const conversationId = String(job.payload.conversationId ?? "");
+      const bookingId = String(job.payload.bookingId ?? "");
+      const broadcastId = String(job.payload.broadcastId ?? "");
+      const integrationId = String(job.payload.integrationId ?? "");
+      const conversation = conversationById.get(conversationId);
+
+      if (conversationId && !conversationIds.has(conversationId)) {
+        return true;
+      }
+
+      if (job.type === "lead_followup") {
+        return !conversation || conversation.status !== "waiting_customer";
+      }
+
+      if (job.type === "handoff_notify") {
+        return !conversation || conversation.status !== "assigned_to_admin";
+      }
+
+      if (job.type === "booking_reminder") {
+        return !bookingIds.has(bookingId);
+      }
+
+      if (job.type === "broadcast_send") {
+        return !broadcastIds.has(broadcastId);
+      }
+
+      if (job.type === "crm_sync") {
+        return !config.automation.crmIntegration.enabled || !conversation;
+      }
+
+      if (job.type === "api_integration_call") {
+        return !conversation || !activeIntegrationIds.has(integrationId);
+      }
+
+      return false;
+    })
+    .map((job) => job.id);
+
+  const deleted = await deleteJobsByIds(obsoleteJobIds);
+
+  return {
+    scanned: jobs.length,
+    deleted,
+    deletedJobIds: obsoleteJobIds,
+  };
 }

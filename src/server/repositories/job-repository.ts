@@ -396,3 +396,28 @@ export async function listJobs(limit = 50) {
     updatedAt: row.updated_at,
   }));
 }
+
+export async function deleteJobsByIds(ids: string[]) {
+  if (ids.length === 0) {
+    return 0;
+  }
+
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseServerClient();
+    const { error } = await supabase.from("jobs").delete().in("id", ids);
+
+    if (error) {
+      throw new Error(`Supabase jobs delete failed: ${error.message}`);
+    }
+
+    return ids.length;
+  }
+
+  const database = getDatabase();
+  const placeholders = ids.map(() => "?").join(", ");
+  const result = database
+    .prepare(`DELETE FROM jobs WHERE id IN (${placeholders})`)
+    .run(...ids);
+
+  return Number(result.changes ?? 0);
+}

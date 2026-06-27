@@ -33,7 +33,7 @@ type ToastState = {
 
 export function InboxWorkspace() {
   const { config } = useDashboardConfig();
-  const { data, isLoading, refreshData, patchData } = useDashboardOperations();
+  const { data, isLoading, refreshData, applyLocalPatch } = useDashboardOperations();
 
   const [selectedId, setSelectedId] = useState("");
   const [mobileView, setMobileView] = useState<"list" | "detail" | "context">(
@@ -100,7 +100,8 @@ export function InboxWorkspace() {
     : null;
 
   useRealtimeInbox({
-    patchData,
+    applyLocalPatch,
+    refreshData,
     onNewMessage: (name, text) => {
       setToast({
         message: `Pesan baru dari ${name}: ${text}`,

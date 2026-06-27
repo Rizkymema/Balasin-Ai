@@ -8,6 +8,7 @@ import type { DashboardConfig } from "@/types/dashboard-config";
 export function useDashboardConfig() {
   const [config, setConfig] = useState<DashboardConfig>(defaultDashboardConfig);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const configRef = useRef(config);
 
   useEffect(() => {
@@ -32,9 +33,9 @@ export function useDashboardConfig() {
 
       setConfig(payload.data);
       configRef.current = payload.data;
+      setError(null);
     } catch {
-      setConfig(defaultDashboardConfig);
-      configRef.current = defaultDashboardConfig;
+      setError("Gagal memuat dashboard config.");
     } finally {
       setIsLoading(false);
     }
@@ -62,11 +63,11 @@ export function useDashboardConfig() {
         if (mounted) {
           setConfig(payload.data);
           configRef.current = payload.data;
+          setError(null);
         }
       } catch {
         if (mounted) {
-          setConfig(defaultDashboardConfig);
-          configRef.current = defaultDashboardConfig;
+          setError("Gagal memuat dashboard config.");
         }
       } finally {
         if (mounted) {
@@ -147,6 +148,7 @@ export function useDashboardConfig() {
   return {
     config,
     isLoading,
+    error,
     refreshConfig,
     replaceConfig,
     patchConfig,

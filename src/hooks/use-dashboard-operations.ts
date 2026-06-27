@@ -10,6 +10,7 @@ export function useDashboardOperations() {
     defaultDashboardOperations,
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const dataRef = useRef(data);
 
   useEffect(() => {
@@ -34,9 +35,9 @@ export function useDashboardOperations() {
 
       setData(payload.data);
       dataRef.current = payload.data;
+      setError(null);
     } catch {
-      setData(defaultDashboardOperations);
-      dataRef.current = defaultDashboardOperations;
+      setError("Gagal memuat data operasional dashboard.");
     } finally {
       setIsLoading(false);
     }
@@ -64,11 +65,11 @@ export function useDashboardOperations() {
         if (mounted) {
           setData(payload.data);
           dataRef.current = payload.data;
+          setError(null);
         }
       } catch {
         if (mounted) {
-          setData(defaultDashboardOperations);
-          dataRef.current = defaultDashboardOperations;
+          setError("Gagal memuat data operasional dashboard.");
         }
       } finally {
         if (mounted) {
@@ -97,6 +98,15 @@ export function useDashboardOperations() {
     });
   }, []);
 
+  const applyLocalPatch = useCallback(
+    (updater: (current: DashboardOperationsData) => DashboardOperationsData) => {
+      const next = updater(dataRef.current);
+      setData(next);
+      dataRef.current = next;
+    },
+    [],
+  );
+
   const patchData = useCallback(
     async (updater: (current: DashboardOperationsData) => DashboardOperationsData) => {
       const next = updater(dataRef.current);
@@ -117,8 +127,10 @@ export function useDashboardOperations() {
   return {
     data,
     isLoading,
+    error,
     refreshData,
     replaceData,
+    applyLocalPatch,
     patchData,
   };
 }
