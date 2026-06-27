@@ -88,10 +88,7 @@ export function useDashboardConfig() {
           })
             .then(async (res) => {
               if (!res.ok) {
-                if (res.status === 401) {
-                  window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
-                }
-                return; // Don't update config on error
+                return; // Session expired or error - skip silently, don't redirect
               }
               return res.json();
             })

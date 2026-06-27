@@ -35,52 +35,7 @@ interface UserProfile {
   lastActive: string;
 }
 
-const DUMMY_USERS: UserProfile[] = [
-  {
-    id: "user_001",
-    name: "Rizky Admin",
-    avatar: "/avatars/rizky.png",
-    status: "Online",
-    phoneNumber: "+62 812 3456 7890",
-    email: "rizky.admin@example.com",
-    role: "Owner",
-    department: "Admin",
-    lastActive: "Online now",
-  },
-  {
-    id: "user_002",
-    name: "Budi Santoso",
-    avatar: "/avatars/budi.png",
-    status: "Online",
-    phoneNumber: "+62 813 2222 1111",
-    email: "budi.cs@example.com",
-    role: "Agent",
-    department: "Customer Service",
-    lastActive: "Online now",
-  },
-  {
-    id: "user_003",
-    name: "Siti Rahma",
-    avatar: "/avatars/siti.png",
-    status: "Away",
-    phoneNumber: "+62 821 3333 4444",
-    email: "siti.supervisor@example.com",
-    role: "Supervisor",
-    department: "Customer Service",
-    lastActive: "5 minutes ago",
-  },
-  {
-    id: "user_004",
-    name: "Andi Mekanik",
-    avatar: "/avatars/andi.png",
-    status: "Offline",
-    phoneNumber: "+62 822 5555 6666",
-    email: "andi.mekanik@example.com",
-    role: "Agent",
-    department: "Mekanik",
-    lastActive: "2 hours ago",
-  },
-];
+const INITIAL_USERS: UserProfile[] = [];
 
 const getStatusColor = (status: UserStatus) => {
   switch (status) {
@@ -106,7 +61,7 @@ const getRoleColor = (role: UserRole) => {
 };
 
 export function UserManagementTab() {
-  const [users, setUsers] = useState<UserProfile[]>(DUMMY_USERS);
+  const [users, setUsers] = useState<UserProfile[]>(INITIAL_USERS);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
