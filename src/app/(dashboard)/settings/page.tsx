@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, useRef, type FormEvent } from "react";
 import {
   Bell,
   Building2,
@@ -98,7 +98,8 @@ type ActiveSetting =
   | "token_bot";
 
 export default function SettingsPage() {
-  const { config, patchConfig } = useDashboardConfig();
+  const { config, patchConfig, isLoading } = useDashboardConfig();
+  const initialized = useRef(false);
 
   const [activeSetting, setActiveSetting] = useState<ActiveSetting>("profile");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -259,24 +260,27 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    setWorkspaceName(config.workspace.name);
-    setIndustry(config.workspace.industry);
-    setDescription(config.workspace.description);
-    setAddress(config.workspace.address);
-    setWorkspaceBusinessHours(config.workspace.businessHours);
-    setTimezone(config.workspace.timezone);
-    setLang(config.workspace.language);
-    setSupportEmail(config.workspace.supportEmail);
-    setMembers(config.team.members);
-    setNotifyEmail(config.team.notifications.emailDigest);
-    setNotifyHandoff(config.team.notifications.instantHandoff);
-    setNotifyWeekly(config.team.notifications.weeklyReport);
-  }, [config, origin]);
+    if (!isLoading && !initialized.current) {
+      setWorkspaceName(config.workspace.name);
+      setIndustry(config.workspace.industry);
+      setDescription(config.workspace.description);
+      setAddress(config.workspace.address);
+      setWorkspaceBusinessHours(config.workspace.businessHours);
+      setTimezone(config.workspace.timezone);
+      setLang(config.workspace.language);
+      setSupportEmail(config.workspace.supportEmail);
+      setMembers(config.team.members);
+      setNotifyEmail(config.team.notifications.emailDigest);
+      setNotifyHandoff(config.team.notifications.instantHandoff);
+      setNotifyWeekly(config.team.notifications.weeklyReport);
+      initialized.current = true;
+    }
+  }, [config, isLoading]);
 
-  const handleSaveWorkspace = (event: FormEvent) => {
+  const handleSaveWorkspace = async (event: FormEvent) => {
     event.preventDefault();
 
-    patchConfig((current) => ({
+    await patchConfig((current) => ({
       ...current,
       workspace: {
         ...current.workspace,
