@@ -82,12 +82,13 @@ export function InboxSettings() {
   const [idleResolveStatus, setIdleResolveStatus] = useState(settings.customerIdle.resolveStatus);
   const [idleAddTag, setIdleAddTag] = useState(settings.customerIdle.addTag);
 
-  const saveSettings = () => {
-    patchConfig({
+  const saveSettings = async () => {
+    await patchConfig((current) => ({
+      ...current,
       automation: {
-        ...config.automation,
+        ...current.automation,
         inboxSettings: {
-          ...config.automation.inboxSettings,
+          ...current.automation.inboxSettings,
           autoResponders,
           officeHours: {
             enabled: ohEnabled,
@@ -108,10 +109,10 @@ export function InboxSettings() {
             autoResolve: idleAutoResolve,
             resolveStatus: idleResolveStatus,
             addTag: idleAddTag,
-          }
-        }
-      }
-    });
+          },
+        },
+      },
+    }));
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2500);
   };
