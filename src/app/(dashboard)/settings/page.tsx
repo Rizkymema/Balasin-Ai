@@ -82,6 +82,7 @@ function toggleArrayField(field: string, arr: string[], setArr: (v: string[]) =>
   setArr(arr.includes(field) ? arr.filter((f) => f !== field) : [...arr, field]);
 }
 
+type ActiveSetting =
   | "profile"
   | "users"
   | "agents"
