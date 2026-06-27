@@ -32,7 +32,7 @@ import { Dropdown } from "@/components/ui/dropdown";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/inbox", label: "Unified Inbox", icon: MessageSquare, badge: "2" },
+  { href: "/inbox", label: "Unified Inbox", icon: MessageSquare },
   { href: "/customers", label: "Contacts / CRM", icon: Users2 },
   { href: "/products-services", label: "Products & Services", icon: Package2 },
   { href: "/booking", label: "Booking", icon: CalendarRange },
@@ -56,6 +56,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [businessName, setBusinessName] = useState("Workspace Baru");
   const [userEmail, setUserEmail] = useState("admin@workspace.local");
+  const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
   // Always initialize to false so server and client render the same HTML.
   // The real persisted value is loaded from localStorage after mount.
   const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
@@ -136,10 +137,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       } catch {}
     };
 
+    const loadUnreadCount = async () => {
+      try {
+        const res = await fetch("/api/dashboard-operations", {
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const payload = await res.json() as {
+          ok: boolean;
+          data?: { conversations?: Array<{ unreadCount?: number }> };
+        };
+        if (mounted && Array.isArray(payload.data?.conversations)) {
+          const count = payload.data.conversations.filter(
+            (c) => (c.unreadCount ?? 0) > 0
+          ).length;
+          setInboxUnreadCount(count);
+        }
+      } catch {}
+    };
+
     void loadWorkspace();
+    void loadUnreadCount();
+
+    // Poll unread count every 15 seconds
+    const interval = setInterval(() => {
+      if (mounted) void loadUnreadCount();
+    }, 15000);
 
     return () => {
       mounted = false;
+      clearInterval(interval);
     };
   }, []);
 
@@ -268,6 +296,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {NAV_ITEMS.slice(0, 5).map((item) => {
               const Icon = item.icon;
               const isActive = pathname.startsWith(item.href) && (item.href === "/dashboard" ? pathname === "/dashboard" : true);
+              // For Unified Inbox: use live unread count instead of static badge
+              const dynamicBadge = item.href === "/inbox"
+                ? (inboxUnreadCount > 0 ? String(inboxUnreadCount) : undefined)
+                : item.badge;
               return (
                 <Link
                   key={item.href}
@@ -288,14 +320,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <Icon className={`h-4.5 w-4.5 ${isActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
                     {!isMainSidebarCollapsed && item.label}
                   </span>
-                  {!isMainSidebarCollapsed && item.badge && (
+                  {!isMainSidebarCollapsed && dynamicBadge && (
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-brand)] text-[10px] font-bold text-slate-950">
-                      {item.badge}
+                      {dynamicBadge}
                     </span>
                   )}
-                  {isMainSidebarCollapsed && item.badge && (
+                  {isMainSidebarCollapsed && dynamicBadge && (
                     <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-brand)] text-[8px] font-bold text-slate-950 shadow-[0_1px_4px_rgba(0,0,0,0.4)]">
-                      {item.badge}
+                      {dynamicBadge}
                     </span>
                   )}
                 </Link>

@@ -318,71 +318,12 @@ export function InboxWorkspace() {
     );
   };
 
-  const [showAiBanner, setShowAiBanner] = useState(true);
-  const kbDocCount = config.knowledgeBase.documents.length + config.knowledgeBase.websiteUrls.length;
-
   if (isLoading) {
     return <InboxLayoutSkeleton />;
   }
 
   return (
     <div className="flex flex-col h-full min-h-0 gap-3">
-      {/* AI Status Connection Banner */}
-      {showAiBanner && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-cyan-500/15 bg-gradient-to-r from-cyan-950/20 via-[#080c18] to-[#080c18] px-4 py-2.5 shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-400/20 bg-cyan-950/40">
-              <Bot className="h-3.5 w-3.5 text-cyan-400" />
-            </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
-              <span className="flex items-center gap-1.5">
-                <span className={`h-1.5 w-1.5 rounded-full ${aiAutoReply ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
-                <span className="font-bold text-slate-200">{aiAgentName}</span>
-                <span className="text-slate-500">{aiAutoReply ? "· Auto Reply Aktif" : "· Auto Reply Nonaktif"}</span>
-              </span>
-              <span className="hidden md:flex items-center gap-1.5 text-slate-500">
-                <Database className="h-3 w-3 text-cyan-400/70" />
-                <span>{kbDocCount} sumber KB</span>
-              </span>
-              <span className="hidden lg:flex items-center gap-1.5 text-slate-500">
-                <Sparkles className="h-3 w-3 text-purple-400/70" />
-                <span>Threshold {config.aiAgent.confidenceThreshold}%</span>
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Link
-              href="/automation/ai-agent"
-              className="hidden sm:inline-flex items-center gap-1 rounded-md border border-cyan-500/20 bg-cyan-950/30 px-2.5 py-1 text-[10px] font-bold text-cyan-400 transition hover:bg-cyan-950/50"
-            >
-              <Bot className="h-3 w-3" />
-              AI Agent
-            </Link>
-            <Link
-              href="/automation/knowledge-base"
-              className="hidden sm:inline-flex items-center gap-1 rounded-md border border-purple-500/20 bg-purple-950/30 px-2.5 py-1 text-[10px] font-bold text-purple-400 transition hover:bg-purple-950/50"
-            >
-              <Database className="h-3 w-3" />
-              Knowledge Base
-            </Link>
-            <Link
-              href="/automation/chatbot-settings"
-              className="hidden md:inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold text-slate-400 transition hover:bg-white/[0.08]"
-            >
-              <Settings2 className="h-3 w-3" />
-              Settings
-            </Link>
-            <button
-              type="button"
-              onClick={() => setShowAiBanner(false)}
-              className="ml-1 rounded-md p-1 text-slate-600 hover:text-slate-400 transition"
-              title="Tutup"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
 
       <div className="flex flex-1 min-h-0 flex-row gap-3">
 
