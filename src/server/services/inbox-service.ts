@@ -43,6 +43,79 @@ export type NormalizedIncomingMessage = {
   rawPayload: Record<string, unknown>;
 };
 
+function normalizeIdentityValue(value?: string | null) {
+  const normalized = value?.trim();
+  return normalized ? normalized : null;
+}
+
+function hasSameIdentity(left?: string | null, right?: string | null) {
+  const normalizedLeft = normalizeIdentityValue(left);
+  const normalizedRight = normalizeIdentityValue(right);
+
+  return normalizedLeft != null && normalizedLeft === normalizedRight;
+}
+
+function findExistingConversation(
+  conversations: ConversationRecord[],
+  input: NormalizedIncomingMessage,
+) {
+  return (
+    conversations.find((conversation) => {
+      if (conversation.channel !== input.channel) {
+        return false;
+      }
+
+      return (
+        hasSameIdentity(
+          conversation.channelContext?.externalUserId,
+          input.externalUserId,
+        ) ||
+        hasSameIdentity(
+          conversation.channelContext?.instagramUserId,
+          input.channelContext?.instagramUserId,
+        ) ||
+        hasSameIdentity(conversation.phone, input.phone) ||
+        hasSameIdentity(conversation.username, input.username)
+      );
+    }) ?? null
+  );
+}
+
+function findExistingCustomer(input: {
+  customers: CustomerRecord[];
+  existingConversation: ConversationRecord | null;
+  message: NormalizedIncomingMessage;
+}) {
+  if (input.existingConversation) {
+    return (
+      input.customers.find(
+        (customer) => customer.id === input.existingConversation?.customerId,
+      ) ?? null
+    );
+  }
+
+  const phoneMatch = normalizeIdentityValue(input.message.phone);
+  if (phoneMatch) {
+    return (
+      input.customers.find((customer) => hasSameIdentity(customer.phone, phoneMatch)) ??
+      null
+    );
+  }
+
+  const usernameMatch = normalizeIdentityValue(input.message.username);
+  if (usernameMatch) {
+    return (
+      input.customers.find(
+        (customer) =>
+          customer.channel === input.message.channel &&
+          hasSameIdentity(customer.username, usernameMatch),
+      ) ?? null
+    );
+  }
+
+  return null;
+}
+
 function buildCustomer(channel: ChannelKind, message: NormalizedIncomingMessage): CustomerRecord {
   return {
     id: randomUUID(),
@@ -174,20 +247,24 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   const current = await getDashboardOperationsRecord();
   const receivedAt = new Date().toISOString();
 
+  const existingConversation = findExistingConversation(current.conversations, input);
   let customer =
-    current.customers.find(
-      (item) =>
-        item.phone === input.phone ||
-        item.username === input.username ||
-        item.name === input.displayName,
-    ) ?? buildCustomer(input.channel, input);
+    findExistingCustomer({
+      customers: current.customers,
+      existingConversation,
+      message: input,
+    }) ?? buildCustomer(input.channel, input);
+
+  customer = {
+    ...customer,
+    name: normalizeIdentityValue(input.displayName) ?? customer.name,
+    phone: normalizeIdentityValue(input.phone) ?? customer.phone,
+    username: normalizeIdentityValue(input.username) ?? customer.username,
+  };
 
   if (!current.customers.find((item) => item.id === customer.id)) {
     current.customers.unshift(customer);
   }
-
-  const existingConversation =
-    current.conversations.find((item) => item.customerId === customer.id) ?? null;
 
   let conversation =
     existingConversation ??

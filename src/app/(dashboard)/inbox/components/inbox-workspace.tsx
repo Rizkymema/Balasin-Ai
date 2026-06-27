@@ -33,7 +33,7 @@ type ToastState = {
 
 export function InboxWorkspace() {
   const { config } = useDashboardConfig();
-  const { data, isLoading, refreshData } = useDashboardOperations();
+  const { data, isLoading, refreshData, patchData } = useDashboardOperations();
 
   const [selectedId, setSelectedId] = useState("");
   const [mobileView, setMobileView] = useState<"list" | "detail" | "context">(
