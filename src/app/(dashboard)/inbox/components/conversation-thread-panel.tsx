@@ -420,10 +420,10 @@ export function ConversationThreadPanel({
           {conversation.messages.map((message) => {
             if (message.sender === "system") {
               return (
-                <div key={message.id} className="py-1 text-center">
-                  <p className="text-[12px] leading-5 text-slate-500">
+                <div key={message.id} className="py-2 flex justify-center">
+                  <span className="rounded-full bg-white/[0.04] border border-white/[0.08] px-3 py-1 text-[10px] font-medium text-slate-400">
                     {message.timestamp} - {message.text}
-                  </p>
+                  </span>
                 </div>
               );
             }
@@ -436,43 +436,38 @@ export function ConversationThreadPanel({
             return (
               <div
                 key={message.id}
-                className={cn("flex", isCustomer ? "justify-start" : "justify-end")}
+                className={cn("flex w-full mb-1", isCustomer ? "justify-start" : "justify-end")}
               >
-                <div className="max-w-[85%] sm:max-w-[70%]">
+                <div className="flex flex-col max-w-[85%] sm:max-w-[70%]">
+                  {!isCustomer && (
+                    <div className="mb-1 flex items-center justify-end gap-1.5 text-[10px] text-slate-500 px-1">
+                      {isAi ? (
+                        <Bot className="h-3 w-3 text-[#00d2ff]" />
+                      ) : (
+                        <User className="h-3 w-3" />
+                      )}
+                      <span>{actorLabel}</span>
+                    </div>
+                  )}
                   <div
                     className={cn(
-                      "rounded-2xl border px-4 py-3 shadow-sm",
+                      "relative px-3.5 py-2 shadow-sm rounded-2xl flex flex-col",
                       isCustomer
-                        ? "rounded-tl-sm border-white/[0.06] bg-white/[0.06] text-slate-300"
-                        : "rounded-tr-sm border-[#00d2ff]/20 bg-[#00d2ff]/10 text-slate-200",
+                        ? "bg-[#1e253c] text-slate-200 rounded-bl-sm border border-white/5"
+                        : "bg-[#00d2ff] text-[#050814] rounded-br-sm"
                     )}
                   >
-                    <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-500">
-                      {isCustomer ? (
-                        <span>{conversation.name}</span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1">
-                          {isAi ? (
-                            <Bot className="h-3.5 w-3.5 text-[#00d2ff]" />
-                          ) : (
-                            <User className="h-3.5 w-3.5 text-slate-400" />
-                          )}
-                          {actorLabel}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[13px] leading-6">{message.text}</p>
+                    <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{message.text}</p>
                     <div
                       className={cn(
-                        "mt-2 flex items-center gap-1 text-[11px] text-slate-500",
-                        isCustomer ? "justify-start" : "justify-end",
+                        "flex items-center gap-1 text-[9px] font-medium self-end mt-1",
+                        isCustomer ? "text-slate-400" : "text-[#050814]/60",
                       )}
                     >
                       <span>{message.timestamp}</span>
-                      {statusInfo ? (
-                        <span className="inline-flex items-center gap-1">
-                          <statusInfo.icon className="h-3.5 w-3.5" />
-                          {statusInfo.label}
+                      {!isCustomer && statusInfo ? (
+                        <span className="inline-flex items-center">
+                          <statusInfo.icon className="h-3 w-3 ml-0.5" />
                         </span>
                       ) : null}
                     </div>
