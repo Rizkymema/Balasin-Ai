@@ -201,6 +201,13 @@ export function InboxSettings() {
                 </tbody>
               </table>
             </div>
+            
+            <div className="pt-2">
+              <Button onClick={saveSettings} className="gap-2 text-xs h-9">
+                {isSaved ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
+                {isSaved ? "Tersimpan!" : "Save Auto Responders"}
+              </Button>
+            </div>
           </div>
         )}
 
@@ -334,6 +341,13 @@ export function InboxSettings() {
                 </tbody>
               </table>
             </div>
+            
+            <div className="pt-2">
+              <Button onClick={saveSettings} className="gap-2 text-xs h-9">
+                {isSaved ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
+                {isSaved ? "Tersimpan!" : "Save Templates"}
+              </Button>
+            </div>
           </div>
         )}
 
@@ -371,6 +385,13 @@ export function InboxSettings() {
                   </div>
                 </div>
               ))}
+            </div>
+            
+            <div className="pt-2">
+              <Button onClick={saveSettings} className="gap-2 text-xs h-9">
+                {isSaved ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
+                {isSaved ? "Tersimpan!" : "Save Tags"}
+              </Button>
             </div>
           </div>
         )}
