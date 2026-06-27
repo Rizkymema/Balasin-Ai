@@ -78,18 +78,26 @@ export function InboxWorkspace() {
         Array<"all" | ConversationRecord["channel"]>,
     [data.conversations],
   );
+
+  const activeAiAgent = useMemo(
+    () => config.automation?.aiAgents?.find((a) => a.status === "Active") ?? null,
+    [config.automation?.aiAgents]
+  );
+  const aiAgentName = activeAiAgent ? activeAiAgent.name : config.aiAgent.name;
+  const aiAutoReply = activeAiAgent ? activeAiAgent.allowedActions.replyMessage : config.aiAgent.autoReplyEnabled;
+
   const summary = useMemo(
-    () => deriveInboxSummary(data.conversations, config.aiAgent.name),
-    [config.aiAgent.name, data.conversations],
+    () => deriveInboxSummary(data.conversations, aiAgentName),
+    [aiAgentName, data.conversations],
   );
   const filteredConversations = useMemo(
     () =>
       filterInboxConversations(
         data.conversations,
         filtersWithDeferredSearch,
-        config.aiAgent.name,
+        aiAgentName,
       ),
-    [config.aiAgent.name, data.conversations, filtersWithDeferredSearch],
+    [aiAgentName, data.conversations, filtersWithDeferredSearch],
   );
 
   const activeConversation =
@@ -328,9 +336,9 @@ export function InboxWorkspace() {
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
               <span className="flex items-center gap-1.5">
-                <span className={`h-1.5 w-1.5 rounded-full ${config.aiAgent.autoReplyEnabled ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
-                <span className="font-bold text-slate-200">{config.aiAgent.name}</span>
-                <span className="text-slate-500">{config.aiAgent.autoReplyEnabled ? "· Auto Reply Aktif" : "· Auto Reply Nonaktif"}</span>
+                <span className={`h-1.5 w-1.5 rounded-full ${aiAutoReply ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
+                <span className="font-bold text-slate-200">{aiAgentName}</span>
+                <span className="text-slate-500">{aiAutoReply ? "· Auto Reply Aktif" : "· Auto Reply Nonaktif"}</span>
               </span>
               <span className="hidden md:flex items-center gap-1.5 text-slate-500">
                 <Database className="h-3 w-3 text-cyan-400/70" />
@@ -476,7 +484,7 @@ export function InboxWorkspace() {
                   onTakeOver={() =>
                     void handleStatusUpdate(
                       "assigned_to_admin",
-                      "Percakapan berhasil diambil alih admin.",
+                      `Percakapan berhasil diambil alih ${config.automation?.aiConfig?.handoverTarget || "admin"}.`,
                     )
                   }
                   onPauseAi={() =>
