@@ -581,24 +581,49 @@ struct ChatView: View {
     setIgStatus(nextStatus);
     setIgVerifyToken(trimmedVerifyToken);
 
-    patchConfig((current) => ({
-      ...current,
-      channels: {
-        ...current.channels,
-        instagram: {
-          ...current.channels.instagram,
-          enabled: nextStatus === "connected",
-          status: nextStatus,
-          username: igUsername.trim(),
+    patchConfig((current) => {
+      const existingAccounts = current.channels.instagram.accounts ?? [];
+      let updatedAccounts = [...existingAccounts];
+
+      if (nextStatus === "connected") {
+        const newAccount = {
+          id: igAccountId.trim(),
+          username: igUsername.trim() || "instagram_user",
           accountId: igAccountId.trim(),
           accessToken: igAccessToken.trim(),
           verifyToken: trimmedVerifyToken,
-          autoReplyDm: igAutoReplyDm,
-          commentGuard: igCommentGuard,
-          commentToDm: igCommentToDm,
+          status: "connected" as const,
+          pageName: "Manual Account",
+        };
+
+        const alreadyExists = existingAccounts.some(acc => acc.accountId === igAccountId.trim());
+        if (alreadyExists) {
+          updatedAccounts = updatedAccounts.map(acc => acc.accountId === igAccountId.trim() ? newAccount : acc);
+        } else {
+          updatedAccounts.push(newAccount);
+        }
+      }
+
+      return {
+        ...current,
+        channels: {
+          ...current.channels,
+          instagram: {
+            ...current.channels.instagram,
+            enabled: nextStatus === "connected",
+            status: nextStatus,
+            username: igUsername.trim(),
+            accountId: igAccountId.trim(),
+            accessToken: igAccessToken.trim(),
+            verifyToken: trimmedVerifyToken,
+            autoReplyDm: igAutoReplyDm,
+            commentGuard: igCommentGuard,
+            commentToDm: igCommentToDm,
+            accounts: updatedAccounts,
+          },
         },
-      },
-    }));
+      };
+    });
 
     setIgSaved(true);
     setTimeout(() => setIgSaved(false), 2500);
