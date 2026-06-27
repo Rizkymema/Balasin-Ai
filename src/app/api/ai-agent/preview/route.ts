@@ -1,6 +1,6 @@
 import { defaultDashboardConfig, mergeDashboardConfig } from "@/lib/dashboard-config";
 import { jsonError, jsonOk, requireApiSession } from "@/server/http";
-import { generateReplyDecision } from "@/server/services/reply-engine";
+import { generateReplyDecision, type ReplyContext } from "@/server/services/reply-engine";
 import type { DashboardConfig } from "@/types/dashboard-config";
 
 export async function POST(request: Request) {
@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       message?: string;
       config?: DashboardConfig;
+      context?: ReplyContext;
     };
 
     if (!body.message?.trim()) {
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
     }
 
     const config = mergeDashboardConfig(defaultDashboardConfig, body.config);
-    const decision = await generateReplyDecision(body.message.trim(), config);
+    const decision = await generateReplyDecision(body.message.trim(), config, body.context);
 
     return jsonOk(decision);
   } catch (error) {

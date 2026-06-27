@@ -45,6 +45,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { InboxSettings } from "./components/inbox-settings";
+import { ChatbotTokens } from "./components/chatbot-tokens";
 
 // ── Agent Management – module-level constants ────────────────────────────────
 const AGENT_TABS = [
@@ -113,10 +114,7 @@ export default function SettingsPage() {
   const [recordCalls, setRecordCalls] = useState(true);
   const [logCallsToCrm, setLogCallsToCrm] = useState(true);
 
-  // Chatbot Token Settings
-  const [chatbotApiToken, setChatbotApiToken] = useState("chatbot_api_tok_849f2c8d2038741c");
-  const [isSavedChatbotToken, setIsSavedChatbotToken] = useState(false);
-  const [chatbotTokenCopied, setChatbotTokenCopied] = useState(false);
+  // Chatbot Token Settings moved to chatbot-tokens.tsx
 
   // Ticket Automation
   const [autoCreateTicket, setAutoCreateTicket] = useState(true);
@@ -140,10 +138,7 @@ export default function SettingsPage() {
   const [supportEmail, setSupportEmail] = useState(config.workspace.supportEmail);
   const [isSavedWorkspace, setIsSavedWorkspace] = useState(false);
 
-  // Runtime / API Chatbot States
-  const [publicAppUrl, setPublicAppUrl] = useState(config.runtime.publicAppUrl);
-  const [dashboardWorkerSecret, setDashboardWorkerSecret] = useState(config.runtime.workerSecret);
-  const [isSavedRuntime, setIsSavedRuntime] = useState(false);
+  // Runtime / API Chatbot States moved to chatbot-tokens.tsx
 
   // User Management States
   const [inviteEmail, setInviteEmail] = useState("");
@@ -271,8 +266,6 @@ export default function SettingsPage() {
     setTimezone(config.workspace.timezone);
     setLang(config.workspace.language);
     setSupportEmail(config.workspace.supportEmail);
-    setPublicAppUrl(resolveDashboardPublicAppUrl(config.runtime.publicAppUrl, origin));
-    setDashboardWorkerSecret(config.runtime.workerSecret);
     setMembers(config.team.members);
     setNotifyEmail(config.team.notifications.emailDigest);
     setNotifyHandoff(config.team.notifications.instantHandoff);
@@ -301,20 +294,6 @@ export default function SettingsPage() {
     setTimeout(() => setIsSavedWorkspace(false), 2500);
   };
 
-  const handleSaveRuntime = (event: FormEvent) => {
-    event.preventDefault();
-
-    patchConfig((current) => ({
-      ...current,
-      runtime: {
-        publicAppUrl: publicAppUrl.trim(),
-        workerSecret: dashboardWorkerSecret,
-      },
-    }));
-
-    setIsSavedRuntime(true);
-    setTimeout(() => setIsSavedRuntime(false), 2500);
-  };
 
   const handleInvite = (event: FormEvent) => {
     event.preventDefault();
@@ -1952,99 +1931,7 @@ export default function SettingsPage() {
           {/* TAB 12: CHATBOT API TOKEN */}
           {/* ============================================== */}
           {activeSetting === "token_bot" && (
-            <div className="space-y-6">
-              {/* Bot API Token Generator */}
-              <Card className="glass-panel p-6 max-w-3xl border-white/8">
-                <div className="border-b border-white/8 pb-4 mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-2xl border border-emerald-500/20 bg-emerald-950/30 p-3 text-emerald-300">
-                      <FileCode className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h2 className="text-sm font-bold uppercase tracking-wider text-white">Chatbot API Token</h2>
-                      <p className="text-xs text-slate-400 font-normal">Tempat membuat token API khusus untuk integrasi fungsi otomatisasi bot.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="rounded-lg border border-white/8 bg-[#020611] p-4">
-                    <span className="block text-[9px] font-bold uppercase text-slate-500">Chatbot API Key</span>
-                    <div className="flex items-center justify-between mt-1">
-                      <code className="text-xs font-mono text-emerald-400">{chatbotApiToken}</code>
-                      <button onClick={async () => {
-                        await navigator.clipboard.writeText(chatbotApiToken);
-                        setChatbotTokenCopied(true);
-                        setTimeout(() => setChatbotTokenCopied(false), 2000);
-                      }} className="text-emerald-400 hover:text-emerald-300 text-xs font-bold transition">
-                        {chatbotTokenCopied ? "Disalin ✓" : "Salin Token"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center pt-2">
-                    {isSavedChatbotToken ? (
-                      <span className="text-xs text-emerald-400 font-semibold animate-pulse">Chatbot API Token baru digenerasi!</span>
-                    ) : <div />}
-                    <Button onClick={() => {
-                      setIsSavedChatbotToken(true);
-                      setChatbotApiToken("chatbot_api_tok_" + Math.random().toString(36).substring(2, 18) + Math.random().toString(36).substring(2, 6));
-                      setTimeout(() => setIsSavedChatbotToken(false), 2000);
-                    }} className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs">
-                      Generasi Token Chatbot Baru
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Bot Webhook & Platform Settings (Saves Public URL & Worker Secret) */}
-              <form onSubmit={handleSaveRuntime} className="glass-panel max-w-3xl space-y-5 rounded-xl p-6 border-white/8">
-                <div className="border-b border-white/8 pb-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                    Bot Webhook & Platform Settings (Runtime Config)
-                  </h3>
-                  <p className="text-[10px] text-slate-500 mt-1">Konfigurasi endpoint webhook internal serta worker secret autentikasi.</p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Public App URL (Untuk Sinkronisasi Webhook)</label>
-                  <Input
-                    value={publicAppUrl}
-                    onChange={(event) => setPublicAppUrl(event.target.value)}
-                    placeholder="https://domain-anda.com"
-                    className="h-10 text-xs"
-                  />
-                  <p className="text-[10px] text-slate-500">
-                    Digunakan untuk membentuk webhook endpoint URL serta generator script widget di website.
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Chatbot Worker Token (Worker Secret)</label>
-                  <Input
-                    type="password"
-                    value={dashboardWorkerSecret}
-                    onChange={(event) => setDashboardWorkerSecret(event.target.value)}
-                    placeholder="worker-secret-anda"
-                    className="h-10 text-xs font-mono"
-                  />
-                  <p className="text-[10px] text-slate-500">
-                    Secret token khusus yang digunakan untuk mengautentikasi panggilan endpoint asisten AI tanpa login manual.
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-white/8 pt-4">
-                  {isSavedRuntime ? (
-                    <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-                      <Check className="h-4 w-4" /> Token Chatbot disimpan!
-                    </span>
-                  ) : (
-                    <div />
-                  )}
-                  <Button type="submit">Simpan Konfigurasi Token</Button>
-                </div>
-              </form>
-            </div>
+            <ChatbotTokens />
           )}
         </div>
       </div>

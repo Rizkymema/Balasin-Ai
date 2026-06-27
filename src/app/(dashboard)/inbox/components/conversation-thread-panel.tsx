@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Bot,
@@ -127,18 +127,77 @@ export function ConversationThreadPanel({
   onToggleContextPanel,
   onBackToList,
 }: ConversationThreadPanelProps) {
-  const suggestionText = useMemo(() => {
+  const [suggestionText, setSuggestionText] = useState("");
+  const [isGeneratingSuggestion, setIsGeneratingSuggestion] = useState(false);
+
+  useEffect(() => {
     if (!conversation) {
-      return "";
+      setSuggestionText("");
+      return;
     }
 
-    return buildAiSuggestion({
-      conversation,
-      config,
-      variant: suggestionVariant,
-      version: suggestionVersion,
-    });
-  }, [config, conversation, suggestionVariant, suggestionVersion]);
+    if (!config.aiProvider.enabled) {
+      setSuggestionText(
+        buildAiSuggestion({
+          conversation,
+          config,
+          variant: suggestionVariant,
+          version: suggestionVersion,
+        })
+      );
+      return;
+    }
+
+    const customerMessages = conversation.messages.filter((m) => m.sender === "customer");
+    const lastCustomerMessage = customerMessages[customerMessages.length - 1]?.text || "Hello";
+
+    setIsGeneratingSuggestion(true);
+
+    fetch("/api/ai-agent/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: lastCustomerMessage,
+        config,
+        context: {
+          recentMessages: conversation.messages.map((m) => ({ sender: m.sender, text: m.text })),
+          lastIntent: conversation.lastIntent,
+        },
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.reply) {
+          setSuggestionText(data.reply);
+        } else {
+          setSuggestionText(
+            buildAiSuggestion({
+              conversation,
+              config,
+              variant: suggestionVariant,
+              version: suggestionVersion,
+            })
+          );
+        }
+      })
+      .catch(() => {
+        setSuggestionText(
+          buildAiSuggestion({
+            conversation,
+            config,
+            variant: suggestionVariant,
+            version: suggestionVersion,
+          })
+        );
+      })
+      .finally(() => setIsGeneratingSuggestion(false));
+  }, [
+    conversation?.id,
+    config,
+    suggestionVariant,
+    suggestionVersion,
+    conversation?.messages?.length,
+  ]);
 
   if (!conversation) {
     return (
@@ -465,6 +524,7 @@ export function ConversationThreadPanel({
         {composerMode === "reply" && (
           <AiSuggestionPanel
             suggestionText={suggestionText}
+            isLoading={isGeneratingSuggestion}
             onUseSuggestion={onUseSuggestion}
             onSuggestionVariantChange={onSuggestionVariantChange}
             onSuggestionVersionChange={onSuggestionVersionChange}
@@ -593,16 +653,25 @@ export function ConversationThreadPanel({
 /* ---------- Collapsible AI Suggestion Sub-component ---------- */
 function AiSuggestionPanel({
   suggestionText,
+  isLoading,
   onUseSuggestion,
   onSuggestionVariantChange,
   onSuggestionVersionChange,
 }: {
   suggestionText: string;
+  isLoading: boolean;
   onUseSuggestion: (value: string) => void;
   onSuggestionVariantChange: (value: "default" | "short" | "warm") => void;
   onSuggestionVersionChange: (updater: (current: number) => number) => void;
 }) {
   const [open, setOpen] = useState(false);
+
+  // Automatically open the panel if it just finished loading a valid suggestion
+  useEffect(() => {
+    if (!isLoading && suggestionText) {
+      setOpen(true);
+    }
+  }, [isLoading, suggestionText]);
 
   return (
     <div className="border-b border-white/[0.04]">
@@ -620,7 +689,18 @@ function AiSuggestionPanel({
 
       {open && (
         <div className="px-4 pb-3">
-          <p className="text-[12px] leading-5 text-slate-300">{suggestionText}</p>
+          {isLoading ? (
+            <div className="flex items-center gap-2 text-[12px] text-slate-400">
+              <span className="flex gap-1">
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#00d2ff] [animation-delay:-0.2s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#00d2ff] [animation-delay:-0.1s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#00d2ff]" />
+              </span>
+              AI sedang menyiapkan balasan...
+            </div>
+          ) : (
+            <p className="text-[12px] leading-5 text-slate-300">{suggestionText}</p>
+          )}
           <div className="mt-2 flex flex-wrap gap-1.5">
             <button
               type="button"
