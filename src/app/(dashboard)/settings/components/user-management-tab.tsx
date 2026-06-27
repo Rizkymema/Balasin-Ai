@@ -360,8 +360,7 @@ export function UserManagementTab() {
             </span>
             <div className="flex items-center gap-1">
               <Button 
-                variant="outline" 
-                size="icon"
+                variant="secondary"
                 className="h-7 w-7 text-xs border-white/10 bg-transparent text-slate-400 hover:text-white hover:bg-white/5"
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(p => p - 1)}
@@ -370,8 +369,7 @@ export function UserManagementTab() {
               </Button>
               <div className="px-2 text-xs text-slate-300 font-semibold">{currentPage} / {totalPages}</div>
               <Button 
-                variant="outline"
-                size="icon" 
+                variant="secondary"
                 className="h-7 w-7 text-xs border-white/10 bg-transparent text-slate-400 hover:text-white hover:bg-white/5"
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(p => p + 1)}
@@ -408,7 +406,7 @@ export function UserManagementTab() {
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-2">
-              <Button variant="ghost" className="h-9 px-4 text-xs text-slate-400 hover:text-white" onClick={() => setShowAddModal(false)}>Cancel</Button>
+              <Button variant="secondary" className="h-9 px-4 text-xs text-slate-400 hover:text-white" onClick={() => setShowAddModal(false)}>Cancel</Button>
               <Button className="h-9 px-4 text-xs bg-cyan-500 text-slate-950 hover:bg-cyan-400" onClick={() => setShowAddModal(false)}>Send Invitation</Button>
             </div>
           </div>
@@ -432,7 +430,7 @@ export function UserManagementTab() {
                "Lanjutkan aksi ini?"}
             </p>
             <div className="mt-6 flex justify-center gap-3">
-              <Button variant="ghost" className="h-9 px-4 text-xs text-slate-400 hover:text-white" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}>Batal</Button>
+              <Button variant="secondary" className="h-9 px-4 text-xs text-slate-400 hover:text-white" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}>Batal</Button>
               <Button className="h-9 px-4 text-xs bg-red-500 hover:bg-red-400 text-white" onClick={confirmAction}>Ya, Lanjutkan</Button>
             </div>
           </div>
