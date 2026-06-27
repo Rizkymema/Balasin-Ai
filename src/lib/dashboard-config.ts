@@ -293,15 +293,18 @@ export function mergeDashboardConfig(
       inboxSettings: incoming.automation?.inboxSettings ? {
         ...base.automation.inboxSettings,
         ...incoming.automation.inboxSettings,
-        templates: (incoming.automation.inboxSettings.templates ?? []).filter(
-          (t) => typeof t.id === "string" && String(t.id).startsWith("tpl_")
-        ),
-        autoResponders: (incoming.automation.inboxSettings.autoResponders ?? []).filter(
-          (r) => typeof r.id === "string" && String(r.id).startsWith("res_")
-        ),
-        tags: (incoming.automation.inboxSettings.tags ?? []).filter(
-          (t) => typeof t.id === "string" && String(t.id).startsWith("tag_")
-        ),
+        templates: incoming.automation.inboxSettings.templates ?? base.automation.inboxSettings.templates,
+        autoResponders: incoming.automation.inboxSettings.autoResponders ?? base.automation.inboxSettings.autoResponders,
+        tags: incoming.automation.inboxSettings.tags ?? base.automation.inboxSettings.tags,
+        officeHours: {
+          ...base.automation.inboxSettings.officeHours,
+          ...(incoming.automation.inboxSettings.officeHours ?? {}),
+          days: incoming.automation.inboxSettings.officeHours?.days ?? base.automation.inboxSettings.officeHours.days,
+        },
+        customerIdle: {
+          ...base.automation.inboxSettings.customerIdle,
+          ...(incoming.automation.inboxSettings.customerIdle ?? {}),
+        },
       } : base.automation.inboxSettings,
     },
     team: {

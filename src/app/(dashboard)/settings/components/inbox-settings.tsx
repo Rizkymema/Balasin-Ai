@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Inbox,
   PlusCircle,
@@ -43,11 +43,14 @@ const INBOX_TABS = [
 ];
 
 export function InboxSettings() {
-  const { config, patchConfig } = useDashboardConfig();
+  const { config, isLoading, patchConfig } = useDashboardConfig();
   const settings = config.automation.inboxSettings;
 
   const [activeTab, setActiveTab] = useState("auto_responder");
   const [isSaved, setIsSaved] = useState(false);
+
+  // Track whether we've initialized local state from the server data
+  const initializedRef = useRef(false);
 
   // 1. Auto Responder State
   const [autoResponders, setAutoResponders] = useState(settings.autoResponders);
@@ -57,7 +60,7 @@ export function InboxSettings() {
   // 2. Office Hours State
   const [ohEnabled, setOhEnabled] = useState(settings.officeHours.enabled);
   const [ohTimezone, setOhTimezone] = useState(settings.officeHours.timezone);
-  const [ohDays, setOhDays] = useState(settings.officeHours.days);
+  const [ohDays, setOhDays] = useState(() => settings.officeHours.days.map(d => ({ ...d })));
   const [ohOutsideMessage, setOhOutsideMessage] = useState(settings.officeHours.outsideMessage);
 
   // 3. Templates State
@@ -81,6 +84,32 @@ export function InboxSettings() {
   const [idleAutoResolve, setIdleAutoResolve] = useState(settings.customerIdle.autoResolve);
   const [idleResolveStatus, setIdleResolveStatus] = useState(settings.customerIdle.resolveStatus);
   const [idleAddTag, setIdleAddTag] = useState(settings.customerIdle.addTag);
+
+  // KEY FIX: Sync local state from server once config finishes loading.
+  // useState only captures the value at first render (before API response).
+  // This effect re-initializes all fields with the real persisted data.
+  useEffect(() => {
+    if (isLoading || initializedRef.current) return;
+    initializedRef.current = true;
+    const s = config.automation.inboxSettings;
+    setAutoResponders(s.autoResponders);
+    setOhEnabled(s.officeHours.enabled);
+    setOhTimezone(s.officeHours.timezone);
+    setOhDays(s.officeHours.days.map(d => ({ ...d })));
+    setOhOutsideMessage(s.officeHours.outsideMessage);
+    setTemplates(s.templates);
+    setTags(s.tags);
+    setIdleEnabled(s.customerIdle.enabled);
+    setIdleDuration(s.customerIdle.duration);
+    setIdleUnit(s.customerIdle.unit);
+    setIdleReminderEnabled(s.customerIdle.reminderEnabled);
+    setIdleReminderDelay(s.customerIdle.reminderDelay);
+    setIdleReminderUnit(s.customerIdle.reminderUnit);
+    setIdleReminderMsg(s.customerIdle.reminderMsg);
+    setIdleAutoResolve(s.customerIdle.autoResolve);
+    setIdleResolveStatus(s.customerIdle.resolveStatus);
+    setIdleAddTag(s.customerIdle.addTag);
+  }, [isLoading, config]);
 
   const saveSettings = async () => {
     await patchConfig((current) => ({
