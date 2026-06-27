@@ -1,31 +1,30 @@
-import { Building2 } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { primaryNavigation } from "@/constants/navigation";
-import { siteConfig } from "@/constants/site";
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
+    <header className="sticky top-0 z-30 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-md">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5 lg:px-8">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-[var(--color-brand)] shadow-sm">
-            <Building2 className="h-5 w-5" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]">
+            <MessageSquare className="h-4.5 w-4.5" />
           </div>
           <div>
-            <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-slate-900">
-              Balesin<span className="text-[var(--color-brand)]">.AI</span>
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-[var(--color-text)]">
+              Balesin<span className="text-[var(--color-muted)]">.AI</span>
             </p>
-            <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
-              Omnichannel CRM Workspace
+            <p className="text-[8px] text-[var(--color-muted)] font-semibold uppercase tracking-widest">
+              Omnichannel CRM
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <nav className="hidden items-center gap-8 md:flex mr-2">
+        <div className="flex items-center gap-6">
+          <nav className="hidden items-center gap-6 md:flex">
             {primaryNavigation.map((item) => (
               <a
                 key={item.label}
-                className="text-sm font-semibold text-slate-600 transition hover:text-slate-900"
+                className="text-[11px] font-medium text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors duration-200"
                 href={item.href}
               >
                 {item.label}
@@ -34,8 +33,7 @@ export function SiteHeader() {
           </nav>
           <a
             href="/login"
-            className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-900 hover:bg-slate-800 text-white px-4.5 text-xs font-bold transition duration-200 shadow-[0_2px_8px_rgba(0,0,0,0.1)] hover:scale-[1.02]"
-            style={{ color: "#ffffff" }}
+            className="inline-flex h-8 items-center justify-center rounded-full bg-[var(--color-brand)] text-[var(--color-bg)] hover:opacity-90 px-4 text-xs font-semibold transition-all duration-200 active:scale-[0.98]"
           >
             Masuk / Demo
           </a>

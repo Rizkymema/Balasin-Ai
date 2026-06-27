@@ -31,39 +31,39 @@ export function FAQSection() {
   };
 
   return (
-    <section id="faq" className="py-20 relative border-t border-[var(--color-border)]">
-      <div className="mx-auto max-w-4xl px-6 lg:px-8 text-center space-y-12">
-        <div className="space-y-3 max-w-2xl mx-auto">
-          <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-brand)]">
+    <section id="faq" className="py-24 lg:py-32 relative border-t border-[var(--color-border)] bg-[var(--color-bg)]">
+      <div className="mx-auto max-w-3xl px-6 lg:px-8 text-center space-y-16 select-none">
+        <div className="space-y-2.5 max-w-2xl mx-auto">
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-muted)]">
             Pertanyaan Umum
           </span>
-          <h2 className="text-3xl font-bold text-[var(--color-text)] md:text-4xl tracking-tight">
+          <h2 className="text-2xl sm:text-3.5xl font-bold text-[var(--color-text)] tracking-[-0.03em] leading-tight">
             Sering Ditanyakan (FAQ)
           </h2>
-          <p className="text-sm text-[var(--color-muted)] leading-relaxed">
+          <p className="text-xs sm:text-sm text-[var(--color-muted)] leading-relaxed font-normal">
             Temukan jawaban cepat mengenai keamanan data, setup WhatsApp, dan integrasi AI Balesin.
           </p>
         </div>
 
-        <div className="space-y-4 text-left">
+        <div className="space-y-4 text-left mt-16">
           {FAQS.map((faq, idx) => {
             const isOpen = openIdx === idx;
             return (
               <Card
                 key={idx}
-                className="p-0 overflow-hidden transition-all duration-200 cursor-pointer hover:border-[var(--color-border-hover)]"
+                className="p-0 overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)]/35 hover:bg-[var(--color-surface)]/60 rounded-2xl cursor-pointer transition-all duration-300"
                 onClick={() => toggleOpen(idx)}
               >
-                <div className="flex items-center justify-between p-5 font-bold text-xs md:text-sm text-[var(--color-text)] select-none">
+                <div className="flex items-center justify-between p-6 font-semibold text-xs sm:text-sm text-[var(--color-text)] select-none">
                   <span className="tracking-tight">{faq.question}</span>
                   {isOpen ? (
-                    <ChevronUp className="h-4.5 w-4.5 text-[var(--color-brand)] shrink-0 ml-4" />
+                    <ChevronUp className="h-4.5 w-4.5 text-[var(--color-text)] shrink-0 ml-4" />
                   ) : (
                     <ChevronDown className="h-4.5 w-4.5 text-[var(--color-muted)] shrink-0 ml-4" />
                   )}
                 </div>
                 {isOpen && (
-                  <div className="p-5 pt-0 text-xs text-[var(--color-muted)] leading-relaxed font-medium border-t border-[var(--color-border)] bg-[var(--color-surface-hover)]/30 animate-fade-in">
+                  <div className="px-6 pb-6 text-xs text-[var(--color-muted)] leading-relaxed font-normal bg-transparent animate-fade-in">
                     {faq.answer}
                   </div>
                 )}

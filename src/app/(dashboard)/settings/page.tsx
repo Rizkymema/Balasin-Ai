@@ -45,6 +45,40 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 
+// ── Agent Management – module-level constants ────────────────────────────────
+const AGENT_TABS = [
+  { id: "division", label: "Division" },
+  { id: "allocation", label: "Agent Allocation" },
+  { id: "broadcast", label: "Broadcast" },
+  { id: "workload", label: "Workload" },
+  { id: "idle_rule", label: "Idle Rule" },
+  { id: "masking", label: "Contact Masking" },
+];
+
+const BROADCAST_ROLES = ["Admin", "Supervisor", "Sales", "Customer Service", "Agent"];
+
+const MASKABLE_FIELDS = [
+  { key: "phone", label: "Nomor Telepon", example: "+62812******90" },
+  { key: "email", label: "Email", example: "r*****@gmail.com" },
+  { key: "address", label: "Alamat", example: "Jl. *** No. **" },
+  { key: "plate_number", label: "Nomor Kendaraan", example: "DB **** XY" },
+  { key: "invoice_number", label: "Nomor Invoice", example: "INV-****-2026" },
+  { key: "member_number", label: "Nomor Member", example: "MBR-****" },
+];
+
+function AgentToggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="relative inline-flex cursor-pointer items-center">
+      <input type="checkbox" className="peer sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <div className="h-5 w-9 rounded-full bg-slate-700 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none" />
+    </label>
+  );
+}
+
+function toggleArrayField(field: string, arr: string[], setArr: (v: string[]) => void) {
+  setArr(arr.includes(field) ? arr.filter((f) => f !== field) : [...arr, field]);
+}
+
 type ActiveSetting =
   | "profile"
   | "users"
@@ -129,10 +163,56 @@ export default function SettingsPage() {
   const [isSavedOmniToken, setIsSavedOmniToken] = useState(false);
   const [omniCopied, setOmniCopied] = useState(false);
 
-  // Mock Agent Quota States
+  // Mock Agent Quota States (legacy)
   const [maxChatsPerAgent, setMaxChatsPerAgent] = useState(10);
   const [autoAssignmentMode, setAutoAssignmentMode] = useState("round_robin");
   const [isSavedAgentSettings, setIsSavedAgentSettings] = useState(false);
+
+  // Agent Management – full state
+  const [agentTab, setAgentTab] = useState("division");
+  const [isSavedAgent, setIsSavedAgent] = useState(false);
+  const [divisions, setDivisions] = useState([
+    { id: "div_001", name: "Customer Service", description: "Menangani pertanyaan umum pelanggan.", agents: 5, supervisor: "Admin Senior", status: "Active" },
+    { id: "div_002", name: "Mekanik", description: "Menangani pertanyaan teknis servis motor.", agents: 3, supervisor: "Kepala Mekanik", status: "Active" },
+    { id: "div_003", name: "Sales", description: "Menangani penjualan produk dan sparepart.", agents: 4, supervisor: "Sales Lead", status: "Active" },
+  ]);
+  const [showDivModal, setShowDivModal] = useState(false);
+  const [newDivName, setNewDivName] = useState("");
+  const [newDivDesc, setNewDivDesc] = useState("");
+  const [newDivSupervisor, setNewDivSupervisor] = useState("");
+  const [canTakeover, setCanTakeover] = useState(true);
+  const [canAssign, setCanAssign] = useState(true);
+  const [autoAlloc, setAutoAlloc] = useState(false);
+  const [allocMethod, setAllocMethod] = useState("Round Robin");
+  const [customAlloc, setCustomAlloc] = useState(true);
+  const [webhookAllocUrl, setWebhookAllocUrl] = useState("https://your-domain.com/webhooks/agent-allocation");
+  const [webhookAllocSecret, setWebhookAllocSecret] = useState("sk_alloc_***************");
+  const [showAllocSecret, setShowAllocSecret] = useState(false);
+  const [allocTimeout, setAllocTimeout] = useState(5);
+  const [allocRetry, setAllocRetry] = useState(3);
+  const [allocFallback, setAllocFallback] = useState("Assign to any available agent");
+  const [broadcastPerms, setBroadcastPerms] = useState<Record<string, { create: boolean; send: boolean; approve: boolean }>>(
+    { Admin: { create: true, send: true, approve: false }, Supervisor: { create: true, send: true, approve: false }, Sales: { create: true, send: false, approve: true }, "Customer Service": { create: false, send: false, approve: true }, Agent: { create: false, send: false, approve: true } }
+  );
+  const [workloadEnabled, setWorkloadEnabled] = useState(true);
+  const [workloadDefaultMax, setWorkloadDefaultMax] = useState(10);
+  const [workloadDefaultPending, setWorkloadDefaultPending] = useState(20);
+  const [overflowRule, setOverflowRule] = useState("Keep in queue");
+  const [waitingMsg, setWaitingMsg] = useState("Mohon tunggu sebentar kak, semua admin sedang melayani pelanggan lain. Chat kakak sudah masuk antrean dan akan segera kami bantu.");
+  const [workloadByDiv, setWorkloadByDiv] = useState([
+    { division: "Customer Service", maxActive: 10, maxPending: 20 },
+    { division: "Mekanik", maxActive: 5, maxPending: 10 },
+    { division: "Sales", maxActive: 15, maxPending: 25 },
+  ]);
+  const [idleEnabled, setIdleEnabled] = useState(true);
+  const [idleThreshold, setIdleThreshold] = useState(15);
+  const [idleUnit, setIdleUnit] = useState("minutes");
+  const [idleStatus, setIdleStatus] = useState("Away");
+  const [autoOffline, setAutoOffline] = useState(true);
+  const [notifySupervisor, setNotifySupervisor] = useState(true);
+  const [maskEnabled, setMaskEnabled] = useState(true);
+  const [maskedFields, setMaskedFields] = useState(["phone", "email", "plate_number", "invoice_number"]);
+  const [fullViewRoles, setFullViewRoles] = useState(["Owner", "Admin", "Supervisor"]);
 
   // Mock SLA States
   const [firstResponseMinutes, setFirstResponseMinutes] = useState(5);
@@ -668,203 +748,105 @@ export default function SettingsPage() {
               </div>
 
               {/* Inner Tabs */}
-              {(() => {
-                const AGENT_TABS = [
-                  { id: "division", label: "Division" },
-                  { id: "allocation", label: "Agent Allocation" },
-                  { id: "broadcast", label: "Broadcast" },
-                  { id: "workload", label: "Workload" },
-                  { id: "idle_rule", label: "Idle Rule" },
-                  { id: "masking", label: "Contact Masking" },
-                ];
+              <div className="space-y-5">
+                {/* Tab Bar */}
+                <div className="border-b border-white/10 overflow-x-auto">
+                  <nav className="flex gap-1">
+                    {AGENT_TABS.map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setAgentTab(tab.id)}
+                        className={`px-4 py-2.5 text-xs font-semibold whitespace-nowrap border-b-2 transition-all ${
+                          agentTab === tab.id
+                            ? "border-cyan-400 text-cyan-400"
+                            : "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600"
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </nav>
+                </div>
 
-                const [agentTab, setAgentTab] = useState("division");
-                const [isSavedAgent, setIsSavedAgent] = useState(false);
-
-                // Division state
-                const [divisions, setDivisions] = useState([
-                  { id: "div_001", name: "Customer Service", description: "Menangani pertanyaan umum pelanggan.", agents: 5, supervisor: "Admin Senior", status: "Active" },
-                  { id: "div_002", name: "Mekanik", description: "Menangani pertanyaan teknis servis motor.", agents: 3, supervisor: "Kepala Mekanik", status: "Active" },
-                  { id: "div_003", name: "Sales", description: "Menangani penjualan produk dan sparepart.", agents: 4, supervisor: "Sales Lead", status: "Active" },
-                ]);
-                const [showDivModal, setShowDivModal] = useState(false);
-                const [newDivName, setNewDivName] = useState("");
-                const [newDivDesc, setNewDivDesc] = useState("");
-                const [newDivSupervisor, setNewDivSupervisor] = useState("");
-
-                // Allocation state
-                const [canTakeover, setCanTakeover] = useState(true);
-                const [canAssign, setCanAssign] = useState(true);
-                const [autoAlloc, setAutoAlloc] = useState(false);
-                const [allocMethod, setAllocMethod] = useState("Round Robin");
-                const [customAlloc, setCustomAlloc] = useState(true);
-                const [webhookUrl, setWebhookUrl] = useState("https://your-domain.com/webhooks/agent-allocation");
-                const [webhookSecret, setWebhookSecret] = useState("sk_alloc_***************");
-                const [showSecret, setShowSecret] = useState(false);
-                const [timeout, setTimeout2] = useState(5);
-                const [retryAttempt, setRetryAttempt] = useState(3);
-                const [fallback, setFallback] = useState("Assign to any available agent");
-
-                // Broadcast state
-                const ROLES = ["Admin", "Supervisor", "Sales", "Customer Service", "Agent"];
-                const [broadcastPerms, setBroadcastPerms] = useState<Record<string, { create: boolean; send: boolean; approve: boolean }>>({
-                  Admin: { create: true, send: true, approve: false },
-                  Supervisor: { create: true, send: true, approve: false },
-                  Sales: { create: true, send: false, approve: true },
-                  "Customer Service": { create: false, send: false, approve: true },
-                  Agent: { create: false, send: false, approve: true },
-                });
-
-                // Workload state
-                const [workloadEnabled, setWorkloadEnabled] = useState(true);
-                const [defaultMax, setDefaultMax] = useState(10);
-                const [defaultPending, setDefaultPending] = useState(20);
-                const [overflowRule, setOverflowRule] = useState("Keep in queue");
-                const [waitingMsg, setWaitingMsg] = useState("Mohon tunggu sebentar kak, semua admin sedang melayani pelanggan lain. Chat kakak sudah masuk antrean dan akan segera kami bantu.");
-                const [workloadByDiv, setWorkloadByDiv] = useState([
-                  { division: "Customer Service", maxActive: 10, maxPending: 20 },
-                  { division: "Mekanik", maxActive: 5, maxPending: 10 },
-                  { division: "Sales", maxActive: 15, maxPending: 25 },
-                ]);
-
-                // Idle rule state
-                const [idleEnabled, setIdleEnabled] = useState(true);
-                const [idleThreshold, setIdleThreshold] = useState(15);
-                const [idleUnit, setIdleUnit] = useState("minutes");
-                const [idleStatus, setIdleStatus] = useState("Away");
-                const [autoOffline, setAutoOffline] = useState(true);
-                const [notifySupervisor, setNotifySupervisor] = useState(true);
-
-                // Contact masking state
-                const MASKABLE_FIELDS = [
-                  { key: "phone", label: "Nomor Telepon", example: "+62812******90" },
-                  { key: "email", label: "Email", example: "r*****@gmail.com" },
-                  { key: "address", label: "Alamat", example: "Jl. *** No. **" },
-                  { key: "plate_number", label: "Nomor Kendaraan", example: "DB **** XY" },
-                  { key: "invoice_number", label: "Nomor Invoice", example: "INV-****-2026" },
-                  { key: "member_number", label: "Nomor Member", example: "MBR-****" },
-                ];
-                const [maskEnabled, setMaskEnabled] = useState(true);
-                const [maskedFields, setMaskedFields] = useState(["phone", "email", "plate_number", "invoice_number"]);
-                const [fullViewRoles, setFullViewRoles] = useState(["Owner", "Admin", "Supervisor"]);
-
-                const saveSettings = () => {
-                  setIsSavedAgent(true);
-                  setTimeout2(2500);
-                  setTimeout(() => setIsSavedAgent(false), 2500);
-                };
-
-                const toggleField = (field: string, arr: string[], setArr: (v: string[]) => void) => {
-                  setArr(arr.includes(field) ? arr.filter((f) => f !== field) : [...arr, field]);
-                };
-
-                const ToggleSwitch = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
-                  <label className="relative inline-flex cursor-pointer items-center">
-                    <input type="checkbox" className="peer sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-                    <div className="h-5 w-9 rounded-full bg-slate-700 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none" />
-                  </label>
-                );
-
-                return (
-                  <div className="space-y-5">
-                    {/* Tab Bar */}
-                    <div className="border-b border-white/10 overflow-x-auto">
-                      <nav className="flex gap-1">
-                        {AGENT_TABS.map((tab) => (
-                          <button
-                            key={tab.id}
-                            onClick={() => setAgentTab(tab.id)}
-                            className={`px-4 py-2.5 text-xs font-semibold whitespace-nowrap border-b-2 transition-all ${
-                              agentTab === tab.id
-                                ? "border-cyan-400 text-cyan-400"
-                                : "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600"
-                            }`}
-                          >
-                            {tab.label}
-                          </button>
-                        ))}
-                      </nav>
+                {/* ─── Division ─── */}
+                {agentTab === "division" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-bold text-white">Division</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">Kelompokkan agen ke dalam divisi untuk memudahkan distribusi chat.</p>
+                      </div>
+                      <Button onClick={() => { setShowDivModal(true); }} className="gap-2 text-xs px-4 h-9">
+                        <PlusCircle className="h-3.5 w-3.5" />
+                        Create Division
+                      </Button>
                     </div>
-
-                    {/* ─── Division ─── */}
-                    {agentTab === "division" && (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-sm font-bold text-white">Division</h3>
-                            <p className="text-xs text-slate-400 mt-0.5">Kelompokkan agen ke dalam divisi untuk memudahkan distribusi chat.</p>
-                          </div>
-                          <Button onClick={() => setShowDivModal(true)} className="gap-2 text-xs px-4 h-9">
-                            <PlusCircle className="h-3.5 w-3.5" />
-                            Create Division
-                          </Button>
-                        </div>
-                        <div className="overflow-x-auto rounded-xl border border-white/10">
-                          <table className="w-full text-sm text-slate-300">
-                            <thead className="bg-white/[0.02] text-[10px] uppercase text-slate-500">
-                              <tr>
-                                <th className="px-4 py-3 text-left font-semibold">Division Name</th>
-                                <th className="px-4 py-3 text-left font-semibold">Description</th>
-                                <th className="px-4 py-3 text-left font-semibold">Agents</th>
-                                <th className="px-4 py-3 text-left font-semibold">Supervisor</th>
-                                <th className="px-4 py-3 text-left font-semibold">Status</th>
-                                <th className="px-4 py-3 text-right font-semibold">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/[0.05]">
-                              {divisions.map((div) => (
-                                <tr key={div.id} className="hover:bg-white/[0.01]">
-                                  <td className="px-4 py-3 font-semibold text-white">{div.name}</td>
-                                  <td className="px-4 py-3 text-slate-400 text-xs max-w-[180px] truncate">{div.description}</td>
-                                  <td className="px-4 py-3">{div.agents} agents</td>
-                                  <td className="px-4 py-3 text-slate-400">{div.supervisor}</td>
-                                  <td className="px-4 py-3">
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">{div.status}</span>
-                                  </td>
-                                  <td className="px-4 py-3 text-right">
-                                    <button
-                                      onClick={() => setDivisions(divisions.filter((d) => d.id !== div.id))}
-                                      className="text-slate-500 hover:text-red-400 transition p-1 rounded"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                        {showDivModal && (
-                          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-                            <div className="w-full max-w-md rounded-xl border border-white/10 bg-[var(--color-surface)] p-6 space-y-4 shadow-2xl">
-                              <h4 className="text-base font-bold text-white">Create Division</h4>
-                              <div className="space-y-3">
-                                <div className="space-y-1.5">
-                                  <label className="text-xs font-semibold text-slate-300">Division Name</label>
-                                  <Input placeholder="Customer Service" value={newDivName} onChange={(e) => setNewDivName(e.target.value)} className="h-9 text-sm bg-black/20" />
-                                </div>
-                                <div className="space-y-1.5">
-                                  <label className="text-xs font-semibold text-slate-300">Description</label>
-                                  <Input placeholder="Deskripsi divisi..." value={newDivDesc} onChange={(e) => setNewDivDesc(e.target.value)} className="h-9 text-sm bg-black/20" />
-                                </div>
-                                <div className="space-y-1.5">
-                                  <label className="text-xs font-semibold text-slate-300">Supervisor</label>
-                                  <Input placeholder="Nama supervisor..." value={newDivSupervisor} onChange={(e) => setNewDivSupervisor(e.target.value)} className="h-9 text-sm bg-black/20" />
-                                </div>
-                              </div>
-                              <div className="flex gap-3 justify-end pt-2">
-                                <Button variant="secondary" onClick={() => setShowDivModal(false)} className="text-slate-400 bg-transparent border-transparent text-xs h-9">Cancel</Button>
-                                <Button className="text-xs h-9" onClick={() => {
-                                  if (!newDivName) return;
-                                  setDivisions([...divisions, { id: "div_" + Date.now(), name: newDivName, description: newDivDesc, agents: 0, supervisor: newDivSupervisor, status: "Active" }]);
-                                  setNewDivName(""); setNewDivDesc(""); setNewDivSupervisor(""); setShowDivModal(false);
-                                }}>Save Division</Button>
-                              </div>
+                    <div className="overflow-x-auto rounded-xl border border-white/10">
+                      <table className="w-full text-sm text-slate-300">
+                        <thead className="bg-white/[0.02] text-[10px] uppercase text-slate-500">
+                          <tr>
+                            <th className="px-4 py-3 text-left font-semibold">Division Name</th>
+                            <th className="px-4 py-3 text-left font-semibold">Description</th>
+                            <th className="px-4 py-3 text-left font-semibold">Agents</th>
+                            <th className="px-4 py-3 text-left font-semibold">Supervisor</th>
+                            <th className="px-4 py-3 text-left font-semibold">Status</th>
+                            <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/[0.05]">
+                          {divisions.map((div) => (
+                            <tr key={div.id} className="hover:bg-white/[0.01]">
+                              <td className="px-4 py-3 font-semibold text-white">{div.name}</td>
+                              <td className="px-4 py-3 text-slate-400 text-xs max-w-[180px] truncate">{div.description}</td>
+                              <td className="px-4 py-3">{div.agents} agents</td>
+                              <td className="px-4 py-3 text-slate-400">{div.supervisor}</td>
+                              <td className="px-4 py-3">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">{div.status}</span>
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <button
+                                  onClick={() => setDivisions(divisions.filter((d) => d.id !== div.id))}
+                                  className="text-slate-500 hover:text-red-400 transition p-1 rounded"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {showDivModal && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+                        <div className="w-full max-w-md rounded-xl border border-white/10 bg-[var(--color-surface)] p-6 space-y-4 shadow-2xl">
+                          <h4 className="text-base font-bold text-white">Create Division</h4>
+                          <div className="space-y-3">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-300">Division Name</label>
+                              <Input placeholder="Customer Service" value={newDivName} onChange={(e) => setNewDivName(e.target.value)} className="h-9 text-sm bg-black/20" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-300">Description</label>
+                              <Input placeholder="Deskripsi divisi..." value={newDivDesc} onChange={(e) => setNewDivDesc(e.target.value)} className="h-9 text-sm bg-black/20" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-300">Supervisor</label>
+                              <Input placeholder="Nama supervisor..." value={newDivSupervisor} onChange={(e) => setNewDivSupervisor(e.target.value)} className="h-9 text-sm bg-black/20" />
                             </div>
                           </div>
-                        )}
+                          <div className="flex gap-3 justify-end pt-2">
+                            <Button variant="secondary" onClick={() => setShowDivModal(false)} className="text-slate-400 bg-transparent border-transparent text-xs h-9">Cancel</Button>
+                            <Button className="text-xs h-9" onClick={() => {
+                              if (!newDivName) return;
+                              setDivisions([...divisions, { id: "div_" + Date.now(), name: newDivName, description: newDivDesc, agents: 0, supervisor: newDivSupervisor, status: "Active" }]);
+                              setNewDivName(""); setNewDivDesc(""); setNewDivSupervisor(""); setShowDivModal(false);
+                            }}>Save Division</Button>
+                          </div>
+                        </div>
                       </div>
                     )}
+                  </div>
+                )}
 
                     {/* ─── Agent Allocation ─── */}
                     {agentTab === "allocation" && (
@@ -875,12 +857,12 @@ export default function SettingsPage() {
                         </div>
                         <div className="space-y-3">
                           {[
-                            { label: "Allow agents to takeover unassigned chats", value: canTakeover, set: setCanTakeover },
-                            { label: "Allow agents to assign chat to another agent", value: canAssign, set: setCanAssign },
+                            { label: "Allow agents to takeover unassigned chats", value: canTakeover, set: (v: boolean) => setCanTakeover(v) },
+                            { label: "Allow agents to assign chat to another agent", value: canAssign, set: (v: boolean) => setCanAssign(v) },
                           ].map(({ label, value, set }) => (
                             <div key={label} className="flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/[0.02]">
                               <span className="text-sm text-slate-300">{label}</span>
-                              <ToggleSwitch checked={value} onChange={set} />
+                              <AgentToggle checked={value} onChange={set} />
                             </div>
                           ))}
                         </div>
@@ -891,7 +873,7 @@ export default function SettingsPage() {
                               <div className="text-sm font-semibold text-white">Auto Agent Allocation</div>
                               <div className="text-xs text-slate-500">Distribusikan chat otomatis ke agen online.</div>
                             </div>
-                            <ToggleSwitch checked={autoAlloc} onChange={setAutoAlloc} />
+                            <AgentToggle checked={autoAlloc} onChange={(v) => setAutoAlloc(v)} />
                           </div>
                           {autoAlloc && (
                             <div className="pt-2 border-t border-white/10">
@@ -915,19 +897,19 @@ export default function SettingsPage() {
                               <div className="text-sm font-semibold text-white">Custom Agent Allocation (Webhook)</div>
                               <div className="text-xs text-slate-500">Gunakan logika custom via webhook eksternal.</div>
                             </div>
-                            <ToggleSwitch checked={customAlloc} onChange={setCustomAlloc} />
+                            <AgentToggle checked={customAlloc} onChange={(v) => setCustomAlloc(v)} />
                           </div>
                           {customAlloc && (
                             <div className="pt-2 border-t border-white/10 space-y-3">
                               <div className="space-y-1.5">
                                 <label className="text-xs font-semibold text-slate-300">Webhook URL</label>
-                                <Input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} className="h-9 text-xs bg-black/30 font-mono" />
+                                <Input value={webhookAllocUrl} onChange={(e) => setWebhookAllocUrl(e.target.value)} className="h-9 text-xs bg-black/30 font-mono" />
                               </div>
                               <div className="space-y-1.5">
                                 <label className="text-xs font-semibold text-slate-300">Webhook Secret</label>
                                 <div className="relative max-w-sm">
-                                  <Input type={showSecret ? "text" : "password"} value={webhookSecret} onChange={(e) => setWebhookSecret(e.target.value)} className="h-9 text-xs bg-black/30 font-mono pr-10" />
-                                  <button type="button" onClick={() => setShowSecret(!showSecret)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                                  <Input type={showAllocSecret ? "text" : "password"} value={webhookAllocSecret} onChange={(e) => setWebhookAllocSecret(e.target.value)} className="h-9 text-xs bg-black/30 font-mono pr-10" />
+                                  <button type="button" onClick={() => setShowAllocSecret(!showAllocSecret)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
                                     <Eye className="h-4 w-4" />
                                   </button>
                                 </div>
@@ -935,19 +917,19 @@ export default function SettingsPage() {
                               <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
                                   <label className="text-xs font-semibold text-slate-300">Timeout (seconds)</label>
-                                  <Input type="number" value={timeout} onChange={(e) => setTimeout2(Number(e.target.value))} className="h-9 text-xs bg-black/30" />
+                                  <Input type="number" value={allocTimeout} onChange={(e) => setAllocTimeout(Number(e.target.value))} className="h-9 text-xs bg-black/30" />
                                 </div>
                                 <div className="space-y-1.5">
                                   <label className="text-xs font-semibold text-slate-300">Retry Attempt</label>
-                                  <Input type="number" value={retryAttempt} onChange={(e) => setRetryAttempt(Number(e.target.value))} className="h-9 text-xs bg-black/30" />
+                                  <Input type="number" value={allocRetry} onChange={(e) => setAllocRetry(Number(e.target.value))} className="h-9 text-xs bg-black/30" />
                                 </div>
                               </div>
                               <div className="space-y-1.5">
                                 <label className="text-xs font-semibold text-slate-300">Fallback Allocation</label>
                                 <select
                                   className="h-9 w-full rounded-md border border-white/10 bg-black/30 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                                  value={fallback}
-                                  onChange={(e) => setFallback(e.target.value)}
+                                  value={allocFallback}
+                                  onChange={(e) => setAllocFallback(e.target.value)}
                                 >
                                   {["Assign to any available agent", "Assign to default team", "Keep as unassigned", "Assign to supervisor"].map((f) => (
                                     <option key={f} value={f}>{f}</option>
@@ -959,7 +941,7 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="flex items-center gap-3 pt-2">
-                          <Button onClick={saveSettings} className="gap-2 text-xs h-9">
+                          <Button onClick={() => { setIsSavedAgent(true); setTimeout(() => setIsSavedAgent(false), 2500); }} className="gap-2 text-xs h-9">
                             {isSavedAgent ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
                             {isSavedAgent ? "Tersimpan!" : "Save Settings"}
                           </Button>
@@ -985,7 +967,7 @@ export default function SettingsPage() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-white/[0.05]">
-                              {ROLES.map((role) => (
+                              {BROADCAST_ROLES.map((role) => (
                                 <tr key={role} className="hover:bg-white/[0.01]">
                                   <td className="px-4 py-3 font-semibold text-slate-200">{role}</td>
                                   {(["create", "send", "approve"] as const).map((field) => (
@@ -1004,7 +986,7 @@ export default function SettingsPage() {
                           </table>
                         </div>
                         <div className="flex items-center gap-3 pt-2">
-                          <Button onClick={saveSettings} className="gap-2 text-xs h-9">
+                          <Button onClick={() => { setIsSavedAgent(true); setTimeout(() => setIsSavedAgent(false), 2500); }} className="gap-2 text-xs h-9">
                             {isSavedAgent ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
                             {isSavedAgent ? "Tersimpan!" : "Save Settings"}
                           </Button>
@@ -1024,7 +1006,7 @@ export default function SettingsPage() {
                             <div className="text-sm font-semibold text-white">Enable Workload Limit</div>
                             <div className="text-xs text-slate-500">Aktifkan pembatasan jumlah chat per agen.</div>
                           </div>
-                          <ToggleSwitch checked={workloadEnabled} onChange={setWorkloadEnabled} />
+                          <AgentToggle checked={workloadEnabled} onChange={(v) => setWorkloadEnabled(v)} />
                         </div>
                         {workloadEnabled && (
                           <div className="space-y-5">
@@ -1032,14 +1014,14 @@ export default function SettingsPage() {
                               <div className="space-y-1.5">
                                 <label className="text-xs font-semibold text-slate-300">Max Active Chats (Default)</label>
                                 <div className="flex items-center gap-2">
-                                  <Input type="number" value={defaultMax} onChange={(e) => setDefaultMax(Number(e.target.value))} className="h-9 text-sm bg-black/20 max-w-[100px]" />
+                                  <Input type="number" value={workloadDefaultMax} onChange={(e) => setWorkloadDefaultMax(Number(e.target.value))} className="h-9 text-sm bg-black/20 max-w-[100px]" />
                                   <span className="text-xs text-slate-400">chats</span>
                                 </div>
                               </div>
                               <div className="space-y-1.5">
                                 <label className="text-xs font-semibold text-slate-300">Max Pending Chats (Default)</label>
                                 <div className="flex items-center gap-2">
-                                  <Input type="number" value={defaultPending} onChange={(e) => setDefaultPending(Number(e.target.value))} className="h-9 text-sm bg-black/20 max-w-[100px]" />
+                                  <Input type="number" value={workloadDefaultPending} onChange={(e) => setWorkloadDefaultPending(Number(e.target.value))} className="h-9 text-sm bg-black/20 max-w-[100px]" />
                                   <span className="text-xs text-slate-400">chats</span>
                                 </div>
                               </div>
@@ -1095,7 +1077,7 @@ export default function SettingsPage() {
                           </div>
                         )}
                         <div className="flex items-center gap-3 pt-2">
-                          <Button onClick={saveSettings} className="gap-2 text-xs h-9">
+                          <Button onClick={() => { setIsSavedAgent(true); setTimeout(() => setIsSavedAgent(false), 2500); }} className="gap-2 text-xs h-9">
                             {isSavedAgent ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
                             {isSavedAgent ? "Tersimpan!" : "Save Settings"}
                           </Button>
@@ -1115,7 +1097,7 @@ export default function SettingsPage() {
                             <div className="text-sm font-semibold text-white">Enable Agent Idle Rule</div>
                             <div className="text-xs text-slate-500">Status agen berubah otomatis saat idle.</div>
                           </div>
-                          <ToggleSwitch checked={idleEnabled} onChange={setIdleEnabled} />
+                          <AgentToggle checked={idleEnabled} onChange={(v) => setIdleEnabled(v)} />
                         </div>
                         {idleEnabled && (
                           <div className="space-y-4">
@@ -1138,18 +1120,18 @@ export default function SettingsPage() {
                               </div>
                             </div>
                             {[
-                              { label: "Auto Offline setelah idle terlalu lama", value: autoOffline, set: setAutoOffline },
-                              { label: "Notify Supervisor saat agen idle", value: notifySupervisor, set: setNotifySupervisor },
+                              { label: "Auto Offline setelah idle terlalu lama", value: autoOffline, set: (v: boolean) => setAutoOffline(v) },
+                              { label: "Notify Supervisor saat agen idle", value: notifySupervisor, set: (v: boolean) => setNotifySupervisor(v) },
                             ].map(({ label, value, set }) => (
                               <div key={label} className="flex items-center justify-between p-3.5 rounded-lg border border-white/10 bg-white/[0.02]">
                                 <span className="text-sm text-slate-300">{label}</span>
-                                <ToggleSwitch checked={value} onChange={set} />
+                                <AgentToggle checked={value} onChange={set} />
                               </div>
                             ))}
                           </div>
                         )}
                         <div className="flex items-center gap-3 pt-2">
-                          <Button onClick={saveSettings} className="gap-2 text-xs h-9">
+                          <Button onClick={() => { setIsSavedAgent(true); setTimeout(() => setIsSavedAgent(false), 2500); }} className="gap-2 text-xs h-9">
                             {isSavedAgent ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
                             {isSavedAgent ? "Tersimpan!" : "Save Settings"}
                           </Button>
@@ -1169,7 +1151,7 @@ export default function SettingsPage() {
                             <div className="text-sm font-semibold text-white">Enable Contact Masking</div>
                             <div className="text-xs text-slate-500">Data pelanggan tertentu akan disembunyikan dari agen.</div>
                           </div>
-                          <ToggleSwitch checked={maskEnabled} onChange={setMaskEnabled} />
+                          <AgentToggle checked={maskEnabled} onChange={(v) => setMaskEnabled(v)} />
                         </div>
                         {maskEnabled && (
                           <div className="space-y-5">
@@ -1177,7 +1159,7 @@ export default function SettingsPage() {
                               <div className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">Fields to Mask</div>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 {MASKABLE_FIELDS.map(({ key, label, example }) => (
-                                  <div key={key} onClick={() => toggleField(key, maskedFields, setMaskedFields)} className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition ${maskedFields.includes(key) ? "border-cyan-500/30 bg-cyan-950/20" : "border-white/10 bg-white/[0.01] hover:bg-white/[0.02]"}`}>
+                                  <div key={key} onClick={() => toggleArrayField(key, maskedFields, setMaskedFields)} className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition ${maskedFields.includes(key) ? "border-cyan-500/30 bg-cyan-950/20" : "border-white/10 bg-white/[0.01] hover:bg-white/[0.02]"}`}>
                                     <div>
                                       <div className="text-sm font-semibold text-slate-200">{label}</div>
                                       <div className="text-xs text-slate-500 font-mono">{example}</div>
@@ -1194,7 +1176,7 @@ export default function SettingsPage() {
                                 {["Owner", "Admin", "Supervisor", "Sales", "Agent"].map((role) => (
                                   <button
                                     key={role}
-                                    onClick={() => toggleField(role, fullViewRoles, setFullViewRoles)}
+                                    onClick={() => toggleArrayField(role, fullViewRoles, setFullViewRoles)}
                                     className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${fullViewRoles.includes(role) ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300" : "border-white/10 text-slate-400 hover:text-slate-200"}`}
                                   >
                                     {role}
@@ -1214,7 +1196,7 @@ export default function SettingsPage() {
                           </div>
                         )}
                         <div className="flex items-center gap-3 pt-2">
-                          <Button onClick={saveSettings} className="gap-2 text-xs h-9">
+                          <Button onClick={() => { setIsSavedAgent(true); setTimeout(() => setIsSavedAgent(false), 2500); }} className="gap-2 text-xs h-9">
                             {isSavedAgent ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
                             {isSavedAgent ? "Tersimpan!" : "Save Settings"}
                           </Button>
@@ -1222,8 +1204,6 @@ export default function SettingsPage() {
                       </div>
                     )}
                   </div>
-                );
-              })()}
             </div>
           )}
 

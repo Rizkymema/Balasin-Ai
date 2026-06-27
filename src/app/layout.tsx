@@ -9,10 +9,10 @@ import "./globals.css";
 
 const rootFontVariables: CSSProperties = {
   "--app-font-body":
-    '"Aptos", "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+    '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif',
   "--app-font-heading":
-    '"Manrope", "Aptos Display", "Segoe UI Semibold", "Segoe UI", sans-serif',
-  "--app-font-mono": '"Consolas", "JetBrains Mono", "Courier New", monospace',
+    '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro Icons", "Segoe UI", sans-serif',
+  "--app-font-mono": '"SF Mono", "SFMono-Regular", "Consolas", "JetBrains Mono", monospace',
 } as CSSProperties;
 
 export const metadata: Metadata = {
