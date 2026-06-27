@@ -46,6 +46,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { InboxSettings } from "./components/inbox-settings";
 import { ChatbotTokens } from "./components/chatbot-tokens";
+import { UserManagementTab } from "./components/user-management-tab";
 
 // ── Agent Management – module-level constants ────────────────────────────────
 const AGENT_TABS = [
@@ -81,7 +82,6 @@ function toggleArrayField(field: string, arr: string[], setArr: (v: string[]) =>
   setArr(arr.includes(field) ? arr.filter((f) => f !== field) : [...arr, field]);
 }
 
-type ActiveSetting =
   | "profile"
   | "users"
   | "agents"
@@ -99,7 +99,7 @@ type ActiveSetting =
 export default function SettingsPage() {
   const { config, patchConfig } = useDashboardConfig();
 
-  const [activeSetting, setActiveSetting] = useState<ActiveSetting>("users");
+  const [activeSetting, setActiveSetting] = useState<ActiveSetting>("profile");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [origin, setOrigin] = useState("");
   const [isApiDropdownOpen, setIsApiDropdownOpen] = useState(true);
@@ -402,6 +402,19 @@ export default function SettingsPage() {
               Sistem & Keamanan
             </span>
             <div className="space-y-1 bg-white/[0.01] border border-white/6 rounded-xl p-1.5">
+              {/* Workspace Profile */}
+              <button
+                onClick={() => setActiveSetting("profile")}
+                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
+                  activeSetting === "profile"
+                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
+                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                }`}
+              >
+                <Building2 className="h-4 w-4" />
+                <span>Workspace Profile</span>
+              </button>
+
               {/* User Management */}
               <button
                 onClick={() => setActiveSetting("users")}
@@ -589,9 +602,9 @@ export default function SettingsPage() {
         {/* Right Settings Detail Panel */}
         <div className="lg:col-span-3 space-y-6">
           {/* ============================================== */}
-          {/* TAB 1: USER MANAGEMENT (INCLUDES WORKSPACE PROFILE) */}
+          {/* TAB 1: WORKSPACE PROFILE */}
           {/* ============================================== */}
-          {activeSetting === "users" && (
+          {activeSetting === "profile" && (
             <div className="space-y-6">
               {/* Workspace Profile Form */}
               <form onSubmit={handleSaveWorkspace} className="glass-panel max-w-3xl space-y-4 rounded-xl p-6 border-white/8">
@@ -665,53 +678,14 @@ export default function SettingsPage() {
                   </Button>
                 </div>
               </form>
-
-              {/* User Management List & Action Card */}
-              <div className="glass-panel max-w-3xl space-y-4 rounded-xl p-6 border-white/8">
-                <div className="flex items-center justify-between border-b border-white/8 pb-4">
-                  <div>
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
-                      <User className="h-4.5 w-4.5 text-cyan-400" />
-                      User Management & Roles
-                    </h2>
-                    <p className="text-[11px] text-slate-400 mt-1">Mengelola akun pengguna, menambahkan anggota tim baru, dan mengatur peran (roles) serta hak akses admin.</p>
-                  </div>
-                  <Button onClick={() => setIsModalOpen(true)} className="bg-cyan-500 text-slate-950 hover:bg-cyan-400 text-xs px-4 h-9">
-                    <UserPlus className="mr-1.5 h-4 w-4" /> Undang Anggota Baru
-                  </Button>
-                </div>
-
-                <div className="space-y-3 mt-4">
-                  {members.map((member) => (
-                    <div key={member.id} className="flex items-center justify-between gap-4 rounded-xl p-4 border border-white/6 bg-white/[0.01]">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-cyan-400/20 bg-cyan-950 text-xs font-bold uppercase text-cyan-400">
-                          {member.name.substring(0, 2)}
-                        </div>
-                        <div>
-                          <span className="block text-xs font-bold capitalize text-white">{member.name}</span>
-                          <span className="text-[10px] font-semibold text-slate-500">{member.email}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <Badge className="px-2 py-0.5 text-[9px] font-semibold">{member.role}</Badge>
-                        {member.status === "pending" ? (
-                          <span className="rounded bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold text-amber-400 border border-amber-500/10 animate-pulse">Pending Invite</span>
-                        ) : (
-                          <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold text-emerald-400 border border-emerald-500/10">Aktif</span>
-                        )}
-                        {members.length > 1 && (
-                          <button onClick={() => handleDeleteMember(member.id)} className="rounded p-1 text-slate-500 transition hover:text-red-400">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
+          )}
+
+          {/* ============================================== */}
+          {/* TAB 1.5: USER MANAGEMENT */}
+          {/* ============================================== */}
+          {activeSetting === "users" && (
+            <UserManagementTab />
           )}
 
           {/* ============================================== */}
