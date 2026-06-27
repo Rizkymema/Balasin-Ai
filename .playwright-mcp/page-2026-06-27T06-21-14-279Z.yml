@@ -1,0 +1,447 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - banner [ref=e5]:
+        - generic [ref=e6]:
+          - generic [ref=e7]:
+            - img [ref=e9]
+            - generic [ref=e11]:
+              - paragraph [ref=e12]: Balesin.AI
+              - paragraph [ref=e13]: Omnichannel CRM
+          - generic [ref=e14]:
+            - navigation [ref=e15]:
+              - link "Platform" [ref=e16] [cursor=pointer]:
+                - /url: "#platform"
+              - link "Modules" [ref=e17] [cursor=pointer]:
+                - /url: "#modules"
+              - link "Harga" [ref=e18] [cursor=pointer]:
+                - /url: "#pricing"
+              - link "Testimoni" [ref=e19] [cursor=pointer]:
+                - /url: "#testimonials"
+              - link "FAQ" [ref=e20] [cursor=pointer]:
+                - /url: "#faq"
+              - link "Roadmap" [ref=e21] [cursor=pointer]:
+                - /url: "#roadmap"
+            - link "Masuk / Demo" [ref=e22] [cursor=pointer]:
+              - /url: /login
+      - main [ref=e23]:
+        - generic [ref=e24]:
+          - generic [ref=e25]:
+            - generic [ref=e26]:
+              - generic [ref=e27]:
+                - img [ref=e28]
+                - text: AI Agent Cerdas 24/7 Terdepan di Indonesia
+              - generic [ref=e30]:
+                - heading "Satu AI Agent. Kelola Chat, CRM, dan Closing Otomatis." [level=1] [ref=e31]:
+                  - text: Satu AI Agent.
+                  - text: Kelola Chat, CRM, dan Closing Otomatis.
+                - paragraph [ref=e32]: Melayani ribuan pelanggan 24/7 tanpa henti dengan AI Agent yang dilatih khusus menggunakan basis pengetahuan Anda. Hubungkan WhatsApp, Website Live Chat, dan Instagram dalam satu Dashboard CRM cerdas.
+              - generic [ref=e33]:
+                - link "Coba Demo Sekarang" [ref=e34] [cursor=pointer]:
+                  - /url: /login
+                  - button "Coba Demo Sekarang" [ref=e35]:
+                    - text: Coba Demo Sekarang
+                    - img [ref=e36]
+                - link "Mulai Uji Coba Gratis" [ref=e38] [cursor=pointer]:
+                  - /url: /register
+                  - button "Mulai Uji Coba Gratis" [ref=e39]
+              - generic [ref=e41]:
+                - generic [ref=e42]:
+                  - paragraph [ref=e43]: Core Channels
+                  - paragraph [ref=e44]: 5 MVP
+                  - paragraph [ref=e45]: WhatsApp, IG DM, IG Comment, Telegram, dan Website Chat menjadi arah inti platform.
+                - generic [ref=e46]:
+                  - paragraph [ref=e47]: Human Handoff
+                  - paragraph [ref=e48]: < 60s
+                  - paragraph [ref=e49]: Kasus sensitif, komplain, dan confidence rendah wajib diarahkan ke admin.
+                - generic [ref=e50]:
+                  - paragraph [ref=e51]: Blueprint Scope
+                  - paragraph [ref=e52]: 20 Area
+                  - paragraph [ref=e53]: Dari inbox, AI, CRM, ticketing, booking, campaign, hingga audit dan integration center.
+            - generic [ref=e54]:
+              - generic [ref=e55]:
+                - generic [ref=e60]: Balesin.AI Dashboard
+                - generic [ref=e61]: AI Agent Aktif
+              - generic [ref=e63]:
+                - generic [ref=e64]:
+                  - generic [ref=e66]:
+                    - img [ref=e68]
+                    - generic [ref=e70]:
+                      - paragraph [ref=e71]: Pesan Masuk
+                      - paragraph [ref=e72]: 1,248 Chat / Hari
+                  - generic [ref=e74]:
+                    - img [ref=e76]
+                    - generic [ref=e79]:
+                      - paragraph [ref=e80]: Resolusi AI
+                      - paragraph [ref=e81]: 92.4% Terjawab
+                - generic [ref=e82]:
+                  - generic [ref=e83]:
+                    - generic [ref=e84]: SIMULASI PERCAKAPAN
+                    - generic [ref=e85]: Grounding FAQ
+                  - generic [ref=e86]:
+                    - generic [ref=e87]: U
+                    - generic [ref=e88]: Halo, apakah produknya bisa dikirim ke Surabaya? Dan jam berapa tokonya tutup ya?
+                  - generic [ref=e89]:
+                    - generic [ref=e90]: Halo! Tentu bisa, kami melayani pengiriman ke seluruh Indonesia via JNE/J&T. Toko fisik kami tutup pukul 21:00 WIB. Ada yang bisa dibantu lagi? 😊
+                    - img [ref=e92]
+                - generic [ref=e96]:
+                  - generic [ref=e97]:
+                    - paragraph [ref=e98]: Channel Terintegrasi
+                    - paragraph [ref=e99]: Hubungkan dalam 1x klik
+                  - generic [ref=e100]:
+                    - generic [ref=e101]: WhatsApp AI
+                    - generic [ref=e102]: Live Chat
+                    - generic [ref=e103]: Instagram
+          - generic [ref=e104]:
+            - paragraph [ref=e105]: Dipercaya oleh 3.000+ UMKM dan brand terkemuka di Indonesia
+            - generic [ref=e106]:
+              - generic [ref=e107]: Tokopedia
+              - generic [ref=e108]: Gojek
+              - generic [ref=e109]: Shopee
+              - generic [ref=e110]: Bukalapak
+              - generic [ref=e111]: Blibli
+              - generic [ref=e112]: Lazada
+              - generic [ref=e113]: Grab
+              - generic [ref=e114]: Traveloka
+        - generic [ref=e115]:
+          - generic [ref=e116]:
+            - text: Platform
+            - heading "Fondasi produk diarahkan ke operasional nyata, bukan demo AI kosong." [level=2] [ref=e117]
+            - paragraph [ref=e118]: Struktur halaman, modul, dan visual sistem dirancang untuk mendukung dashboard SaaS yang nantinya berkembang ke inbox, AI control center, knowledge base, dan channel operations.
+          - generic [ref=e119]:
+            - generic [ref=e120]:
+              - generic [ref=e121]:
+                - heading "Omnichannel inbox yang operasional" [level=3] [ref=e122]
+                - paragraph [ref=e123]: Satu workspace untuk melihat percakapan WA, IG, Telegram, website, status chat, assign admin, dan catatan internal.
+              - list [ref=e124]:
+                - listitem [ref=e125]: Filter channel
+                - listitem [ref=e127]: Manual takeover
+                - listitem [ref=e129]: Customer profile sidebar
+            - generic [ref=e131]:
+              - generic [ref=e132]:
+                - heading "AI assistant yang terkontrol" [level=3] [ref=e133]
+                - paragraph [ref=e134]: AI hanya menjawab berdasarkan data bisnis, knowledge, produk, dan aturan safety, bukan improvisasi liar.
+              - list [ref=e135]:
+                - listitem [ref=e136]: Intent classification
+                - listitem [ref=e138]: Confidence score
+                - listitem [ref=e140]: Human handoff rules
+            - generic [ref=e142]:
+              - generic [ref=e143]:
+                - heading "CRM, booking, dan katalog yang menyatu" [level=3] [ref=e144]
+                - paragraph [ref=e145]: Data customer, booking, produk, sparepart, layanan, dan ticket disimpan sebagai sumber operasional yang sama.
+              - list [ref=e146]:
+                - listitem [ref=e147]: Customer timeline
+                - listitem [ref=e149]: Booking management
+                - listitem [ref=e151]: Product/service lookup
+        - generic [ref=e153]:
+          - generic [ref=e154]:
+            - text: Modules
+            - heading "Modul utama sudah dipetakan agar pertumbuhan fitur tetap terarah." [level=2] [ref=e155]
+            - paragraph [ref=e156]: Navigasi dan layout mengikuti konsep Balesin AI sejak awal supaya fitur baru tidak memaksa refactor arsitektur yang mahal.
+          - generic [ref=e157]:
+            - generic [ref=e158]:
+              - generic [ref=e159]:
+                - heading "Dashboard" [level=3] [ref=e160]
+                - paragraph [ref=e161]: Overview KPI chat, lead, booking, komplain, dan response time
+              - link "Buka Modul" [ref=e163] [cursor=pointer]:
+                - /url: /dashboard
+                - text: Buka Modul
+                - img [ref=e164]
+            - generic [ref=e166]:
+              - generic [ref=e167]:
+                - heading "Unified Inbox" [level=3] [ref=e168]
+                - paragraph [ref=e169]: Omnichannel inbox, AI pause, manual takeover, dan handoff cepat
+              - link "Buka Modul" [ref=e171] [cursor=pointer]:
+                - /url: /inbox
+                - text: Buka Modul
+                - img [ref=e172]
+            - generic [ref=e174]:
+              - generic [ref=e175]:
+                - heading "Contacts / CRM" [level=3] [ref=e176]
+                - paragraph [ref=e177]: Customer profile, segmentasi, tag, status lead, dan histori follow-up
+              - link "Buka Modul" [ref=e179] [cursor=pointer]:
+                - /url: /customers
+                - text: Buka Modul
+                - img [ref=e180]
+            - generic [ref=e182]:
+              - generic [ref=e183]:
+                - heading "AI Assistant" [level=3] [ref=e184]
+                - paragraph [ref=e185]: Intent, prompt, guardrail, confidence, dan fallback control
+              - link "Buka Modul" [ref=e187] [cursor=pointer]:
+                - /url: /automation?tab=ai_agents
+                - text: Buka Modul
+                - img [ref=e188]
+            - generic [ref=e190]:
+              - generic [ref=e191]:
+                - heading "Knowledge Base" [level=3] [ref=e192]
+                - paragraph [ref=e193]: FAQ, artikel, dokumen, profil bisnis, dan sumber jawaban AI
+              - link "Buka Modul" [ref=e195] [cursor=pointer]:
+                - /url: /automation?tab=knowledge_base
+                - text: Buka Modul
+                - img [ref=e196]
+            - generic [ref=e198]:
+              - generic [ref=e199]:
+                - heading "Products & Services" [level=3] [ref=e200]
+                - paragraph [ref=e201]: Katalog produk, sparepart, layanan, harga, dan kompatibilitas motor
+              - link "Buka Modul" [ref=e203] [cursor=pointer]:
+                - /url: /products-services
+                - text: Buka Modul
+                - img [ref=e204]
+            - generic [ref=e206]:
+              - generic [ref=e207]:
+                - heading "Booking" [level=3] [ref=e208]
+                - paragraph [ref=e209]: Booking list, slot, reminder, status jadwal, dan assignment teknisi
+              - link "Buka Modul" [ref=e211] [cursor=pointer]:
+                - /url: /booking
+                - text: Buka Modul
+                - img [ref=e212]
+            - generic [ref=e214]:
+              - generic [ref=e215]:
+                - heading "Tickets" [level=3] [ref=e216]
+                - paragraph [ref=e217]: Komplain, issue teknis, handoff admin, dan resolution tracking
+              - link "Buka Modul" [ref=e219] [cursor=pointer]:
+                - /url: /tickets
+                - text: Buka Modul
+                - img [ref=e220]
+            - generic [ref=e222]:
+              - generic [ref=e223]:
+                - heading "Automation" [level=3] [ref=e224]
+                - paragraph [ref=e225]: Workflow, trigger, action, worker queue, dan moderation rules
+              - link "Buka Modul" [ref=e227] [cursor=pointer]:
+                - /url: /automation
+                - text: Buka Modul
+                - img [ref=e228]
+            - generic [ref=e230]:
+              - generic [ref=e231]:
+                - heading "Broadcast / Campaign" [level=3] [ref=e232]
+                - paragraph [ref=e233]: Kampanye WhatsApp, IG DM, segment audience, dan follow-up terjadwal
+              - link "Buka Modul" [ref=e235] [cursor=pointer]:
+                - /url: /broadcast
+                - text: Buka Modul
+                - img [ref=e236]
+            - generic [ref=e238]:
+              - generic [ref=e239]:
+                - heading "Channels" [level=3] [ref=e240]
+                - paragraph [ref=e241]: WhatsApp, Instagram, Telegram roadmap, website chat, dan integration testing
+              - link "Buka Modul" [ref=e243] [cursor=pointer]:
+                - /url: /channels
+                - text: Buka Modul
+                - img [ref=e244]
+            - generic [ref=e246]:
+              - generic [ref=e247]:
+                - heading "Reports" [level=3] [ref=e248]
+                - paragraph [ref=e249]: Chat report, AI report, booking, ticket, campaign, dan conversion metrics
+              - link "Buka Modul" [ref=e251] [cursor=pointer]:
+                - /url: /analytics
+                - text: Buka Modul
+                - img [ref=e252]
+            - generic [ref=e254]:
+              - generic [ref=e255]:
+                - heading "Team & Settings" [level=3] [ref=e256]
+                - paragraph [ref=e257]: Workspace, anggota tim, notifikasi, role roadmap, dan preferensi platform
+              - link "Buka Modul" [ref=e259] [cursor=pointer]:
+                - /url: /settings
+                - text: Buka Modul
+                - img [ref=e260]
+        - generic [ref=e262]:
+          - generic [ref=e263]:
+            - text: Alur Kerja
+            - heading "Alur kerja AI dibangun dengan safety gate yang eksplisit." [level=2] [ref=e264]
+            - paragraph [ref=e265]: Pendekatan ini menjaga AI tetap berguna untuk operasional, tetapi tidak dibiarkan menjawab semua kasus secara gegabah.
+          - generic [ref=e268]:
+            - generic [ref=e269]:
+              - generic [ref=e270]:
+                - generic [ref=e271]: "1"
+                - heading "Capture" [level=3] [ref=e272]
+              - paragraph [ref=e273]: Pesan dari WA, IG, Telegram, atau website masuk ke satu jalur normalisasi.
+            - generic [ref=e274]:
+              - generic [ref=e275]:
+                - generic [ref=e276]: "2"
+                - heading "Classify" [level=3] [ref=e277]
+              - paragraph [ref=e278]: Sistem mendeteksi intent, sentimen, risiko, dan kebutuhan handoff admin.
+            - generic [ref=e279]:
+              - generic [ref=e280]:
+                - generic [ref=e281]: "3"
+                - heading "Ground" [level=3] [ref=e282]
+              - paragraph [ref=e283]: AI mengambil jawaban dari knowledge base, katalog, booking, dan aturan bisnis.
+            - generic [ref=e284]:
+              - generic [ref=e285]:
+                - generic [ref=e286]: "4"
+                - heading "Decide" [level=3] [ref=e287]
+              - paragraph [ref=e288]: Safety filter menentukan reply otomatis, review, hide/delete komentar, atau handoff.
+            - generic [ref=e289]:
+              - generic [ref=e290]:
+                - generic [ref=e291]: "5"
+                - heading "Operate" [level=3] [ref=e292]
+              - paragraph [ref=e293]: Percakapan dan keputusan disimpan untuk inbox, CRM, tickets, booking, dan analytics.
+        - generic [ref=e295]:
+          - generic [ref=e296]:
+            - text: Harga Transparan
+            - heading "Pilih Paket yang Sesuai dengan Skala Bisnis Anda" [level=2] [ref=e297]
+            - paragraph [ref=e298]: Semua paket dilengkapi dengan masa uji coba gratis 14 hari. Batalkan kapan saja.
+          - generic [ref=e299]:
+            - generic [ref=e300]:
+              - generic [ref=e301]:
+                - generic [ref=e302]:
+                  - heading "Starter" [level=3] [ref=e303]
+                  - paragraph [ref=e304]: Cocok untuk UMKM pemula yang ingin mengotomatiskan chat pertama.
+                - generic [ref=e305]:
+                  - generic [ref=e306]: Rp 150K
+                  - generic [ref=e307]: / bulan
+                - list [ref=e309]:
+                  - listitem [ref=e310]:
+                    - img [ref=e311]
+                    - generic [ref=e313]: 1 WhatsApp Business Channel
+                  - listitem [ref=e314]:
+                    - img [ref=e315]
+                    - generic [ref=e317]: 500 percakapan AI / bulan
+                  - listitem [ref=e318]:
+                    - img [ref=e319]
+                    - generic [ref=e321]: Knowledge base basic (10 FAQ)
+                  - listitem [ref=e322]:
+                    - img [ref=e323]
+                    - generic [ref=e325]: 1 Admin / CS operator
+                  - listitem [ref=e326]:
+                    - img [ref=e327]
+                    - generic [ref=e329]: Widget Web Chat gratis
+              - button "Mulai Uji Coba Gratis" [ref=e331] [cursor=pointer]
+            - generic [ref=e332]:
+              - generic [ref=e333]: Paling Populer
+              - generic [ref=e334]:
+                - generic [ref=e335]:
+                  - heading "Pro" [level=3] [ref=e336]
+                  - paragraph [ref=e337]: Sangat direkomendasikan untuk bisnis berkembang dengan banyak pesanan.
+                - generic [ref=e338]:
+                  - generic [ref=e339]: Rp 390K
+                  - generic [ref=e340]: / bulan
+                - list [ref=e342]:
+                  - listitem [ref=e343]:
+                    - img [ref=e344]
+                    - generic [ref=e346]: Omnichannel (WhatsApp + Web Chat)
+                  - listitem [ref=e347]:
+                    - img [ref=e348]
+                    - generic [ref=e350]: 3,000 percakapan AI / bulan
+                  - listitem [ref=e351]:
+                    - img [ref=e352]
+                    - generic [ref=e354]: Knowledge base unlimited
+                  - listitem [ref=e355]:
+                    - img [ref=e356]
+                    - generic [ref=e358]: 3 Admin / CS operator
+                  - listitem [ref=e359]:
+                    - img [ref=e360]
+                    - generic [ref=e362]: Analisis performa & CSAT
+                  - listitem [ref=e363]:
+                    - img [ref=e364]
+                    - generic [ref=e366]: Eskalasi rules & human takeover
+              - button "Coba Paket Pro" [ref=e368] [cursor=pointer]
+            - generic [ref=e369]:
+              - generic [ref=e370]:
+                - generic [ref=e371]:
+                  - heading "Enterprise" [level=3] [ref=e372]
+                  - paragraph [ref=e373]: Kustomisasi penuh untuk korporasi dan platform e-commerce besar.
+                - generic [ref=e375]: Custom
+                - list [ref=e377]:
+                  - listitem [ref=e378]:
+                    - img [ref=e379]
+                    - generic [ref=e381]: Saluran khusus & nomor tak terbatas
+                  - listitem [ref=e382]:
+                    - img [ref=e383]
+                    - generic [ref=e385]: Percakapan AI tak terbatas
+                  - listitem [ref=e386]:
+                    - img [ref=e387]
+                    - generic [ref=e389]: Grounding dokumen PDF besar
+                  - listitem [ref=e390]:
+                    - img [ref=e391]
+                    - generic [ref=e393]: Operator CS tak terbatas
+                  - listitem [ref=e394]:
+                    - img [ref=e395]
+                    - generic [ref=e397]: Integrasi API & Webhook kustom
+                  - listitem [ref=e398]:
+                    - img [ref=e399]
+                    - generic [ref=e401]: Dukungan SLA 24/7
+              - button "Hubungi Penjualan" [ref=e403] [cursor=pointer]
+        - generic [ref=e405]:
+          - generic [ref=e406]:
+            - text: Testimoni Mitra
+            - heading "Cerita Sukses dari Pengguna Balesin AI" [level=2] [ref=e407]
+            - paragraph [ref=e408]: Lihat bagaimana pemilik bisnis dan operasional UMKM meningkatkan konversi penjualan.
+          - generic [ref=e409]:
+            - generic [ref=e410]:
+              - paragraph [ref=e411]: “Sangat membantu bengkel kami! AI Balesin bisa menjawab pertanyaan harga oli, alamat, dan booking antrean secara otomatis saat kami sedang sibuk melayani pelanggan.”
+              - generic [ref=e412]:
+                - generic [ref=e413]: RH
+                - generic [ref=e414]:
+                  - heading "Rahmat Hidayat" [level=4] [ref=e415]
+                  - paragraph [ref=e416]: Pemilik Rahmat Motor
+            - generic [ref=e417]:
+              - paragraph [ref=e418]: “Dulu kami sering kehilangan prospek karena telat balas chat WhatsApp malam-malam. Sekarang, AI menjawab semuanya 24 jam penuh berdasarkan FAQ produk kami.”
+              - generic [ref=e419]:
+                - generic [ref=e420]: DL
+                - generic [ref=e421]:
+                  - heading "Dewi Lestari" [level=4] [ref=e422]
+                  - paragraph [ref=e423]: Founder Hijab Chic
+            - generic [ref=e424]:
+              - paragraph [ref=e425]: “Fitur human handoff-nya sangat mulus. AI menjawab pertanyaan umum, dan saat ada komplain serius, admin langsung mengambil alih tanpa pelanggan sadar.”
+              - generic [ref=e426]:
+                - generic [ref=e427]: HW
+                - generic [ref=e428]:
+                  - heading "Hendra Wijaya" [level=4] [ref=e429]
+                  - paragraph [ref=e430]: Operational Manager Kopi Selesa
+        - generic [ref=e432]:
+          - generic [ref=e433]:
+            - text: Pertanyaan Umum
+            - heading "Sering Ditanyakan (FAQ)" [level=2] [ref=e434]
+            - paragraph [ref=e435]: Temukan jawaban cepat mengenai keamanan data, setup WhatsApp, dan integrasi AI Balesin.
+          - generic [ref=e436]:
+            - generic [ref=e438] [cursor=pointer]:
+              - generic [ref=e439]: Apakah AI Balesin bisa berimprovisasi menjawab di luar data bisnis?
+              - img [ref=e440]
+            - generic [ref=e443] [cursor=pointer]:
+              - generic [ref=e444]: Bagaimana cara kerja serah terima (human handoff) ke admin?
+              - img [ref=e445]
+            - generic [ref=e448] [cursor=pointer]:
+              - generic [ref=e449]: Apakah saya memerlukan server khusus untuk menyambungkan WhatsApp?
+              - img [ref=e450]
+            - generic [ref=e453] [cursor=pointer]:
+              - generic [ref=e454]: Berapa lama masa uji coba gratis Balesin AI?
+              - img [ref=e455]
+        - generic [ref=e457]:
+          - generic [ref=e458]:
+            - text: Roadmap
+            - heading "Scope dibatasi agar fondasi tetap cepat selesai dan mudah berkembang." [level=2] [ref=e459]
+            - paragraph [ref=e460]: Iterasi awal ini fokus ke struktur, kualitas UI, dan kesiapan arsitektur. Integrasi live menyusul setelah fondasinya stabil.
+          - generic [ref=e461]:
+            - generic [ref=e462]:
+              - generic [ref=e463]:
+                - paragraph [ref=e464]: MVP V1
+                - paragraph [ref=e465]: Core Omnichannel
+              - paragraph [ref=e467]: Dashboard, unified inbox, WA/IG integration, AI auto reply, human handoff, CRM, KB, booking, katalog, ticketing, broadcast dasar, dan basic report.
+            - generic [ref=e468]:
+              - generic [ref=e469]:
+                - paragraph [ref=e470]: V2
+                - paragraph [ref=e471]: Automation & Agent Ops
+              - paragraph [ref=e473]: Flow builder, automation builder, SLA ticketing, AI suggestion, sentiment/spam detection, Google Sheets integration, Telegram notification, dan campaign analytics.
+            - generic [ref=e474]:
+              - generic [ref=e475]:
+                - paragraph [ref=e476]: V3
+                - paragraph [ref=e477]: SaaS Expansion
+              - paragraph [ref=e479]: Marketplace chat, payment integration, advanced sales pipeline, multi-workspace SaaS, billing usage, advanced security, dan mobile app.
+        - generic [ref=e482]:
+          - img [ref=e484]
+          - generic [ref=e486]:
+            - heading "Siap Mengotomatiskan Layanan Pelanggan Toko Anda?" [level=2] [ref=e487]
+            - paragraph [ref=e488]: Bergabunglah dengan ratusan UMKM Indonesia yang menggunakan Balesin AI untuk membalas chat secara cerdas, cepat, dan 24 jam penuh tanpa henti.
+          - generic [ref=e489]:
+            - link "Mulai Uji Coba Gratis" [ref=e490] [cursor=pointer]:
+              - /url: /register
+              - button "Mulai Uji Coba Gratis" [ref=e491]:
+                - text: Mulai Uji Coba Gratis
+                - img [ref=e492]
+            - link "Lihat Skema Harga" [ref=e494] [cursor=pointer]:
+              - /url: "#pricing"
+              - button "Lihat Skema Harga" [ref=e495]
+    - contentinfo [ref=e496]:
+      - generic [ref=e497]:
+        - paragraph [ref=e498]: © 2026 Balesin.AI. Platform AI Agent & Omnichannel CRM Indonesia.
+        - paragraph [ref=e499]: Built with Next.js, Tailwind CSS & Apple Minimalism.
+  - alert [ref=e500]

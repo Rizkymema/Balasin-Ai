@@ -86,9 +86,17 @@ export function useDashboardConfig() {
             credentials: "include",
             cache: "no-store",
           })
-            .then((res) => res.json())
+            .then(async (res) => {
+              if (!res.ok) {
+                if (res.status === 401) {
+                  window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+                }
+                return; // Don't update config on error
+              }
+              return res.json();
+            })
             .then((payload) => {
-              if (mounted) {
+              if (mounted && payload?.data) {
                 setConfig(payload.data);
                 configRef.current = payload.data;
               }
