@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ArrowLeft,
   Bot,
@@ -690,13 +690,6 @@ function AiSuggestionPanel({
   onSuggestionVersionChange: (updater: (current: number) => number) => void;
 }) {
   const [open, setOpen] = useState(false);
-
-  // Automatically open the panel if it just finished loading a valid suggestion
-  useEffect(() => {
-    if (!isLoading && suggestionText) {
-      setOpen(true);
-    }
-  }, [isLoading, suggestionText]);
 
   return (
     <div className="border-b border-white/[0.04]">
