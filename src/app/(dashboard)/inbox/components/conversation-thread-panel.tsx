@@ -20,6 +20,7 @@ import {
   User,
   Users,
   PanelRight,
+  Smile,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -436,32 +437,33 @@ export function ConversationThreadPanel({
             return (
               <div
                 key={message.id}
-                className={cn("flex w-full mb-1", isCustomer ? "justify-start" : "justify-end")}
+                className={cn("flex w-full mb-3 items-end gap-2", isCustomer ? "justify-start" : "justify-end")}
               >
-                <div className="flex flex-col max-w-[85%] sm:max-w-[70%]">
+                {isCustomer && (
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[10px] font-semibold text-slate-300">
+                    {conversation.name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+
+                <div className="flex flex-col max-w-[75%] sm:max-w-[65%]">
                   {!isCustomer && (
                     <div className="mb-1 flex items-center justify-end gap-1.5 text-[10px] text-slate-500 px-1">
-                      {isAi ? (
-                        <Bot className="h-3 w-3 text-[#00d2ff]" />
-                      ) : (
-                        <User className="h-3 w-3" />
-                      )}
                       <span>{actorLabel}</span>
                     </div>
                   )}
                   <div
                     className={cn(
-                      "relative px-3.5 py-2 shadow-sm rounded-2xl flex flex-col",
+                      "relative px-4 py-2.5 shadow-sm flex flex-col",
                       isCustomer
-                        ? "bg-[#1e253c] text-slate-200 rounded-bl-sm border border-white/5"
-                        : "bg-[#00d2ff] text-[#050814] rounded-br-sm"
+                        ? "bg-[#1e253c] text-slate-200 rounded-2xl rounded-bl-sm border border-white/5"
+                        : "bg-[#00d2ff] text-[#050814] rounded-2xl rounded-br-sm"
                     )}
                   >
                     <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{message.text}</p>
                     <div
                       className={cn(
-                        "flex items-center gap-1 text-[9px] font-medium self-end mt-1",
-                        isCustomer ? "text-slate-400" : "text-[#050814]/60",
+                        "flex items-center gap-1 text-[10px] font-medium self-end mt-1.5",
+                        isCustomer ? "text-slate-400" : "text-[#050814]/70",
                       )}
                     >
                       <span>{message.timestamp}</span>
@@ -473,6 +475,12 @@ export function ConversationThreadPanel({
                     </div>
                   </div>
                 </div>
+
+                {!isCustomer && (
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#00d2ff]/10 text-[#00d2ff]">
+                    {isAi ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -529,37 +537,45 @@ export function ConversationThreadPanel({
         {/* Main composer input */}
         <div className="px-4 pb-3 pt-2">
           {composerMode === "reply" ? (
-            <div className="flex items-end gap-2">
-              <button
-                type="button"
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-slate-400"
-                title="Lampiran"
-              >
-                <Paperclip className="h-4 w-4" />
-              </button>
+            <div className="relative flex flex-col rounded-xl border border-white/[0.08] bg-[#0a0e1c] focus-within:border-white/[0.15] transition-colors overflow-hidden">
               <Textarea
                 value={replyText}
                 onChange={(event) => onReplyTextChange(event.target.value)}
                 rows={1}
-                placeholder={`Ketik balasan untuk ${conversation.name}...`}
-                className="min-h-[40px] max-h-[100px] flex-1 resize-none rounded-xl border-white/[0.08] bg-white/[0.04] px-4 py-2.5 text-[13px] leading-5 text-slate-200 placeholder:text-slate-500"
+                placeholder={`Type "shift + enter" to add a new line. Type "/" to use quick reply`}
+                className="min-h-[44px] max-h-[120px] w-full resize-none border-0 bg-transparent px-4 pt-3 pb-2 text-[13px] leading-relaxed text-slate-200 placeholder:text-slate-500 focus-visible:ring-0 shadow-none"
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+                  if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
                     onSendReply();
                   }
                 }}
                 disabled={isSubmitting || isReplyTyping}
               />
-              <button
-                type="button"
-                onClick={onSendReply}
-                disabled={!replyText.trim() || isSubmitting || isReplyTyping}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#00d2ff] text-[#050814] transition hover:bg-[#4de0ff] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
-                title="Kirim"
-              >
-                <Send className="h-4 w-4" />
-              </button>
+              <div className="flex items-center justify-between px-3 pb-2 pt-1 border-t border-white/[0.04] bg-white/[0.01]">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/[0.06] hover:text-slate-200"
+                  >
+                    <Smile className="h-4.5 w-4.5" />
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/[0.06] hover:text-slate-200"
+                  >
+                    <Paperclip className="h-4.5 w-4.5" />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={onSendReply}
+                  disabled={!replyText.trim() || isSubmitting || isReplyTyping}
+                  className="inline-flex h-8 items-center justify-center rounded-lg bg-white/[0.06] px-5 text-[12px] font-semibold text-slate-300 transition hover:bg-white/[0.1] disabled:opacity-50 disabled:hover:bg-white/[0.06] disabled:hover:text-slate-500"
+                >
+                  Send
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
