@@ -133,32 +133,7 @@ export function ConversationThreadPanel({
   const [showTemplates, setShowTemplates] = useState(false);
   const [templateSearch, setTemplateSearch] = useState("");
 
-  const [mockTemplates] = useState([
-    {
-      id: "template_001",
-      name: "Booking Confirmation",
-      category: "Booking",
-      body: "Halo kak {{customer_name}}, booking servis kakak sudah kami terima untuk tanggal {{service_date}}.",
-    },
-    {
-      id: "template_002",
-      name: "Greeting",
-      category: "Greeting",
-      body: "Halo kak, selamat datang di Johan Garage. Ada yang bisa kami bantu?",
-    },
-    {
-      id: "template_003",
-      name: "Outside Office Hours",
-      category: "General",
-      body: "Mohon maaf kak, kami sedang di luar jam operasional. Kami akan membalas saat buka kembali.",
-    },
-    {
-      id: "template_004",
-      name: "Closing",
-      category: "Closing",
-      body: "Terima kasih sudah menghubungi kami. Jika ada pertanyaan lain, silakan hubungi kembali kapan saja.",
-    },
-  ]);
+  const templates = config.automation.inboxSettings.templates;
 
   const handleReplyChange = (value: string) => {
     onReplyTextChange(value);
@@ -590,9 +565,11 @@ export function ConversationThreadPanel({
                 Quick Replies
               </div>
               <div className="space-y-1 mt-1">
-                {mockTemplates
-                  .filter(t => t.name.toLowerCase().includes(templateSearch) || t.body.toLowerCase().includes(templateSearch))
-                  .map((template) => (
+                {templates
+                  .filter((t) =>
+                    t.name.toLowerCase().includes(templateSearch) ||
+                    t.body.toLowerCase().includes(templateSearch),
+                  ).map((template) => (
                     <button
                       key={template.id}
                       type="button"
@@ -613,8 +590,8 @@ export function ConversationThreadPanel({
                       <span className="text-[11px] text-slate-400 truncate w-full mt-0.5">{template.body}</span>
                     </button>
                   ))}
-                {mockTemplates.filter(t => t.name.toLowerCase().includes(templateSearch) || t.body.toLowerCase().includes(templateSearch)).length === 0 && (
-                  <div className="px-3 py-2 text-xs text-slate-500">Tidak ada template ditemukan.</div>
+                {templates.filter(t => t.name.toLowerCase().includes(templateSearch) || t.body.toLowerCase().includes(templateSearch)).length === 0 && (
+                  <div className="text-center py-4 text-xs text-slate-500">Tidak ada template ditemukan.</div>
                 )}
               </div>
             </div>

@@ -78,8 +78,29 @@ export function useDashboardConfig() {
 
     void load();
 
+    let intervalId: number;
+    if (mounted) {
+      intervalId = window.setInterval(() => {
+        if (document.visibilityState === "visible") {
+          fetch("/api/dashboard-config", {
+            credentials: "include",
+            cache: "no-store",
+          })
+            .then((res) => res.json())
+            .then((payload) => {
+              if (mounted) {
+                setConfig(payload.data);
+                configRef.current = payload.data;
+              }
+            })
+            .catch(() => {});
+        }
+      }, 5000);
+    }
+
     return () => {
       mounted = false;
+      window.clearInterval(intervalId);
     };
   }, []);
 

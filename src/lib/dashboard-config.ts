@@ -39,6 +39,38 @@ const defaultAutomationCrmIntegration = {
   duplicateHandling: "Update existing contact",
 } as const;
 
+const defaultInboxSettings = {
+  templates: [],
+  autoResponders: [],
+  officeHours: {
+    enabled: false,
+    timezone: "Asia/Jakarta",
+    days: [
+      { day: "Monday", enabled: true, startTime: "08:00", endTime: "17:00" },
+      { day: "Tuesday", enabled: true, startTime: "08:00", endTime: "17:00" },
+      { day: "Wednesday", enabled: true, startTime: "08:00", endTime: "17:00" },
+      { day: "Thursday", enabled: true, startTime: "08:00", endTime: "17:00" },
+      { day: "Friday", enabled: true, startTime: "08:00", endTime: "17:00" },
+      { day: "Saturday", enabled: true, startTime: "09:00", endTime: "15:00" },
+      { day: "Sunday", enabled: false, startTime: "00:00", endTime: "00:00" },
+    ],
+    outsideMessage: "Mohon maaf kak, kami sedang di luar jam operasional. Kami akan membalas saat buka kembali.",
+  },
+  tags: [],
+  customerIdle: {
+    enabled: false,
+    duration: 24,
+    unit: "hours",
+    reminderEnabled: false,
+    reminderDelay: 1,
+    reminderUnit: "hours",
+    reminderMsg: "Halo kak, apakah masih membutuhkan bantuan?",
+    autoResolve: false,
+    resolveStatus: "Resolved",
+    addTag: "Idle",
+  }
+} as const;
+
 export const defaultDashboardConfig: DashboardConfig = {
   workspace: {
     name: "Workspace Baru",
@@ -149,6 +181,17 @@ export const defaultDashboardConfig: DashboardConfig = {
     rules: [],
     conversations: [],
     aiAgents: [],
+    inboxSettings: {
+      ...defaultInboxSettings,
+      templates: [...defaultInboxSettings.templates],
+      autoResponders: [...defaultInboxSettings.autoResponders],
+      tags: [...defaultInboxSettings.tags],
+      officeHours: {
+        ...defaultInboxSettings.officeHours,
+        days: defaultInboxSettings.officeHours.days.map(d => ({ ...d }))
+      },
+      customerIdle: { ...defaultInboxSettings.customerIdle }
+    }
   },
   team: {
     members: [],
@@ -234,6 +277,7 @@ export function mergeDashboardConfig(
       rules: incoming.automation?.rules ?? base.automation.rules,
       conversations: incoming.automation?.conversations ?? base.automation.conversations,
       aiAgents: incoming.automation?.aiAgents ?? base.automation.aiAgents,
+      inboxSettings: incoming.automation?.inboxSettings ?? base.automation.inboxSettings,
     },
     team: {
       members: incoming.team?.members ?? base.team.members,

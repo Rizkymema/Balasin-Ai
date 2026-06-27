@@ -184,6 +184,71 @@ export type AutomationCrmIntegration = {
   duplicateHandling: string;
 };
 
+export type InboxTemplate = {
+  id: string;
+  name: string;
+  category: string;
+  channel: string;
+  language: string;
+  body: string;
+  variables: string[];
+  approvalStatus: string;
+  status: string;
+};
+
+export type InboxAutoResponder = {
+  id: string;
+  name: string;
+  type: string;
+  channel: string;
+  trigger: string;
+  message: string;
+  delaySeconds: number;
+  status: string;
+};
+
+export type InboxOfficeHours = {
+  enabled: boolean;
+  timezone: string;
+  days: Array<{
+    day: string;
+    enabled: boolean;
+    startTime: string;
+    endTime: string;
+  }>;
+  outsideMessage: string;
+};
+
+export type InboxTag = {
+  id: string;
+  name: string;
+  color: string;
+  category: string;
+  visibility: string;
+  status: string;
+};
+
+export type InboxCustomerIdle = {
+  enabled: boolean;
+  duration: number;
+  unit: string;
+  reminderEnabled: boolean;
+  reminderDelay: number;
+  reminderUnit: string;
+  reminderMsg: string;
+  autoResolve: boolean;
+  resolveStatus: string;
+  addTag: string;
+};
+
+export type InboxSettings = {
+  templates: InboxTemplate[];
+  autoResponders: InboxAutoResponder[];
+  officeHours: InboxOfficeHours;
+  tags: InboxTag[];
+  customerIdle: InboxCustomerIdle;
+};
+
 export type DashboardConfig = {
   workspace: {
     name: string;
@@ -301,6 +366,7 @@ export type DashboardConfig = {
     rules: AutomationRule[];
     conversations: ConversationFlow[];
     aiAgents: AIAgent[];
+    inboxSettings: InboxSettings;
   };
   team: {
     members: TeamMember[];

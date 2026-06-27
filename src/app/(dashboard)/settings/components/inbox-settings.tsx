@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 
 // Helpers
 function InboxToggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -42,88 +43,75 @@ const INBOX_TABS = [
 ];
 
 export function InboxSettings() {
+  const { config, patchConfig } = useDashboardConfig();
+  const settings = config.automation.inboxSettings;
+
   const [activeTab, setActiveTab] = useState("auto_responder");
   const [isSaved, setIsSaved] = useState(false);
 
   // 1. Auto Responder State
-  const [autoResponders, setAutoResponders] = useState([
-    {
-      id: "responder_001",
-      name: "Greeting Message",
-      type: "Greeting Message",
-      channel: "WhatsApp",
-      trigger: "First incoming message",
-      message: "Halo kak, selamat datang di Johan Garage. Ada yang bisa kami bantu?",
-      delaySeconds: 1,
-      status: "Active",
-    },
-    {
-      id: "responder_002",
-      name: "Outside Office Hours",
-      type: "Outside Office Hours Message",
-      channel: "WhatsApp",
-      trigger: "Outside office hours",
-      message: "Mohon maaf kak, saat ini kami sedang di luar jam operasional.",
-      delaySeconds: 2,
-      status: "Active",
-    },
-  ]);
+  const [autoResponders, setAutoResponders] = useState(settings.autoResponders);
   const [showResModal, setShowResModal] = useState(false);
   const [resForm, setResForm] = useState({ name: "", type: "Greeting Message", channel: "All Channels", trigger: "First incoming message", message: "", delaySeconds: 0 });
 
   // 2. Office Hours State
-  const [ohEnabled, setOhEnabled] = useState(true);
-  const [ohTimezone, setOhTimezone] = useState("Asia/Jakarta");
-  const [ohDays, setOhDays] = useState([
-    { day: "Monday", enabled: true, startTime: "08:00", endTime: "17:00" },
-    { day: "Tuesday", enabled: true, startTime: "08:00", endTime: "17:00" },
-    { day: "Wednesday", enabled: true, startTime: "08:00", endTime: "17:00" },
-    { day: "Thursday", enabled: true, startTime: "08:00", endTime: "17:00" },
-    { day: "Friday", enabled: true, startTime: "08:00", endTime: "17:00" },
-    { day: "Saturday", enabled: true, startTime: "09:00", endTime: "15:00" },
-    { day: "Sunday", enabled: false, startTime: "00:00", endTime: "00:00" },
-  ]);
-  const [ohOutsideMessage, setOhOutsideMessage] = useState("Mohon maaf kak, kami sedang di luar jam operasional. Kami akan membalas saat buka kembali.");
+  const [ohEnabled, setOhEnabled] = useState(settings.officeHours.enabled);
+  const [ohTimezone, setOhTimezone] = useState(settings.officeHours.timezone);
+  const [ohDays, setOhDays] = useState(settings.officeHours.days);
+  const [ohOutsideMessage, setOhOutsideMessage] = useState(settings.officeHours.outsideMessage);
 
   // 3. Templates State
-  const [templates, setTemplates] = useState([
-    {
-      id: "template_001",
-      name: "Booking Confirmation",
-      category: "Booking",
-      channel: "WhatsApp",
-      language: "Indonesian",
-      body: "Halo kak {{customer_name}}, booking servis kakak sudah kami terima untuk tanggal {{service_date}}.",
-      variables: ["customer_name", "service_date"],
-      approvalStatus: "Approved",
-      status: "Active",
-    },
-  ]);
+  const [templates, setTemplates] = useState(settings.templates);
   const [showTplModal, setShowTplModal] = useState(false);
   const [tplForm, setTplForm] = useState({ name: "", category: "Greeting", channel: "All Channels", language: "Indonesian", body: "" });
 
   // 4. Tags State
-  const [tags, setTags] = useState([
-    { id: "tag_001", name: "Tanya Harga", color: "bg-blue-500/20 text-blue-400 border-blue-500/30", category: "Sales", visibility: "All agents", status: "Active" },
-    { id: "tag_002", name: "Komplain", color: "bg-red-500/20 text-red-400 border-red-500/30", category: "Complaint", visibility: "Supervisor only", status: "Active" },
-    { id: "tag_003", name: "Booking Servis", color: "bg-green-500/20 text-green-400 border-green-500/30", category: "Service", visibility: "All agents", status: "Active" },
-  ]);
+  const [tags, setTags] = useState(settings.tags);
   const [showTagModal, setShowTagModal] = useState(false);
   const [tagForm, setTagForm] = useState({ name: "", color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30", category: "General", visibility: "All agents" });
 
   // 5. Customer Idle State
-  const [idleEnabled, setIdleEnabled] = useState(true);
-  const [idleDuration, setIdleDuration] = useState(24);
-  const [idleUnit, setIdleUnit] = useState("hours");
-  const [idleReminderEnabled, setIdleReminderEnabled] = useState(true);
-  const [idleReminderDelay, setIdleReminderDelay] = useState(1);
-  const [idleReminderUnit, setIdleReminderUnit] = useState("hours");
-  const [idleReminderMsg, setIdleReminderMsg] = useState("Halo kak, apakah masih membutuhkan bantuan? Jika tidak ada balasan, percakapan ini akan kami tutup otomatis.");
-  const [idleAutoResolve, setIdleAutoResolve] = useState(true);
-  const [idleResolveStatus, setIdleResolveStatus] = useState("Resolved");
-  const [idleAddTag, setIdleAddTag] = useState("Customer Idle");
+  const [idleEnabled, setIdleEnabled] = useState(settings.customerIdle.enabled);
+  const [idleDuration, setIdleDuration] = useState(settings.customerIdle.duration);
+  const [idleUnit, setIdleUnit] = useState(settings.customerIdle.unit);
+  const [idleReminderEnabled, setIdleReminderEnabled] = useState(settings.customerIdle.reminderEnabled);
+  const [idleReminderDelay, setIdleReminderDelay] = useState(settings.customerIdle.reminderDelay);
+  const [idleReminderUnit, setIdleReminderUnit] = useState(settings.customerIdle.reminderUnit);
+  const [idleReminderMsg, setIdleReminderMsg] = useState(settings.customerIdle.reminderMsg);
+  const [idleAutoResolve, setIdleAutoResolve] = useState(settings.customerIdle.autoResolve);
+  const [idleResolveStatus, setIdleResolveStatus] = useState(settings.customerIdle.resolveStatus);
+  const [idleAddTag, setIdleAddTag] = useState(settings.customerIdle.addTag);
 
   const saveSettings = () => {
+    patchConfig({
+      automation: {
+        ...config.automation,
+        inboxSettings: {
+          ...config.automation.inboxSettings,
+          autoResponders,
+          officeHours: {
+            enabled: ohEnabled,
+            timezone: ohTimezone,
+            days: ohDays,
+            outsideMessage: ohOutsideMessage,
+          },
+          templates,
+          tags,
+          customerIdle: {
+            enabled: idleEnabled,
+            duration: idleDuration,
+            unit: idleUnit,
+            reminderEnabled: idleReminderEnabled,
+            reminderDelay: idleReminderDelay,
+            reminderUnit: idleReminderUnit,
+            reminderMsg: idleReminderMsg,
+            autoResolve: idleAutoResolve,
+            resolveStatus: idleResolveStatus,
+            addTag: idleAddTag,
+          }
+        }
+      }
+    });
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2500);
   };
