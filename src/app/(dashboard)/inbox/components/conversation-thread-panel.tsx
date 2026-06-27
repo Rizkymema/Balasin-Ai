@@ -130,6 +130,53 @@ export function ConversationThreadPanel({
 }: ConversationThreadPanelProps) {
   const [suggestionText, setSuggestionText] = useState("");
   const [isGeneratingSuggestion, setIsGeneratingSuggestion] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateSearch, setTemplateSearch] = useState("");
+
+  const [mockTemplates] = useState([
+    {
+      id: "template_001",
+      name: "Booking Confirmation",
+      category: "Booking",
+      body: "Halo kak {{customer_name}}, booking servis kakak sudah kami terima untuk tanggal {{service_date}}.",
+    },
+    {
+      id: "template_002",
+      name: "Greeting",
+      category: "Greeting",
+      body: "Halo kak, selamat datang di Johan Garage. Ada yang bisa kami bantu?",
+    },
+    {
+      id: "template_003",
+      name: "Outside Office Hours",
+      category: "General",
+      body: "Mohon maaf kak, kami sedang di luar jam operasional. Kami akan membalas saat buka kembali.",
+    },
+    {
+      id: "template_004",
+      name: "Closing",
+      category: "Closing",
+      body: "Terima kasih sudah menghubungi kami. Jika ada pertanyaan lain, silakan hubungi kembali kapan saja.",
+    },
+  ]);
+
+  const handleReplyChange = (value: string) => {
+    onReplyTextChange(value);
+
+    const lastSlashIndex = value.lastIndexOf("/");
+    
+    if (lastSlashIndex !== -1 && (lastSlashIndex === 0 || value[lastSlashIndex - 1] === " " || value[lastSlashIndex - 1] === "\n")) {
+      const query = value.slice(lastSlashIndex + 1);
+      
+      if (!query.includes(" ")) {
+        setShowTemplates(true);
+        setTemplateSearch(query.toLowerCase());
+        return;
+      }
+    }
+    
+    setShowTemplates(false);
+  };
 
   useEffect(() => {
     if (!conversation) {
@@ -535,12 +582,49 @@ export function ConversationThreadPanel({
         )}
 
         {/* Main composer input */}
-        <div className="px-4 pb-3 pt-2">
+        <div className="px-4 pb-3 pt-2 relative">
+          {/* Slash Command Popover */}
+          {composerMode === "reply" && showTemplates && (
+            <div className="absolute bottom-full mb-2 left-4 w-80 max-h-64 overflow-y-auto rounded-xl border border-white/[0.1] bg-[#1e253c] p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2">
+              <div className="px-2 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                Quick Replies
+              </div>
+              <div className="space-y-1 mt-1">
+                {mockTemplates
+                  .filter(t => t.name.toLowerCase().includes(templateSearch) || t.body.toLowerCase().includes(templateSearch))
+                  .map((template) => (
+                    <button
+                      key={template.id}
+                      type="button"
+                      className="w-full flex flex-col items-start px-3 py-2 rounded-lg hover:bg-white/[0.06] transition text-left"
+                      onClick={() => {
+                        const lastSlashIndex = replyText.lastIndexOf("/");
+                        if (lastSlashIndex !== -1) {
+                          const newValue = replyText.slice(0, lastSlashIndex) + template.body;
+                          onReplyTextChange(newValue);
+                        }
+                        setShowTemplates(false);
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-[12px] font-semibold text-white">{template.name}</span>
+                        <span className="text-[10px] text-cyan-400 border border-cyan-400/30 bg-cyan-400/10 px-1.5 rounded">{template.category}</span>
+                      </div>
+                      <span className="text-[11px] text-slate-400 truncate w-full mt-0.5">{template.body}</span>
+                    </button>
+                  ))}
+                {mockTemplates.filter(t => t.name.toLowerCase().includes(templateSearch) || t.body.toLowerCase().includes(templateSearch)).length === 0 && (
+                  <div className="px-3 py-2 text-xs text-slate-500">Tidak ada template ditemukan.</div>
+                )}
+              </div>
+            </div>
+          )}
+
           {composerMode === "reply" ? (
-            <div className="relative flex flex-col rounded-xl border border-white/[0.08] bg-[#0a0e1c] focus-within:border-white/[0.15] transition-colors overflow-hidden">
+            <div className="relative flex flex-col rounded-xl border border-white/[0.08] bg-[#0a0e1c] focus-within:border-white/[0.15] transition-colors">
               <Textarea
                 value={replyText}
-                onChange={(event) => onReplyTextChange(event.target.value)}
+                onChange={(event) => handleReplyChange(event.target.value)}
                 rows={1}
                 placeholder={`Type "shift + enter" to add a new line. Type "/" to use quick reply`}
                 className="min-h-[44px] max-h-[120px] w-full resize-none border-0 bg-transparent px-4 pt-3 pb-2 text-[13px] leading-relaxed text-slate-200 placeholder:text-slate-500 focus-visible:ring-0 shadow-none"
