@@ -6,21 +6,17 @@ import {
   ArrowLeft,
   Bot,
   CheckCheck,
-  Clock3,
   MessageSquareDiff,
-  MoreVertical,
   Paperclip,
-  Search,
+  PanelRight,
   Send,
   ShieldAlert,
+  Smile,
   Sparkles,
   StickyNote,
   Ticket,
   Trash2,
   User,
-  Users,
-  PanelRight,
-  Smile,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -271,162 +267,119 @@ export function ConversationThreadPanel({
 
   return (
     <section className="flex min-h-[42rem] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full lg:min-h-0">
-      {/* Header */}
+      {/* Header — minimal: name + created date only */}
       <div className="shrink-0 border-b border-white/[0.06]">
-        <div className="flex flex-col gap-4 px-4 py-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="min-w-0 flex-1">
-            <div className="mb-2 flex items-center gap-2 lg:hidden">
-              <button
-                type="button"
-                onClick={onBackToList}
-                className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-slate-400"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Daftar
-              </button>
-              <button
-                type="button"
-                onClick={onToggleContextPanel}
-                className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-slate-400"
-              >
-                <Users className="h-4 w-4" />
-                {showContextPanel ? "Sembunyikan Detail" : "Lihat Detail"}
-              </button>
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          {/* Left: back (mobile) + avatar + name + date */}
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            {/* Mobile back button */}
+            <button
+              type="button"
+              onClick={onBackToList}
+              className="inline-flex shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] p-1.5 text-slate-400 lg:hidden"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+
+            {/* Avatar */}
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.06] text-[11px] font-bold text-slate-300">
+              {conversation.name.slice(0, 2).toUpperCase()}
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.06] text-sm font-semibold text-slate-400">
-                {conversation.name.slice(0, 2).toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="truncate text-[1.1rem] font-semibold text-slate-100">
-                    {conversation.name}
-                  </h2>
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                      resolveStatusTone(conversation.status),
-                    )}
-                  >
-                    <StatusIcon className="mr-1 h-3.5 w-3.5" />
-                    {statusMeta.shortLabel}
-                  </span>
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-slate-500">
-                  <span>{conversation.channel}</span>
-                  <span className="h-1 w-1 rounded-full bg-slate-600" />
-                  <span>{conversation.phone || conversation.username || "Customer aktif"}</span>
-                </div>
-              </div>
+            {/* Name + created */}
+            <div className="min-w-0">
+              <h2 className="truncate text-sm font-semibold text-slate-100">
+                {conversation.name}
+              </h2>
+              <p className="mt-0.5 text-[11px] text-slate-500">
+                Created{" "}
+                {conversation.timestamp
+                  ? (() => {
+                      try {
+                        const d = new Date(conversation.timestamp);
+                        return isNaN(d.getTime())
+                          ? conversation.timestamp
+                          : d.toLocaleDateString("id-ID", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            });
+                      } catch {
+                        return conversation.timestamp;
+                      }
+                    })()
+                  : "—"}
+              </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Right: action buttons */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            {/* Toggle context panel */}
             <button
               type="button"
               onClick={onToggleContextPanel}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
               title={showContextPanel ? "Tutup Detail" : "Lihat Detail"}
             >
               <PanelRight className="h-4 w-4" />
             </button>
-            <button
-              type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
-              title="Cari"
-            >
-              <Search className="h-4 w-4" />
-            </button>
+
+            {/* Pause / Activate AI */}
             <Button
               type="button"
               variant="secondary"
-              className="h-9 rounded-lg border-white/[0.08] bg-white/[0.04] px-3 text-[11px] text-slate-300 hover:bg-white/[0.08]"
+              className="h-8 rounded-lg border-white/[0.08] bg-white/[0.04] px-3 text-[11px] text-slate-300 hover:bg-white/[0.08]"
               onClick={canActivateAi ? onActivateAi : onPauseAi}
               disabled={(!canActivateAi && !canPauseAi) || isSubmitting}
             >
               {resolveStatusButtonLabel(conversation)}
             </Button>
+
+            {/* Resolve */}
             <Button
               type="button"
-              className="h-9 rounded-lg border-transparent bg-[#00d2ff] px-3 text-[11px] font-semibold text-[#050814] hover:bg-[#4de0ff]"
+              className="h-8 rounded-lg border-transparent bg-[#00d2ff] px-3 text-[11px] font-semibold text-[#050814] hover:bg-[#4de0ff]"
               onClick={onResolve}
               disabled={!canResolve || isSubmitting}
             >
               Resolve
             </Button>
-            <button
-              type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
-              title="Menu"
-            >
-              <MoreVertical className="h-4 w-4" />
-            </button>
+
+            {/* Delete */}
             <button
               type="button"
               onClick={onDeleteConversation}
               disabled={isSubmitting}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-red-500/15 text-red-400 transition hover:bg-red-500/25 disabled:opacity-50"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-500/15 text-red-400 transition hover:bg-red-500/25 disabled:opacity-50"
               title="Hapus percakapan"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-white/[0.06] px-4 py-3 text-[12px] text-slate-500 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <span>Assigned to:</span>
-            <span className="font-semibold text-slate-300">
-              {conversation.assignedTo}
-            </span>
-            <button
-              type="button"
-              onClick={onTakeOver}
-              disabled={!canTakeOver || isSubmitting}
-              className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:bg-white/[0.08] disabled:opacity-50"
-            >
-              Take Over
-            </button>
-            <button
-              type="button"
-              onClick={onCreateTicket}
-              className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:bg-white/[0.08]"
-            >
-              + Ticket
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-2">
-              <span className="h-4 w-4 rounded border border-slate-600 bg-white/[0.04]" />
-              Do Not Auto Resolve
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-3 py-1 text-[11px] text-slate-500">
-              <Clock3 className="h-3.5 w-3.5" />
-              {formatSlaLabel(conversation)}
-            </span>
-          </div>
-        </div>
-
-        {showExpiredBanner ? (
-          <div className="bg-red-500/90 px-4 py-3">
-            <p className="text-sm font-semibold text-white">
-              This conversation has been expired
-            </p>
-          </div>
-        ) : null}
-
+        {/* Human takeover banner */}
         {(conversation.status === "assigned_to_admin" ||
           conversation.status === "blocked") && (
-          <div className="border-t border-red-500/20 bg-red-500/10 px-4 py-3">
-            <div className="flex items-start gap-3">
-              <ShieldAlert className="mt-0.5 h-4 w-4 text-red-400" />
-              <p className="text-[12px] leading-5 text-red-300">
-                Human takeover aktif. AI tidak akan membalas otomatis sampai
-                diaktifkan kembali oleh admin.
+          <div className="border-t border-red-500/20 bg-red-500/10 px-4 py-2">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-red-400" />
+              <p className="text-[11px] leading-5 text-red-300">
+                Human takeover aktif. AI tidak akan membalas otomatis sampai diaktifkan kembali.
               </p>
             </div>
+          </div>
+        )}
+
+        {/* WhatsApp 24h expired banner */}
+        {showExpiredBanner && (
+          <div className="border-t border-orange-500/20 bg-orange-500/10 px-4 py-2">
+            <p className="text-[11px] text-orange-300">
+              WhatsApp window 24 jam expired. Kirim template terlebih dahulu.
+            </p>
           </div>
         )}
       </div>
