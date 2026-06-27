@@ -3,6 +3,69 @@ import type { DashboardConfig } from "@/types/dashboard-config";
 const STORAGE_KEY = "balesin_dashboard_config";
 const STORAGE_EVENT = "balesin-dashboard-config-change";
 
+const defaultAutomationAiConfig = {
+  aiMessageThreshold: 10,
+  listenTimeSeconds: 2,
+  handoverEnabled: true,
+  handoverTargetType: "Specific team",
+  handoverTarget: "Mekanik",
+  handoverMessage:
+    "Baik kak, saya teruskan percakapan ini ke admin Johan Garage agar bisa dibantu lebih lanjut.",
+} as const;
+
+const defaultAutomationIdleAction = {
+  enabled: true,
+  idleTimeout: 48,
+  idleTimeoutUnit: "hours",
+  triggerTarget: "Customer inactive",
+  actionType: "Send reminder message",
+  idleMessage:
+    "Halo kak, apakah masih membutuhkan bantuan? Jika tidak ada balasan, percakapan ini akan kami tutup otomatis.",
+  autoClose: true,
+} as const;
+
+const defaultAutomationApiIntegrations = [
+  {
+    id: "api_001",
+    name: "Check Service Status",
+    method: "POST",
+    endpoint: "https://api.johangarage.com/service-status",
+    authType: "Bearer Token",
+    authToken: "sk_live_***************",
+    headers: '{"Content-Type": "application/json"}',
+    requestBody:
+      '{"phone": "{{customer.phone}}", "plate_number": "{{conversation.plate_number}}"}',
+    responseMapping: "serviceStatus = response.status\nmechanicName = response.mechanic",
+    status: "Active",
+    lastTest: "Success",
+  },
+  {
+    id: "api_002",
+    name: "Check Sparepart Stock",
+    method: "GET",
+    endpoint: "https://api.johangarage.com/spareparts",
+    authType: "API Key",
+    authToken: "",
+    headers: "",
+    requestBody: "",
+    responseMapping: "",
+    status: "Draft",
+    lastTest: "Not tested",
+  },
+] as const;
+
+const defaultAutomationCrmIntegration = {
+  enabled: true,
+  provider: "Internal CRM",
+  syncTrigger: "When lead intent is detected",
+  contactMapping: [
+    { customerField: "Customer Name", crmField: "CRM Contact Name" },
+    { customerField: "Customer Phone", crmField: "CRM Phone Number" },
+    { customerField: "Customer Email", crmField: "CRM Email" },
+  ],
+  duplicateHandling: "Update existing contact",
+} as const;
+
 export const defaultDashboardConfig: DashboardConfig = {
   workspace: {
     name: "Workspace Baru",
@@ -89,6 +152,19 @@ export const defaultDashboardConfig: DashboardConfig = {
     bookingReminderHours: 2,
     spamGuard: true,
     sentimentGuard: true,
+    aiConfig: {
+      ...defaultAutomationAiConfig,
+    },
+    idleAction: {
+      ...defaultAutomationIdleAction,
+    },
+    apiIntegrations: defaultAutomationApiIntegrations.map((item) => ({ ...item })),
+    crmIntegration: {
+      ...defaultAutomationCrmIntegration,
+      contactMapping: defaultAutomationCrmIntegration.contactMapping.map((item) => ({
+        ...item,
+      })),
+    },
     rules: [],
     conversations: [
       {
@@ -97,6 +173,7 @@ export const defaultDashboardConfig: DashboardConfig = {
         botResponse: 1245,
         channel: "WhatsApp - Johan Garage",
         trigger: "Pesan Pertama Masuk",
+        normalizedTrigger: "first_incoming_message",
         initialMessage: "Halo! Selamat datang di Johan Garage. Ada yang bisa kami bantu?",
         interactiveMenu: [
           { id: "btn_1", label: "Cek Servis", response: "Silakan pilih jenis servis yang dibutuhkan: servis ringan, servis lengkap, atau pengecekan motor." },
@@ -105,6 +182,7 @@ export const defaultDashboardConfig: DashboardConfig = {
           { id: "btn_4", label: "Bicara dengan Admin", response: "Baik kak, percakapan akan kami teruskan ke admin." }
         ],
         fallbackMessage: "Maaf kak, saya belum memahami pertanyaannya. Silakan pilih menu yang tersedia atau hubungi admin.",
+        aiAgentId: "agent_001",
         humanAgentHandoff: {
           enabled: true,
           condition: "Saat pelanggan memilih Bicara dengan Admin"
@@ -118,9 +196,11 @@ export const defaultDashboardConfig: DashboardConfig = {
         botResponse: 890,
         channel: "WhatsApp - Johan Garage",
         trigger: "Di luar jam kerja",
+        normalizedTrigger: "outside_office_hours",
         initialMessage: "Halo! Saat ini kami sedang di luar jam operasional. Pesan Anda akan kami balas secepatnya saat jam buka.",
         interactiveMenu: [],
         fallbackMessage: "Tinggalkan pesan Anda.",
+        aiAgentId: "agent_001",
         humanAgentHandoff: { enabled: false, condition: "" },
         lastUpdate: "24 Jun 2026, 09:15",
         status: "Published",
@@ -131,9 +211,12 @@ export const defaultDashboardConfig: DashboardConfig = {
         botResponse: 320,
         channel: "Instagram DM",
         trigger: "Keyword tertentu",
+        normalizedTrigger: "keyword_match",
+        triggerKeywords: ["servis", "service", "oli", "harga", "sparepart"],
         initialMessage: "Halo, ada pertanyaan seputar servis?",
         interactiveMenu: [],
         fallbackMessage: "Tinggalkan pertanyaan Anda.",
+        aiAgentId: "agent_002",
         humanAgentHandoff: { enabled: false, condition: "" },
         lastUpdate: "23 Jun 2026, 18:40",
         status: "Draft",
@@ -144,9 +227,12 @@ export const defaultDashboardConfig: DashboardConfig = {
         botResponse: 0,
         channel: "Website Chat Widget",
         trigger: "Pesan pertama masuk",
+        normalizedTrigger: "booking_intent",
+        triggerKeywords: ["booking", "jadwal", "service", "servis"],
         initialMessage: "Hai! Mau booking service?",
         interactiveMenu: [],
         fallbackMessage: "Pilih menu untuk melanjutkan.",
+        aiAgentId: "agent_003",
         humanAgentHandoff: { enabled: false, condition: "" },
         lastUpdate: "22 Jun 2026, 11:05",
         status: "Inactive",
@@ -294,6 +380,23 @@ export function mergeDashboardConfig(
     automation: {
       ...base.automation,
       ...incoming.automation,
+      aiConfig: {
+        ...base.automation.aiConfig,
+        ...incoming.automation?.aiConfig,
+      },
+      idleAction: {
+        ...base.automation.idleAction,
+        ...incoming.automation?.idleAction,
+      },
+      apiIntegrations:
+        incoming.automation?.apiIntegrations ?? base.automation.apiIntegrations,
+      crmIntegration: {
+        ...base.automation.crmIntegration,
+        ...incoming.automation?.crmIntegration,
+        contactMapping:
+          incoming.automation?.crmIntegration?.contactMapping ??
+          base.automation.crmIntegration.contactMapping,
+      },
       rules: incoming.automation?.rules ?? base.automation.rules,
       conversations: incoming.automation?.conversations ?? base.automation.conversations,
       aiAgents: incoming.automation?.aiAgents ?? base.automation.aiAgents,

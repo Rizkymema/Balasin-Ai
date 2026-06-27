@@ -257,6 +257,44 @@ export function CustomerContextPanel({
         </div>
       </SidebarSection>
 
+      <SidebarSection title="Automation Runtime">
+        <div className="space-y-3">
+          <DetailRow
+            label="Flow"
+            value={conversation.automation?.activeFlowName ?? "Belum dipetakan"}
+          />
+          <DetailRow
+            label="AI Agent"
+            value={conversation.automation?.activeAgentName ?? "Default AI"}
+          />
+          <DetailRow
+            label="AI Reply Count"
+            value={`${conversation.automation?.aiReplyCount ?? 0}`}
+          />
+          <DetailRow
+            label="Handoff Reason"
+            value={conversation.automation?.handoffReason ?? "-"}
+          />
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              Latest Automation Logs
+            </p>
+            <div className="mt-3 space-y-3">
+              {(conversation.automation?.logs ?? []).length > 0 ? (
+                conversation.automation?.logs.slice(0, 3).map((log) => (
+                  <div key={log.id} className="rounded-lg border border-white/[0.05] bg-black/20 p-2.5">
+                    <p className="text-[11px] font-semibold text-slate-300">{log.event}</p>
+                    <p className="mt-1 text-[12px] leading-5 text-slate-400">{log.summary}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-slate-500">Belum ada log automation untuk percakapan ini.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </SidebarSection>
+
       <SidebarSection title="Operational">
         <div className="space-y-3">
           <DetailRow

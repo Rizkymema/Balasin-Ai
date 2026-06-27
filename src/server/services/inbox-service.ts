@@ -13,6 +13,12 @@ import {
   sendChannelMessage,
   sendWhatsAppReadTypingIndicator,
 } from "@/server/services/channel-adapters";
+import {
+  applyAutomationMetadata,
+  appendAutomationLog,
+  resolveInboundAutomation,
+  scheduleAutomationForConversationEvent,
+} from "@/server/services/automation-orchestrator";
 import type {
   ChannelKind,
   ConversationChannelContext,
@@ -166,6 +172,7 @@ function buildSafeFallbackDecision(config: DashboardConfig): ReplyDecision {
 export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   const config = await getDashboardConfigRecord();
   const current = await getDashboardOperationsRecord();
+  const receivedAt = new Date().toISOString();
 
   let customer =
     current.customers.find(
@@ -179,8 +186,11 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     current.customers.unshift(customer);
   }
 
+  const existingConversation =
+    current.conversations.find((item) => item.customerId === customer.id) ?? null;
+
   let conversation =
-    current.conversations.find((item) => item.customerId === customer.id) ??
+    existingConversation ??
     ({
       id: randomUUID(),
       customerId: customer.id,
@@ -209,21 +219,96 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       channelContext: input.channelContext,
     } satisfies ConversationRecord);
 
+  const automation = resolveInboundAutomation(config, {
+    channel: input.channel,
+    messageText: input.messageText,
+    nowIso: receivedAt,
+    existingConversation,
+  });
+  const effectiveConfig = automation.effectiveConfig;
+  const autoReplyEnabled =
+    effectiveConfig.aiAgent.autoReplyEnabled &&
+    (input.channel !== "WhatsApp" || config.channels.whatsapp.autoReply) &&
+    (input.channel !== "Instagram DM" || config.channels.instagram.autoReplyDm);
+  const aiMessageThreshold = Math.max(
+    1,
+    effectiveConfig.automation.aiConfig.aiMessageThreshold,
+  );
+  const currentAiReplyCount =
+    conversation.automation?.aiReplyCount ??
+    conversation.messages.filter((message) => message.sender === "ai").length;
   let decision: ReplyDecision;
 
-  try {
-    decision = await generateReplyDecision(input.messageText, config, {
-      recentMessages: conversation.messages.map((message) => ({
-        sender: message.sender,
-        text: message.text,
-      })),
-      lastIntent: conversation.lastIntent,
-      summary: conversation.summary,
-    });
-  } catch (error) {
-    console.error("generateReplyDecision failed", error);
-    decision = buildSafeFallbackDecision(config);
+  if (automation.forcedStatus === "assigned_to_admin") {
+    decision = {
+      intent: "Handoff Automation",
+      confidence: 96,
+      needsHuman: true,
+      status: "assigned_to_admin",
+      summary:
+        automation.handoffReason ??
+        "Automation meneruskan percakapan ke admin berdasarkan trigger aktif.",
+      reply:
+        automation.immediateReply ??
+        effectiveConfig.automation.aiConfig.handoverMessage,
+      grounded: false,
+      source: "fallback",
+    };
+  } else if (!autoReplyEnabled) {
+    decision = {
+      intent: "Auto Reply Nonaktif",
+      confidence: 100,
+      needsHuman: false,
+      status:
+        automation.forcedStatus === "waiting_customer"
+          ? "waiting_customer"
+          : "ai_paused",
+      summary:
+        "Auto reply sedang nonaktif, sehingga percakapan disimpan ke inbox tanpa balasan otomatis.",
+      reply: automation.immediateReply,
+      grounded: false,
+      source: "fallback",
+    };
+  } else if (
+    effectiveConfig.automation.aiConfig.handoverEnabled &&
+    currentAiReplyCount >= aiMessageThreshold
+  ) {
+    decision = {
+      intent: "AI Threshold Reached",
+      confidence: 99,
+      needsHuman: true,
+      status: "assigned_to_admin",
+      summary:
+        "Jumlah balasan AI sudah melewati threshold dan percakapan diteruskan ke admin.",
+      reply:
+        automation.effectiveConfig.automation.aiConfig.handoverMessage ||
+        automation.immediateReply,
+      grounded: false,
+      source: "fallback",
+    };
+  } else {
+    try {
+      decision = await generateReplyDecision(input.messageText, effectiveConfig, {
+        recentMessages: conversation.messages.map((message) => ({
+          sender: message.sender,
+          text: message.text,
+        })),
+        lastIntent: conversation.lastIntent,
+        summary: conversation.summary,
+      });
+    } catch (error) {
+      console.error("generateReplyDecision failed", error);
+      decision = buildSafeFallbackDecision(effectiveConfig);
+    }
   }
+
+  if (!decision.reply && automation.immediateReply && decision.status !== "spam") {
+    decision = {
+      ...decision,
+      reply: automation.immediateReply,
+    };
+  }
+  const finalStatus = automation.forcedStatus ?? decision.status;
 
   conversation = appendMessage(
     {
@@ -238,22 +323,44 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       type: input.messageType === "comment" ? "comment" : "text",
       externalId: input.externalMessageId,
     },
-    config.workspace.timezone,
+    effectiveConfig.workspace.timezone,
   );
 
+  conversation = applyAutomationMetadata(conversation, {
+    event: "message_received",
+    flow: automation.flow,
+    agent: automation.agent,
+    lastInboundAt: receivedAt,
+    handoffReason:
+      decision.status === "assigned_to_admin"
+        ? automation.handoffReason ??
+          "Percakapan diteruskan ke admin oleh automation runtime."
+        : null,
+  });
+  conversation = appendAutomationLog(conversation, {
+    event: "message_received",
+    summary: automation.flow
+      ? `Flow "${automation.flow.name}" aktif untuk pesan masuk ini.`
+      : "Tidak ada flow publish yang cocok; pesan diproses oleh inbox default.",
+    status: automation.flow ? "applied" : "skipped",
+    createdAt: receivedAt,
+  });
   conversation = {
     ...conversation,
-    status: decision.status,
+    status: finalStatus,
     summary: decision.summary,
     lastIntent: decision.intent,
     aiConfidence: decision.confidence,
     assignedTo:
-      decision.status === "assigned_to_admin" ? "Admin Desk" : config.aiAgent.name,
+      finalStatus === "assigned_to_admin"
+        ? effectiveConfig.automation.aiConfig.handoverTarget || "Admin Desk"
+        : automation.agent?.name ?? effectiveConfig.aiAgent.name,
     unreadCount: conversation.unreadCount + 1,
+    tags: Array.from(new Set([...conversation.tags, ...automation.tagsToAdd])),
     riskLevel:
-      decision.status === "assigned_to_admin" || decision.status === "spam"
+      finalStatus === "assigned_to_admin" || finalStatus === "spam"
         ? "high"
-        : decision.status === "waiting_customer"
+        : finalStatus === "waiting_customer"
           ? "medium"
           : "low",
     channelContext: {
@@ -270,7 +377,15 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
           incomingMessageId: input.externalMessageId,
           phoneNumberIdOverride: input.channelContext?.whatsappPhoneNumberId,
         });
-        await wait(900);
+        await wait(
+          Math.max(
+            0,
+            Math.min(
+              effectiveConfig.automation.aiConfig.listenTimeSeconds,
+              5,
+            ) * 1000,
+          ),
+        );
       } catch {
         // Tetap kirim balasan walau read/typing indicator gagal.
       }
@@ -284,20 +399,28 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       instagramAccountIdOverride: input.channelContext?.instagramAccountId,
     });
 
-    conversation = appendMessage(
-      conversation,
-      {
-        sender: "ai",
-        text: decision.reply,
-        type: "text",
-        status: resolveOutgoingMessageStatus({
-          channel: input.channel,
-          delivered: delivery.ok,
-        }),
-        externalId: delivery.messageId,
-      },
-      config.workspace.timezone,
-    );
+    if (delivery.ok || decision.reply.trim()) {
+      conversation = appendMessage(
+        conversation,
+        {
+          sender: "ai",
+          text: decision.reply,
+          type: "text",
+          status: resolveOutgoingMessageStatus({
+            channel: input.channel,
+            delivered: delivery.ok,
+          }),
+          externalId: delivery.messageId,
+        },
+        effectiveConfig.workspace.timezone,
+      );
+      conversation = applyAutomationMetadata(conversation, {
+        event: "message_received",
+        agent: automation.agent,
+        lastOutboundAt: new Date().toISOString(),
+        incrementAiReplyCount: true,
+      });
+    }
 
     if (!delivery.ok) {
       conversation = appendMessage(conversation, {
@@ -308,7 +431,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
           status: delivery.status,
         }),
         type: "system",
-      }, config.workspace.timezone);
+      }, effectiveConfig.workspace.timezone);
     }
   }
 
@@ -323,11 +446,11 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   customer = {
     ...customer,
     leadStatus:
-      decision.status === "assigned_to_admin"
+      finalStatus === "assigned_to_admin"
         ? "Complaint"
-        : decision.status === "waiting_customer"
+        : finalStatus === "waiting_customer"
           ? "Booking"
-          : decision.status === "spam"
+          : finalStatus === "spam"
             ? "Spam"
             : "Interested",
     totalConversation: customer.totalConversation + 1,
@@ -339,7 +462,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     item.id === customer.id ? customer : item,
   );
 
-  if (decision.status === "assigned_to_admin") {
+  if (finalStatus === "assigned_to_admin") {
     try {
       await enqueueJob({
         type: "handoff_notify",
@@ -353,7 +476,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     }
   }
 
-  if (decision.status === "waiting_customer") {
+  if (finalStatus === "waiting_customer") {
     try {
       await enqueueJob({
         type: "lead_followup",
@@ -368,6 +491,11 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   }
 
   await saveDashboardOperationsRecord(current);
+  await scheduleAutomationForConversationEvent({
+    config: effectiveConfig,
+    conversation,
+    event: "message_received",
+  });
 
   return {
     conversation,

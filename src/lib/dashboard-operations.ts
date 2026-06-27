@@ -52,6 +52,20 @@ const EMPTY_CONVERSATION_TEMPLATE: ConversationRecord = {
   aiConfidence: 0,
   riskLevel: "low",
   ticketId: null,
+  automation: {
+    activeFlowId: null,
+    activeFlowName: null,
+    activeAgentId: null,
+    activeAgentName: null,
+    aiReplyCount: 0,
+    lastInboundAt: null,
+    lastOutboundAt: null,
+    lastHumanReplyAt: null,
+    idleCheckAt: null,
+    handoffReason: null,
+    lastEvent: null,
+    logs: [],
+  },
 };
 
 const EMPTY_CUSTOMER_TEMPLATE: CustomerRecord = {
@@ -297,6 +311,35 @@ function normalizeConversation(
           sender: normalizeSender(message.sender),
         }))
       : [],
+    automation: input.automation
+      ? {
+          ...cloneValue(EMPTY_CONVERSATION_TEMPLATE.automation),
+          ...input.automation,
+          logs: Array.isArray(input.automation.logs)
+            ? input.automation.logs
+                .filter(
+                  (log): log is NonNullable<ConversationRecord["automation"]>["logs"][number] =>
+                    Boolean(log && typeof log === "object"),
+                )
+                .map((log) => ({
+                  id: typeof log.id === "string" ? log.id : "",
+                  event:
+                    typeof log.event === "string"
+                      ? log.event
+                      : "message_received",
+                  summary: typeof log.summary === "string" ? log.summary : "",
+                  createdAt:
+                    typeof log.createdAt === "string" ? log.createdAt : "",
+                  status:
+                    log.status === "queued" ||
+                    log.status === "skipped" ||
+                    log.status === "failed"
+                      ? log.status
+                      : "applied",
+                }))
+            : [],
+        }
+      : cloneValue(EMPTY_CONVERSATION_TEMPLATE.automation),
     tags: Array.isArray(input.tags)
       ? input.tags.filter((tag): tag is string => typeof tag === "string")
       : [],

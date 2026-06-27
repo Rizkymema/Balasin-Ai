@@ -1,5 +1,19 @@
 # Plan Integrasi Automation dan Unified Inbox
 
+## Status Eksekusi
+
+Core integrasi pada dokumen ini sudah diimplementasikan ke codebase pada 27 Juni 2026, mencakup:
+
+- persistence untuk `Chatbot Settings`
+- runtime orchestration antara `Automation` dan `Unified Inbox`
+- flow selection dan AI agent selection saat inbound message
+- worker job untuk idle action, CRM sync, dan API integration
+- observability runtime automation di panel inbox
+
+Catatan:
+
+- Dokumen ini tetap dipertahankan sebagai referensi arsitektur dan checklist lanjutan jika nanti ada ekstensi tambahan.
+
 ## Tujuan
 
 Membuat seluruh fitur pada modul `Automation` benar-benar berfungsi dan terintegrasi dengan `Unified Inbox`, sehingga:

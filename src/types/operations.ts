@@ -43,6 +43,38 @@ export type ConversationChannelContext = {
   instagramAccountId?: string;
 };
 
+export type AutomationRuntimeEvent =
+  | "message_received"
+  | "manual_reply_sent"
+  | "conversation_status_changed"
+  | "ticket_created"
+  | "booking_created"
+  | "conversation_resolved"
+  | "schedule_reached";
+
+export type AutomationRuntimeLog = {
+  id: string;
+  event: AutomationRuntimeEvent;
+  summary: string;
+  createdAt: string;
+  status: "applied" | "queued" | "skipped" | "failed";
+};
+
+export type ConversationAutomationState = {
+  activeFlowId: string | null;
+  activeFlowName: string | null;
+  activeAgentId: string | null;
+  activeAgentName: string | null;
+  aiReplyCount: number;
+  lastInboundAt: string | null;
+  lastOutboundAt: string | null;
+  lastHumanReplyAt: string | null;
+  idleCheckAt: string | null;
+  handoffReason: string | null;
+  lastEvent: AutomationRuntimeEvent | null;
+  logs: AutomationRuntimeLog[];
+};
+
 export type ConversationRecord = {
   id: string;
   customerId: string;
@@ -69,6 +101,7 @@ export type ConversationRecord = {
   riskLevel: RiskLevel;
   ticketId?: string | null;
   channelContext?: ConversationChannelContext;
+  automation?: ConversationAutomationState;
 };
 
 export type LeadStatus =

@@ -2,6 +2,11 @@ import { randomUUID } from "node:crypto";
 
 import { getDashboardConfigRecord, getDashboardOperationsRecord, saveDashboardOperationsRecord } from "@/server/repositories/dashboard-repository";
 import { sendChannelMessage } from "@/server/services/channel-adapters";
+import {
+  applyAutomationMetadata,
+  appendAutomationLog,
+  scheduleAutomationForConversationEvent,
+} from "@/server/services/automation-orchestrator";
 import { formatClockTime } from "@/lib/time";
 import type {
   ConversationMessage,
@@ -257,7 +262,7 @@ export async function sendInboxReply(input: {
     type: "text",
   };
 
-  const nextConversation = {
+  const nextConversation: ConversationRecord = {
     ...conversation,
     lastMessage: input.message,
     timestamp: "Sekarang",
@@ -271,6 +276,7 @@ export async function sendInboxReply(input: {
       ? conversation.summary
       : "Admin sudah mengambil alih percakapan dan mengirim balasan manual.",
   } satisfies ConversationRecord;
+  const sentAtIso = new Date().toISOString();
 
   if (!delivery.ok) {
     nextConversation.messages.push({
@@ -287,11 +293,36 @@ export async function sendInboxReply(input: {
     nextConversation.lastMessage = nextConversation.messages.at(-1)?.text ?? input.message;
   }
 
-  const nextState = updateConversationState(current, nextConversation);
+  let nextConversationWithAutomation: ConversationRecord = applyAutomationMetadata(nextConversation, {
+    event: "manual_reply_sent",
+    lastOutboundAt: sentAtIso,
+    lastHumanReplyAt: isAiReply ? null : sentAtIso,
+    incrementAiReplyCount: isAiReply,
+    handoffReason: isAiReply ? undefined : "Admin mengirim balasan manual dari inbox.",
+  });
+  nextConversationWithAutomation = appendAutomationLog(nextConversationWithAutomation, {
+    event: "manual_reply_sent",
+    summary: isAiReply
+      ? "Balasan dikirim dari composer inbox dengan mode AI aktif."
+      : "Admin mengambil alih percakapan dan mengirim balasan manual.",
+    status: "applied",
+    createdAt: sentAtIso,
+  });
+
+  const nextState = updateConversationState(current, nextConversationWithAutomation);
   await saveDashboardOperationsRecord(nextState);
+  await scheduleAutomationForConversationEvent({
+    config,
+    conversation:
+      nextState.conversations.find((item) => item.id === conversation.id) ??
+      nextConversationWithAutomation,
+    event: "manual_reply_sent",
+  });
 
   return {
-    conversation: nextState.conversations.find((item) => item.id === conversation.id) ?? nextConversation,
+    conversation:
+      nextState.conversations.find((item) => item.id === conversation.id) ??
+      nextConversationWithAutomation,
     delivery,
   };
 }
@@ -311,7 +342,7 @@ export async function updateInboxConversationStatus(input: {
         ? "Moderation Engine"
         : "Admin Desk";
 
-  const nextConversation = {
+  const nextConversation: ConversationRecord = {
     ...conversation,
     status: input.status,
     assignedTo,
@@ -327,11 +358,50 @@ export async function updateInboxConversationStatus(input: {
             ? "Percakapan ditandai selesai dari dashboard inbox."
             : conversation.summary,
   } satisfies ConversationRecord;
+  const updatedAtIso = new Date().toISOString();
+  let nextConversationWithAutomation: ConversationRecord = applyAutomationMetadata(nextConversation, {
+    event:
+      input.status === "resolved"
+        ? "conversation_resolved"
+        : "conversation_status_changed",
+    lastHumanReplyAt:
+      input.status === "assigned_to_admin" || input.status === "ai_paused"
+        ? updatedAtIso
+        : undefined,
+    handoffReason:
+      input.status === "assigned_to_admin"
+        ? "Status diubah ke butuh admin dari dashboard inbox."
+        : input.status === "resolved"
+          ? null
+          : undefined,
+  });
+  nextConversationWithAutomation = appendAutomationLog(nextConversationWithAutomation, {
+    event:
+      input.status === "resolved"
+        ? "conversation_resolved"
+        : "conversation_status_changed",
+    summary: `Status percakapan diubah menjadi ${input.status}.`,
+    status: "applied",
+    createdAt: updatedAtIso,
+  });
 
-  const nextState = updateConversationState(current, nextConversation);
+  const nextState = updateConversationState(current, nextConversationWithAutomation);
   await saveDashboardOperationsRecord(nextState);
+  await scheduleAutomationForConversationEvent({
+    config,
+    conversation:
+      nextState.conversations.find((item) => item.id === conversation.id) ??
+      nextConversationWithAutomation,
+    event:
+      input.status === "resolved"
+        ? "conversation_resolved"
+        : "conversation_status_changed",
+  });
 
-  return nextState.conversations.find((item) => item.id === conversation.id) ?? nextConversation;
+  return (
+    nextState.conversations.find((item) => item.id === conversation.id) ??
+    nextConversationWithAutomation
+  );
 }
 
 export async function markInboxConversationSeen(input: { conversationId: string }) {
@@ -393,18 +463,36 @@ export async function updateInboxConversationNotes(input: {
 }
 
 export async function createInboxTicket(input: { conversationId: string }) {
+  const config = await getDashboardConfigRecord();
   const current = await getDashboardOperationsRecord();
   const conversation = getConversationOrThrow(current, input.conversationId);
 
-  const nextConversation = {
+  let nextConversation: ConversationRecord = {
     ...conversation,
     status: "assigned_to_admin",
     assignedTo: "Admin Desk",
     timestamp: "Sekarang",
   } satisfies ConversationRecord;
+  nextConversation = applyAutomationMetadata(nextConversation, {
+    event: "ticket_created",
+    handoffReason: "Ticket dibuat dari inbox dan percakapan dialihkan ke admin.",
+    lastHumanReplyAt: new Date().toISOString(),
+  });
+  nextConversation = appendAutomationLog(nextConversation, {
+    event: "ticket_created",
+    summary: "Ticket dibuat dari panel inbox untuk percakapan ini.",
+    status: "applied",
+  });
 
   const nextState = updateConversationState(current, nextConversation);
   await saveDashboardOperationsRecord(nextState);
+  await scheduleAutomationForConversationEvent({
+    config,
+    conversation:
+      nextState.conversations.find((item) => item.id === conversation.id) ??
+      nextConversation,
+    event: "ticket_created",
+  });
 
   return {
     conversation:

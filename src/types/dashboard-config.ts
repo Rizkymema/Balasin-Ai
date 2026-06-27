@@ -37,11 +37,21 @@ export type AutomationRule = {
   risk: "low" | "medium" | "high";
 };
 
+export type ConversationFlowTrigger =
+  | "first_incoming_message"
+  | "outside_office_hours"
+  | "keyword_match"
+  | "customer_asks_admin"
+  | "booking_intent"
+  | "high_risk";
+
 export type ConversationFlow = {
   id: string;
   name: string;
   channel: string;
   trigger: string;
+  normalizedTrigger?: ConversationFlowTrigger;
+  triggerKeywords?: string[];
   initialMessage: string;
   interactiveMenu: Array<{
     id: string;
@@ -49,6 +59,7 @@ export type ConversationFlow = {
     response: string;
   }>;
   fallbackMessage: string;
+  aiAgentId?: string;
   humanAgentHandoff: {
     enabled: boolean;
     condition: string;
@@ -100,6 +111,78 @@ export type AIProviderKind =
   | "gemini";
 
 export type VectorStoreKind = "none" | "pgvector" | "pinecone" | "supabase";
+
+export type ApiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+export type ApiAuthType =
+  | "No Auth"
+  | "Bearer Token"
+  | "API Key"
+  | "Basic Auth"
+  | "Custom Header";
+
+export type ApiStatus = "Active" | "Draft" | "Inactive";
+
+export type ApiTestResult =
+  | "Success"
+  | "Failed"
+  | "Timeout"
+  | "Unauthorized"
+  | "Not tested";
+
+export type ApiIntegration = {
+  id: string;
+  name: string;
+  method: ApiMethod;
+  endpoint: string;
+  authType: ApiAuthType;
+  authToken: string;
+  headers: string;
+  requestBody: string;
+  responseMapping: string;
+  status: ApiStatus;
+  lastTest: ApiTestResult;
+};
+
+export type AutomationAiConfig = {
+  aiMessageThreshold: number;
+  listenTimeSeconds: number;
+  handoverEnabled: boolean;
+  handoverTargetType: "Any available agent" | "Specific team" | "Specific agent";
+  handoverTarget: string;
+  handoverMessage: string;
+};
+
+export type AutomationIdleAction = {
+  enabled: boolean;
+  idleTimeout: number;
+  idleTimeoutUnit: "hours" | "days";
+  triggerTarget:
+    | "Customer inactive"
+    | "Agent inactive"
+    | "Both customer and agent inactive";
+  actionType:
+    | "Send reminder message"
+    | "Mark as resolved"
+    | "Close conversation"
+    | "Assign to agent"
+    | "Move to specific inbox"
+    | "Add label"
+    | "Trigger webhook";
+  idleMessage: string;
+  autoClose: boolean;
+};
+
+export type AutomationCrmIntegration = {
+  enabled: boolean;
+  provider: string;
+  syncTrigger: string;
+  contactMapping: Array<{
+    customerField: string;
+    crmField: string;
+  }>;
+  duplicateHandling: string;
+};
 
 export type DashboardConfig = {
   workspace: {
@@ -203,6 +286,10 @@ export type DashboardConfig = {
     bookingReminderHours: number;
     spamGuard: boolean;
     sentimentGuard: boolean;
+    aiConfig: AutomationAiConfig;
+    idleAction: AutomationIdleAction;
+    apiIntegrations: ApiIntegration[];
+    crmIntegration: AutomationCrmIntegration;
     rules: AutomationRule[];
     conversations: ConversationFlow[];
     aiAgents: AIAgent[];

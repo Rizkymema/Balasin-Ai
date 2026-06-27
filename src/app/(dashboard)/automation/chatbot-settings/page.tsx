@@ -23,64 +23,33 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
-import type { AIProviderKind, VectorStoreKind } from "@/types/dashboard-config";
+import type {
+  ApiAuthType,
+  ApiIntegration,
+  ApiMethod,
+  ApiStatus,
+  ApiTestResult,
+  AutomationAiConfig,
+  AutomationCrmIntegration,
+  AutomationIdleAction,
+} from "@/types/dashboard-config";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ApiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-type ApiAuthType = "No Auth" | "Bearer Token" | "API Key" | "Basic Auth" | "Custom Header";
-type ApiStatus = "Active" | "Draft" | "Inactive";
-type ApiTestResult = "Success" | "Failed" | "Timeout" | "Unauthorized" | "Not tested";
-
-interface ApiIntegration {
-  id: string;
-  name: string;
-  method: ApiMethod;
-  endpoint: string;
-  authType: ApiAuthType;
-  authToken: string;
-  headers: string;
-  requestBody: string;
-  responseMapping: string;
-  status: ApiStatus;
-  lastTest: ApiTestResult;
-}
-
 interface ChatbotSettingsState {
-  aiConfig: {
-    aiMessageThreshold: number;
-    listenTime: number;
-    handoverEnabled: boolean;
-    handoverTargetType: string;
-    handoverTarget: string;
-    handoverMessage: string;
-  };
-  idleAction: {
-    enabled: boolean;
-    idleTimeout: number;
-    idleTimeoutUnit: "hours" | "days";
-    triggerTarget: string;
-    actionType: string;
-    idleMessage: string;
-    autoClose: boolean;
-  };
+  aiConfig: AutomationAiConfig;
+  idleAction: AutomationIdleAction;
   apiIntegrations: ApiIntegration[];
-  crmIntegration: {
-    enabled: boolean;
-    provider: string;
-    syncTrigger: string;
-    contactMapping: { customerField: string; crmField: string }[];
-    duplicateHandling: string;
-  };
+  crmIntegration: AutomationCrmIntegration;
 }
 
 const DEFAULT_SETTINGS: ChatbotSettingsState = {
   aiConfig: {
     aiMessageThreshold: 10,
-    listenTime: 2,
+    listenTimeSeconds: 2,
     handoverEnabled: true,
     handoverTargetType: "Specific team",
     handoverTarget: "Mekanik",
@@ -91,7 +60,7 @@ const DEFAULT_SETTINGS: ChatbotSettingsState = {
     idleTimeout: 48,
     idleTimeoutUnit: "hours",
     triggerTarget: "Customer inactive",
-    actionType: "Send reminder then close",
+    actionType: "Send reminder message",
     idleMessage: "Halo kak, apakah masih membutuhkan bantuan? Jika tidak ada balasan, percakapan ini akan kami tutup otomatis.",
     autoClose: true,
   },
@@ -231,8 +200,8 @@ function AIConfigPanel({
                 type="number"
                 min={0}
                 max={60}
-                value={config.listenTime}
-                onChange={(e) => onChange({ ...config, listenTime: Number(e.target.value) })}
+                value={config.listenTimeSeconds}
+                onChange={(e) => onChange({ ...config, listenTimeSeconds: Number(e.target.value) })}
                 className="bg-black/20 max-w-[120px]"
               />
               <span className="text-sm text-slate-400">seconds</span>
@@ -254,7 +223,7 @@ function AIConfigPanel({
               <select
                 className="flex h-10 w-full max-w-xs rounded-md border border-[var(--color-border)] bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
                 value={config.handoverTargetType}
-                onChange={(e) => onChange({ ...config, handoverTargetType: e.target.value })}
+                onChange={(e) => onChange({ ...config, handoverTargetType: e.target.value as AutomationAiConfig["handoverTargetType"] })}
               >
                 <option value="Any available agent">Any available agent</option>
                 <option value="Specific team">Specific team</option>
@@ -355,11 +324,11 @@ function IdleActionPanel({
                 <select
                   className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--color-brand)]"
                   value={config.triggerTarget}
-                  onChange={(e) => onChange({ ...config, triggerTarget: e.target.value })}
+                  onChange={(e) => onChange({ ...config, triggerTarget: e.target.value as AutomationIdleAction["triggerTarget"] })}
                 >
                   <option value="Customer inactive">Customer inactive</option>
                   <option value="Agent inactive">Agent inactive</option>
-                  <option value="Both customer and agent inactive">Both inactive</option>
+                  <option value="Both customer and agent inactive">Both customer and agent inactive</option>
                 </select>
               </div>
               <div>
@@ -367,9 +336,9 @@ function IdleActionPanel({
                 <select
                   className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--color-brand)]"
                   value={config.actionType}
-                  onChange={(e) => onChange({ ...config, actionType: e.target.value })}
+                  onChange={(e) => onChange({ ...config, actionType: e.target.value as AutomationIdleAction["actionType"] })}
                 >
-                  <option value="Send reminder then close">Send reminder then close</option>
+                  <option value="Send reminder message">Send reminder message</option>
                   <option value="Mark as resolved">Mark as resolved</option>
                   <option value="Close conversation">Close conversation</option>
                   <option value="Assign to agent">Assign to agent</option>
@@ -541,7 +510,17 @@ function ApiModal({
   );
 }
 
-function ApiIntegrationPanel({ integrations, onChange }: { integrations: ApiIntegration[]; onChange: (v: ApiIntegration[]) => void }) {
+function ApiIntegrationPanel({
+  integrations,
+  onChange,
+  onSave,
+  isSaved,
+}: {
+  integrations: ApiIntegration[];
+  onChange: (v: ApiIntegration[]) => void;
+  onSave: () => void;
+  isSaved: boolean;
+}) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingApi, setEditingApi] = useState<ApiIntegration | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
@@ -653,6 +632,13 @@ function ApiIntegrationPanel({ integrations, onChange }: { integrations: ApiInte
           onSave={handleSave}
         />
       )}
+
+      <div className="flex items-center gap-3">
+        <Button onClick={onSave} className="gap-2">
+          {isSaved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+          {isSaved ? "Tersimpan!" : "Save Settings"}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -811,12 +797,36 @@ function CRMIntegrationPanel({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ChatbotSettingsPage() {
-  const { isLoading } = useDashboardConfig();
+  const { config, patchConfig, isLoading } = useDashboardConfig();
   const [activeTab, setActiveTab] = useState("ai_config");
   const [settings, setSettings] = useState<ChatbotSettingsState>(DEFAULT_SETTINGS);
   const [isSaved, setIsSaved] = useState(false);
 
-  const handleSave = () => {
+  useEffect(() => {
+    setSettings({
+      aiConfig: { ...config.automation.aiConfig },
+      idleAction: { ...config.automation.idleAction },
+      apiIntegrations: config.automation.apiIntegrations.map((item) => ({ ...item })),
+      crmIntegration: {
+        ...config.automation.crmIntegration,
+        contactMapping: config.automation.crmIntegration.contactMapping.map((item) => ({
+          ...item,
+        })),
+      },
+    });
+  }, [config]);
+
+  const handleSave = async () => {
+    await patchConfig((current) => ({
+      ...current,
+      automation: {
+        ...current.automation,
+        aiConfig: settings.aiConfig,
+        idleAction: settings.idleAction,
+        apiIntegrations: settings.apiIntegrations,
+        crmIntegration: settings.crmIntegration,
+      },
+    }));
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2500);
   };
@@ -884,6 +894,8 @@ export default function ChatbotSettingsPage() {
           <ApiIntegrationPanel
             integrations={settings.apiIntegrations}
             onChange={(v) => setSettings({ ...settings, apiIntegrations: v })}
+            onSave={handleSave}
+            isSaved={isSaved}
           />
         )}
         {activeTab === "crm_integration" && (

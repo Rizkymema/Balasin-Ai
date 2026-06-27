@@ -191,6 +191,7 @@ export default function AutomationPage() {
       {isCreateModalOpen && (
         <CreateConversationModal
           initialData={editingFlow ?? undefined}
+          availableAgents={config?.automation.aiAgents ?? []}
           onClose={() => {
             setIsCreateModalOpen(false);
             setEditingFlow(null);

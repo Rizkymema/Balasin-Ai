@@ -5,25 +5,38 @@ import { X, Plus, Trash2, Save, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { ConversationFlow } from "@/types/dashboard-config";
+import type { AIAgent, ConversationFlow, ConversationFlowTrigger } from "@/types/dashboard-config";
 
 type CreateConversationModalProps = {
   initialData?: ConversationFlow;
+  availableAgents?: AIAgent[];
   onClose: () => void;
   onSave: (flow: Omit<ConversationFlow, "id" | "botResponse" | "lastUpdate">) => void;
 };
 
-export function CreateConversationModal({ initialData, onClose, onSave }: CreateConversationModalProps) {
+export function CreateConversationModal({ initialData, availableAgents = [], onClose, onSave }: CreateConversationModalProps) {
   const [name, setName] = useState(initialData?.name ?? "");
   const [channel, setChannel] = useState(initialData?.channel ?? "WhatsApp - Johan Garage");
   const [trigger, setTrigger] = useState(initialData?.trigger ?? "Pesan Pertama Masuk");
+  const [triggerKeywords, setTriggerKeywords] = useState(
+    initialData?.triggerKeywords?.join(", ") ?? "",
+  );
   const [initialMessage, setInitialMessage] = useState(initialData?.initialMessage ?? "");
   const [interactiveMenu, setInteractiveMenu] = useState<{ id: string; label: string; response: string }[]>(
     initialData?.interactiveMenu ?? []
   );
   const [fallbackMessage, setFallbackMessage] = useState(initialData?.fallbackMessage ?? "");
+  const [aiAgentId, setAiAgentId] = useState(initialData?.aiAgentId ?? "");
   const [handoffEnabled, setHandoffEnabled] = useState(initialData?.humanAgentHandoff.enabled ?? false);
   const [handoffCondition, setHandoffCondition] = useState(initialData?.humanAgentHandoff.condition ?? "");
+
+  const normalizedTriggerMap: Record<string, ConversationFlowTrigger> = {
+    "Pesan Pertama Masuk": "first_incoming_message",
+    "Pesan pertama masuk": "first_incoming_message",
+    "Di luar jam kerja": "outside_office_hours",
+    "Keyword tertentu": "keyword_match",
+    "Tidak ada balasan dari agent": "customer_asks_admin",
+  };
 
   const addMenuItem = () => {
     setInteractiveMenu([
@@ -47,9 +60,15 @@ export function CreateConversationModal({ initialData, onClose, onSave }: Create
       name,
       channel,
       trigger,
+      normalizedTrigger: normalizedTriggerMap[trigger] ?? "first_incoming_message",
+      triggerKeywords: triggerKeywords
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
       initialMessage,
       interactiveMenu,
       fallbackMessage,
+      aiAgentId: aiAgentId || undefined,
       humanAgentHandoff: { enabled: handoffEnabled, condition: handoffCondition },
       status,
     });
@@ -104,6 +123,35 @@ export function CreateConversationModal({ initialData, onClose, onSave }: Create
               <option value="Di luar jam kerja">Di luar jam kerja</option>
               <option value="Keyword tertentu">Keyword tertentu</option>
               <option value="Tidak ada balasan dari agent">Tidak ada balasan dari agent</option>
+            </select>
+          </div>
+
+          {trigger === "Keyword tertentu" && (
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-300">Trigger Keywords</label>
+              <Input
+                placeholder="servis, booking, harga, sparepart"
+                value={triggerKeywords}
+                onChange={(e) => setTriggerKeywords(e.target.value)}
+                className="bg-black/20"
+              />
+              <p className="text-xs text-slate-500">Pisahkan keyword dengan koma.</p>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-300">AI Agent</label>
+            <select
+              className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+              value={aiAgentId}
+              onChange={(e) => setAiAgentId(e.target.value)}
+            >
+              <option value="">Pilih otomatis berdasarkan channel</option>
+              {availableAgents.map((agent) => (
+                <option key={agent.id} value={agent.id}>
+                  {agent.name} ({agent.status})
+                </option>
+              ))}
             </select>
           </div>
 
