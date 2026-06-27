@@ -44,6 +44,7 @@ import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { InboxSettings } from "./components/inbox-settings";
 
 // ── Agent Management – module-level constants ────────────────────────────────
 const AGENT_TABS = [
@@ -1277,71 +1278,7 @@ export default function SettingsPage() {
           {/* TAB 4: INBOX */}
           {/* ============================================== */}
           {activeSetting === "inbox" && (
-            <Card className="glass-panel p-6 max-w-3xl border-white/8">
-              <div className="border-b border-white/8 pb-4 mb-5">
-                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-400">
-                  <Inbox className="h-4.5 w-4.5" />
-                  Inbox Configuration
-                </h3>
-                <p className="text-[11px] text-slate-400 mt-1">Konfigurasi khusus untuk alur dan pengaturan tampilan ruang kerja pesan masuk (Unified Inbox).</p>
-              </div>
-
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                setIsSavedInboxSettings(true);
-                setTimeout(() => setIsSavedInboxSettings(false), 2000);
-              }} className="space-y-5">
-                <div className="space-y-4">
-                  <label className="flex items-start gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300 cursor-pointer hover:bg-white/[0.05] transition">
-                    <input
-                      type="checkbox"
-                      checked={soundEnabled}
-                      onChange={(e) => setSoundEnabled(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
-                    />
-                    <span>
-                      <span className="block font-bold text-white mb-0.5">Aktifkan Bunyi Notifikasi</span>
-                      Putar efek suara alert instan ketika ada pesan baru masuk dari WhatsApp, Instagram, atau Live Chat.
-                    </span>
-                  </label>
-
-                  <label className="flex items-start gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-xs text-slate-300 cursor-pointer hover:bg-white/[0.05] transition">
-                    <input
-                      type="checkbox"
-                      checked={browserNotificationEnabled}
-                      onChange={(e) => setBrowserNotificationEnabled(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 rounded border-white/12 bg-white/4 text-cyan-500"
-                    />
-                    <span>
-                      <span className="block font-bold text-white mb-0.5">Notifikasi Browser Desktop</span>
-                      Tampilkan pop-up notifikasi melayang di pojok desktop ketika browser sedang di-minimize.
-                    </span>
-                  </label>
-                </div>
-
-                <div className="space-y-1.5 max-w-md">
-                  <label className="text-xs font-semibold text-slate-300">Waktu Auto Takeover Handoff (Menit)</label>
-                  <Input
-                    type="number"
-                    value={autoTakeoverTimeout}
-                    onChange={(e) => setAutoTakeoverTimeout(Number(e.target.value))}
-                    className="h-10 text-xs"
-                  />
-                  <p className="text-[10px] text-slate-500">Masa tunggu sebelum chat yang didelegasikan ke Operator namun diabaikan otomatis dikembalikan ke antrean umum.</p>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-white/8 pt-4">
-                  {isSavedInboxSettings ? (
-                    <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-                      <Check className="h-4 w-4" /> Pengaturan Inbox disimpan!
-                    </span>
-                  ) : (
-                    <div />
-                  )}
-                  <Button type="submit">Simpan Konfigurasi Inbox</Button>
-                </div>
-              </form>
-            </Card>
+            <InboxSettings />
           )}
 
           {/* ============================================== */}
