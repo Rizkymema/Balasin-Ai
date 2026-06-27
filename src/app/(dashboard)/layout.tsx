@@ -296,10 +296,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {NAV_ITEMS.slice(0, 5).map((item) => {
               const Icon = item.icon;
               const isActive = pathname.startsWith(item.href) && (item.href === "/dashboard" ? pathname === "/dashboard" : true);
-              // For Unified Inbox: use live unread count instead of static badge
+              // For Unified Inbox: use live unread count
               const dynamicBadge = item.href === "/inbox"
                 ? (inboxUnreadCount > 0 ? String(inboxUnreadCount) : undefined)
-                : item.badge;
+                : undefined;
               return (
                 <Link
                   key={item.href}
