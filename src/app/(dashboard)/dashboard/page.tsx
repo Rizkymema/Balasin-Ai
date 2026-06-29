@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -15,16 +16,180 @@ import {
   Wifi,
   Workflow,
   Zap,
+  Loader2,
+  Check,
 } from "lucide-react";
 
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import { useDashboardOperations } from "@/hooks/use-dashboard-operations";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Modal } from "@/components/ui/modal";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
-  const { config } = useDashboardConfig();
+  const { config, patchConfig, refreshConfig } = useDashboardConfig();
   const { data } = useDashboardOperations();
+
+  const [activeEditModal, setActiveEditModal] = useState<"none" | "profile" | "channels" | "instructions" | "bot_activation">("none");
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Form states
+  const [profileName, setProfileName] = useState("");
+  const [profileIndustry, setProfileIndustry] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [profileAddress, setProfileAddress] = useState("");
+  const [profileHours, setProfileHours] = useState("");
+
+  const [personaText, setPersonaText] = useState("");
+  const [toneText, setToneText] = useState("");
+  const [guardrailsText, setGuardrailsText] = useState("");
+
+  const [whatsappAutoReply, setWhatsappAutoReply] = useState(false);
+  const [instagramAutoReply, setInstagramAutoReply] = useState(false);
+  const [webchatEnabled, setWebchatEnabled] = useState(false);
+
+  const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
+  const [confidenceThreshold, setConfidenceThreshold] = useState(70);
+  const [safetyMode, setSafetyMode] = useState<"strict" | "balanced" | "aggressive">("balanced");
+
+  // Sync state with config when modal opens or config is fetched
+  useEffect(() => {
+    if (!config) return;
+    
+    // Profile
+    setProfileName(config.workspace.name || "");
+    setProfileIndustry(config.workspace.industry || "");
+    setProfileEmail(config.workspace.supportEmail || "");
+    setProfileAddress(config.workspace.address || "");
+    setProfileHours(config.workspace.businessHours || "");
+
+    // Custom Instructions parsing
+    const rawPrompt = config.aiAgent.replyInstructions || "";
+    const personaMatch = rawPrompt.match(/\[PERSONA\]\r?\n([\s\S]*?)(?=\r?\n+\[TONE\]|$)/i);
+    const toneMatch = rawPrompt.match(/\[TONE\]\r?\n([\s\S]*?)(?=\r?\n+\[GUARDRAILS\]|$)/i);
+    const guardMatch = rawPrompt.match(/\[GUARDRAILS\]\r?\n([\s\S]*?)$/i);
+
+    if (personaMatch || toneMatch || guardMatch) {
+      setPersonaText(personaMatch ? personaMatch[1].trim() : "");
+      setToneText(toneMatch ? toneMatch[1].trim() : "");
+      setGuardrailsText(guardMatch ? guardMatch[1].trim() : "");
+    } else {
+      setPersonaText(rawPrompt);
+      setToneText("");
+      setGuardrailsText("");
+    }
+
+    // Channels
+    setWhatsappAutoReply(config.channels.whatsapp.autoReply);
+    setInstagramAutoReply(config.channels.instagram.autoReplyDm);
+    setWebchatEnabled(config.channels.webchat.enabled);
+
+    // Bot Activation
+    setAutoReplyEnabled(config.aiAgent.autoReplyEnabled);
+    setConfidenceThreshold(config.aiAgent.confidenceThreshold);
+    setSafetyMode((config.aiAgent.safetyMode as "strict" | "balanced" | "aggressive") || "balanced");
+  }, [config, activeEditModal]);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      await patchConfig((current) => ({
+        ...current,
+        workspace: {
+          ...current.workspace,
+          name: profileName,
+          industry: profileIndustry,
+          supportEmail: profileEmail,
+          address: profileAddress,
+          businessHours: profileHours,
+        },
+      }));
+      await refreshConfig();
+      setActiveEditModal("none");
+    } catch (err) {
+      alert("Gagal menyimpan profil.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveInstructions = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      const assembledPrompt = `[PERSONA]\n${personaText.trim()}\n\n[TONE]\n${toneText.trim()}\n\n[GUARDRAILS]\n${guardrailsText.trim()}`;
+      await patchConfig((current) => ({
+        ...current,
+        aiAgent: {
+          ...current.aiAgent,
+          replyInstructions: assembledPrompt,
+        },
+      }));
+      await refreshConfig();
+      setActiveEditModal("none");
+    } catch (err) {
+      alert("Gagal menyimpan instruksi.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveChannels = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      await patchConfig((current) => ({
+        ...current,
+        channels: {
+          ...current.channels,
+          whatsapp: {
+            ...current.channels.whatsapp,
+            autoReply: whatsappAutoReply,
+          },
+          instagram: {
+            ...current.channels.instagram,
+            autoReplyDm: instagramAutoReply,
+          },
+          webchat: {
+            ...current.channels.webchat,
+            enabled: webchatEnabled,
+          },
+        },
+      }));
+      await refreshConfig();
+      setActiveEditModal("none");
+    } catch (err) {
+      alert("Gagal menyimpan saluran.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveBot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      await patchConfig((current) => ({
+        ...current,
+        aiAgent: {
+          ...current.aiAgent,
+          autoReplyEnabled,
+          confidenceThreshold,
+          safetyMode,
+        },
+      }));
+      await refreshConfig();
+      setActiveEditModal("none");
+    } catch (err) {
+      alert("Gagal menyimpan pengaturan bot.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const connectedChannels = [
     config.channels.webchat.status === "connected" ? "Web Chat" : null,
@@ -331,33 +496,33 @@ export default function DashboardPage() {
                   step: 1,
                   title: "Lengkapi Profil & Jam Buka Bengkel",
                   desc: "Isi alamat resmi, jam operasional (Sabtu-Kamis), dan deskripsi bengkel Anda agar AI memiliki informasi dasar yang akurat.",
-                  href: "/settings",
                   complete: setupChecklist[0].complete,
                   actionText: "Atur Profil Bengkel",
+                  onClick: () => setActiveEditModal("profile"),
                 },
                 {
                   step: 2,
                   title: "Hubungkan Media Sosial (Instagram/WhatsApp)",
                   desc: "Tautkan akun bisnis Instagram DM atau WhatsApp Anda agar AI dapat membalas chat secara otomatis.",
-                  href: "/channels",
                   complete: setupChecklist[3].complete,
                   actionText: "Hubungkan Saluran Chat",
+                  onClick: () => setActiveEditModal("channels"),
                 },
                 {
                   step: 3,
                   title: "Buat Custom Instructions & Persona AI",
                   desc: "Atur identitas asisten AI (seperti Johan Garage, nada santai anak motor/mekanik, sapaan 'pren', dan aturan dilarang mengarang harga).",
-                  href: "/automation/knowledge-base",
                   complete: Boolean(config.aiAgent.replyInstructions?.trim()),
                   actionText: "Tulis Instruksi AI",
+                  onClick: () => setActiveEditModal("instructions"),
                 },
                 {
                   step: 4,
                   title: "Aktifkan Fitur Balas Otomatis AI (Auto Reply)",
                   desc: "Nyalakan tombol utama Auto Reply agar sistem memproses dan menjawab chat masuk berdasarkan kecerdasan buatan.",
-                  href: "/automation/chatbot-settings",
                   complete: config.aiAgent.autoReplyEnabled,
                   actionText: "Nyalakan Auto Reply",
+                  onClick: () => setActiveEditModal("bot_activation"),
                 },
                 {
                   step: 5,
@@ -403,17 +568,32 @@ export default function DashboardPage() {
                           {item.desc}
                         </p>
                       </div>
-                      <Link
-                        href={item.href}
-                        className={`inline-flex items-center justify-center h-8.5 px-4 rounded-lg text-[10px] font-bold tracking-tight transition-all shrink-0 ${
-                          isStepComplete
-                            ? "bg-white/5 border border-white/8 text-slate-300 hover:bg-white/10"
-                            : "bg-[var(--color-brand)] text-slate-950 hover:bg-[var(--color-brand-hover)] shadow-sm"
-                        }`}
-                      >
-                        {item.actionText}
-                        <ArrowRight className="h-3 w-3 ml-1.5 transform transition-transform group-hover:translate-x-0.5" />
-                      </Link>
+                      
+                      {item.href ? (
+                        <Link
+                          href={item.href}
+                          className={`inline-flex items-center justify-center h-8.5 px-4 rounded-lg text-[10px] font-bold tracking-tight transition-all shrink-0 ${
+                            isStepComplete
+                              ? "bg-white/5 border border-white/8 text-slate-300 hover:bg-white/10"
+                              : "bg-[var(--color-brand)] text-slate-950 hover:bg-[var(--color-brand-hover)] shadow-sm"
+                          }`}
+                        >
+                          {item.actionText}
+                          <ArrowRight className="h-3 w-3 ml-1.5 transform transition-transform group-hover:translate-x-0.5" />
+                        </Link>
+                      ) : (
+                        <button
+                          onClick={item.onClick}
+                          className={`inline-flex items-center justify-center h-8.5 px-4 rounded-lg text-[10px] font-bold tracking-tight transition-all shrink-0 ${
+                            isStepComplete
+                              ? "bg-white/5 border border-white/8 text-slate-300 hover:bg-white/10"
+                              : "bg-[var(--color-brand)] text-slate-950 hover:bg-[var(--color-brand-hover)] shadow-sm"
+                          }`}
+                        >
+                          {item.actionText}
+                          <ArrowRight className="h-3 w-3 ml-1.5 transform transition-transform group-hover:translate-x-0.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -517,6 +697,314 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+
+      {/* Profil Bengkel Modal */}
+      <Modal
+        isOpen={activeEditModal === "profile"}
+        onClose={() => setActiveEditModal("none")}
+        title="Atur Profil & Jam Buka Bengkel"
+      >
+        <form onSubmit={handleSaveProfile} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nama Bengkel / Bisnis</label>
+            <Input
+              value={profileName}
+              onChange={(e) => setProfileName(e.target.value)}
+              placeholder="Contoh: Johan Garage"
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Industri</label>
+            <Input
+              value={profileIndustry}
+              onChange={(e) => setProfileIndustry(e.target.value)}
+              placeholder="Contoh: Bengkel Motor"
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Email Dukungan</label>
+            <Input
+              type="email"
+              value={profileEmail}
+              onChange={(e) => setProfileEmail(e.target.value)}
+              placeholder="Contoh: support@johangarage.com"
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jam Operasional</label>
+            <Input
+              value={profileHours}
+              onChange={(e) => setProfileHours(e.target.value)}
+              placeholder="Contoh: Sabtu - Kamis: 08.00 - 17.00, Jumat: Libur"
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Alamat Lengkap</label>
+            <Textarea
+              value={profileAddress}
+              onChange={(e) => setProfileAddress(e.target.value)}
+              placeholder="Contoh: Jl. Jati Raya, D2 No.6, Bekasi Jaya..."
+              rows={3}
+              required
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setActiveEditModal("none")}
+              disabled={isSaving}
+            >
+              Batal
+            </Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan Perubahan"
+              )}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Hubungkan Channel Modal */}
+      <Modal
+        isOpen={activeEditModal === "channels"}
+        onClose={() => setActiveEditModal("none")}
+        title="Hubungkan Saluran Chat"
+      >
+        <form onSubmit={handleSaveChannels} className="space-y-5">
+          <p className="text-xs text-[var(--color-muted)] leading-relaxed">
+            Aktifkan fitur balas otomatis AI untuk masing-masing saluran komunikasi berikut setelah Anda menyambungkannya:
+          </p>
+          
+          <div className="space-y-4">
+            {/* WhatsApp */}
+            <div className="flex items-center justify-between p-3.5 rounded-lg border border-white/5 bg-white/[0.01]">
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-white">WhatsApp Business</p>
+                <p className="text-[10px] text-[var(--color-muted)]">
+                  Status koneksi saat ini: <span className={config?.channels?.whatsapp?.status === "connected" ? "text-emerald-400 font-bold" : "text-amber-400 font-bold"}>
+                    {config?.channels?.whatsapp?.status === "connected" ? "Terhubung" : "Belum Terhubung"}
+                  </span>
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={whatsappAutoReply}
+                onChange={(e) => setWhatsappAutoReply(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
+              />
+            </div>
+
+            {/* Instagram */}
+            <div className="flex items-center justify-between p-3.5 rounded-lg border border-white/5 bg-white/[0.01]">
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-white">Instagram DM</p>
+                <p className="text-[10px] text-[var(--color-muted)]">
+                  Status koneksi saat ini: <span className={config?.channels?.instagram?.status === "connected" ? "text-emerald-400 font-bold" : "text-amber-400 font-bold"}>
+                    {config?.channels?.instagram?.status === "connected" ? "Terhubung" : "Belum Terhubung"}
+                  </span>
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={instagramAutoReply}
+                onChange={(e) => setInstagramAutoReply(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
+              />
+            </div>
+
+            {/* Web Chat */}
+            <div className="flex items-center justify-between p-3.5 rounded-lg border border-white/5 bg-white/[0.01]">
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-white">Live Web Chat Widget</p>
+                <p className="text-[10px] text-[var(--color-muted)]">Aktifkan widget obrolan di halaman website utama.</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={webchatEnabled}
+                onChange={(e) => setWebchatEnabled(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setActiveEditModal("none")}
+              disabled={isSaving}
+            >
+              Batal
+            </Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan Saluran"
+              )}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Custom Instructions Modal */}
+      <Modal
+        isOpen={activeEditModal === "instructions"}
+        onClose={() => setActiveEditModal("none")}
+        title="Atur Persona & Panduan Gaya Bicara AI"
+        className="max-w-2xl"
+      >
+        <form onSubmit={handleSaveInstructions} className="space-y-4">
+          <p className="text-xs text-[var(--color-muted)] leading-relaxed">
+            Tulis persona, gaya bahasa, dan batasan agar AI dapat melayani pelanggan dengan tepat sesuai standar bengkel Anda.
+          </p>
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">1. Persona & Identitas</label>
+            <Textarea
+              value={personaText}
+              onChange={(e) => setPersonaText(e.target.value)}
+              placeholder="Contoh: Nama bot adalah Johan Garage Assistant. Sopan, ramah, dan sigap..."
+              rows={4}
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">2. Gaya Bahasa (Tone of Voice)</label>
+            <Textarea
+              value={toneText}
+              onChange={(e) => setToneText(e.target.value)}
+              placeholder="Contoh: Menggunakan panggilan 'pren' atau 'besti'. Santai ala komunitas anak motor, satset..."
+              rows={3}
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">3. Aturan & Batasan (Guardrails)</label>
+            <Textarea
+              value={guardrailsText}
+              onChange={(e) => setGuardrailsText(e.target.value)}
+              placeholder="Contoh: Dilarang mengarang harga servis. Wajib arahkan customer ke link booking/produk..."
+              rows={4}
+              required
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setActiveEditModal("none")}
+              disabled={isSaving}
+            >
+              Batal
+            </Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan Instruksi"
+              )}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Bot Activation Modal */}
+      <Modal
+        isOpen={activeEditModal === "bot_activation"}
+        onClose={() => setActiveEditModal("none")}
+        title="Aktifkan & Atur Sensitivitas AI Bot"
+      >
+        <form onSubmit={handleSaveBot} className="space-y-5">
+          {/* Auto Reply Toggle */}
+          <div className="flex items-center justify-between p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-strong)]/30">
+            <div className="space-y-0.5">
+              <p className="text-sm font-bold text-white">Status Balas Otomatis AI</p>
+              <p className="text-[11px] text-[var(--color-muted)]">Nyalakan agar AI otomatis membalas chat pelanggan secara real-time.</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={autoReplyEnabled}
+              onChange={(e) => setAutoReplyEnabled(e.target.checked)}
+              className="h-5 w-5 rounded border-slate-600 bg-slate-700 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
+            />
+          </div>
+
+          {/* Confidence Threshold */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs font-semibold text-slate-400">
+              <span className="uppercase tracking-wider">Confidence Threshold ({confidenceThreshold}%)</span>
+              <span className="text-[11px] text-[var(--color-muted)]">Akurasi minimum AI</span>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="99"
+              value={confidenceThreshold}
+              onChange={(e) => setConfidenceThreshold(Number(e.target.value))}
+              className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[var(--color-brand)]"
+            />
+            <p className="text-[10px] text-[var(--color-muted)] leading-relaxed">
+              Semakin tinggi batas akurasi, semakin selektif bot membalas. Pesan di bawah batas ini akan otomatis dilemparkan ke Inbox untuk dibalas admin secara manual.
+            </p>
+          </div>
+
+          {/* Safety Mode */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Mode Keamanan Balasan</label>
+            <select
+              value={safetyMode}
+              onChange={(e) => setSafetyMode(e.target.value as "strict" | "balanced" | "aggressive")}
+              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-[var(--color-brand)]"
+            >
+              <option value="strict">Strict (Sangat Ketat)</option>
+              <option value="balanced">Balanced (Sedang/Seimbang)</option>
+              <option value="aggressive">Aggressive (Bebas/Agresif)</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setActiveEditModal("none")}
+              disabled={isSaving}
+            >
+              Batal
+            </Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                "Aktifkan Pengaturan"
+              )}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
