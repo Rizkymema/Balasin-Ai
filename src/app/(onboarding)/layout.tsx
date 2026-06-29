@@ -18,12 +18,9 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
-    const onboarded = localStorage.getItem("balesin_onboarded") === "true";
-    if (onboarded) {
-      router.push("/dashboard");
-    } else {
-      setCheckingAuth(false);
-    }
+    // Setup wizard dinonaktifkan — semua konfigurasi dilakukan melalui dashboard
+    localStorage.setItem("balesin_onboarded", "true");
+    router.push("/dashboard");
   }, [router]);
 
   const activeIndex = Math.max(

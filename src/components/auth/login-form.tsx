@@ -102,28 +102,10 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
           }),
         );
 
-        // Cek status onboarding di server
-        let isOnboarded = localStorage.getItem("balesin_onboarded") === "true";
-        if (!isOnboarded) {
-          try {
-            const configRes = await fetch("/api/dashboard-config", {
-              credentials: "include",
-              cache: "no-store",
-            });
-            if (configRes.ok) {
-              const configPayload = await configRes.json();
-              if (configPayload?.data?.workspace?.onboarded) {
-                isOnboarded = true;
-                localStorage.setItem("balesin_onboarded", "true");
-                localStorage.setItem("balesin_dashboard_config", JSON.stringify(configPayload.data));
-              }
-            }
-          } catch (e) {
-            console.error("Gagal memeriksa status onboarding di server:", e);
-          }
-        }
+        // Langsung tandai sebagai onboarded — setup dilakukan di dashboard
+        localStorage.setItem("balesin_onboarded", "true");
 
-        router.push(redirectTo || (isOnboarded ? "/dashboard" : "/step-1"));
+        router.push(redirectTo || "/dashboard");
       } catch (fetchError: unknown) {
         setError(
           fetchError instanceof Error ? fetchError.message : "Login Google gagal.",
@@ -140,27 +122,10 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
 
     let mounted = true;
     const checkOnboardedStatus = async () => {
-      let isOnboarded = localStorage.getItem("balesin_onboarded") === "true";
-      if (!isOnboarded) {
-        try {
-          const configRes = await fetch("/api/dashboard-config", {
-            credentials: "include",
-            cache: "no-store",
-          });
-          if (configRes.ok && mounted) {
-            const configPayload = await configRes.json();
-            if (configPayload?.data?.workspace?.onboarded) {
-              isOnboarded = true;
-              localStorage.setItem("balesin_onboarded", "true");
-              localStorage.setItem("balesin_dashboard_config", JSON.stringify(configPayload.data));
-            }
-          }
-        } catch (e) {
-          console.error("Gagal memeriksa status onboarding di server:", e);
-        }
-      }
+      // Langsung tandai sebagai onboarded — setup dilakukan di dashboard
+      localStorage.setItem("balesin_onboarded", "true");
       if (mounted) {
-        router.push(redirectTo || (isOnboarded ? "/dashboard" : "/step-1"));
+        router.push(redirectTo || "/dashboard");
       }
     };
 
