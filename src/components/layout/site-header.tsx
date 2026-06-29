@@ -33,7 +33,8 @@ export function SiteHeader() {
           </nav>
           <a
             href="/login"
-            className="inline-flex h-8 items-center justify-center rounded-full bg-[var(--color-brand)] px-4 text-xs font-bold text-[var(--color-bg)] transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
+            className="inline-flex h-8 items-center justify-center rounded-full px-4 text-xs font-bold transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
+            style={{ backgroundColor: "var(--color-brand)", color: "var(--color-bg)" }}
           >
             Masuk
           </a>
