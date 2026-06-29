@@ -488,22 +488,22 @@ function buildConversationSnippet(context?: ReplyContext) {
 
 function messageNeedsConversationContext(messageText: string) {
   const normalized = normalizeText(messageText);
-  const tokens = tokenize(messageText);
 
-  return (
-    tokens.length <= 5 ||
-    /^\d{4}$/.test(normalized) ||
-    /^[a-z0-9\s/-]+$/i.test(messageText.trim()) ||
-    !(
-      hasKeyword(normalized, LOCATION_KEYWORDS) ||
-      hasKeyword(normalized, HOURS_KEYWORDS) ||
-      hasKeyword(normalized, EMAIL_KEYWORDS) ||
-      hasKeyword(normalized, DESCRIPTION_KEYWORDS) ||
-      hasKeyword(normalized, NAME_KEYWORDS) ||
-      hasKeyword(normalized, PRICE_KEYWORDS) ||
-      hasKeyword(normalized, BOOKING_KEYWORDS)
-    )
-  );
+  if (
+    hasKeyword(normalized, LOCATION_KEYWORDS) ||
+    hasKeyword(normalized, HOURS_KEYWORDS) ||
+    hasKeyword(normalized, EMAIL_KEYWORDS) ||
+    hasKeyword(normalized, DESCRIPTION_KEYWORDS) ||
+    hasKeyword(normalized, NAME_KEYWORDS) ||
+    hasKeyword(normalized, PRICE_KEYWORDS) ||
+    hasKeyword(normalized, BOOKING_KEYWORDS) ||
+    /(?:service|servis|tune\s*up|cvt|oli|bore\s*up|remap|dyno|bubut|kosong|ada|bisa|jual|beli|harga|biaya|ongkos|jadwal|kapan|dimana|berapa|apa|kenapa|keluhan)/i.test(normalized)
+  ) {
+    return false;
+  }
+
+  const tokens = tokenize(messageText);
+  return tokens.length <= 3 || /^\d{4}$/.test(normalized);
 }
 
 function previousMessageNeedsFollowUp(message: string) {
@@ -1714,6 +1714,7 @@ export async function generateReplyDecision(
       reply: applyStyleInstructions(
         `${config.workspace.name} berlokasi di ${config.workspace.address}`,
         config,
+        { preserveLength: true },
       ),
       grounded: true,
       source: "workspace",
@@ -1745,6 +1746,7 @@ export async function generateReplyDecision(
       reply: applyStyleInstructions(
         `Anda dapat menghubungi kami melalui email di ${config.workspace.supportEmail}`,
         config,
+        { preserveLength: true },
       ),
       grounded: true,
       source: "workspace",
