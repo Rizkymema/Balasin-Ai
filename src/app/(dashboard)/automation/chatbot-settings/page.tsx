@@ -791,7 +791,7 @@ export default function ChatbotSettingsPage() {
   const isInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (!config || isInitializedRef.current) return;
+    if (isLoading || !config || isInitializedRef.current) return;
     isInitializedRef.current = true;
     setSettings({
       aiConfig: { ...config.automation.aiConfig },
@@ -806,7 +806,7 @@ export default function ChatbotSettingsPage() {
         })),
       },
     });
-  }, [config]);
+  }, [config, isLoading]);
 
   const handleSave = async () => {
     await patchConfig((current) => ({

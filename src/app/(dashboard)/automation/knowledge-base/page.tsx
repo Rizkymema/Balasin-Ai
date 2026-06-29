@@ -52,7 +52,7 @@ export default function KnowledgeBasePage() {
   const isInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (!config || isInitializedRef.current) return;
+    if (isLoading || !config || isInitializedRef.current) return;
     isInitializedRef.current = true;
     const rawPrompt = config.aiAgent.replyInstructions || "";
     const personaMatch = rawPrompt.match(/\[PERSONA\]\r?\n([\s\S]*?)(?=\r?\n+\[TONE\]|$)/i);
@@ -68,7 +68,7 @@ export default function KnowledgeBasePage() {
       setToneOfVoice("");
       setGuardrails("");
     }
-  }, [config]);
+  }, [config, isLoading]);
 
   const urlCount = useMemo(() => config?.knowledgeBase.websiteUrls.length || 0, [config]);
   const docCount = useMemo(

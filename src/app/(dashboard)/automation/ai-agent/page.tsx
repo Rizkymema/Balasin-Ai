@@ -403,10 +403,10 @@ export default function AIAgentsPage() {
   const isInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (!config || isInitializedRef.current) return;
+    if (isLoading || !config || isInitializedRef.current) return;
     isInitializedRef.current = true;
     setAgents(config.automation.aiAgents || []);
-  }, [config]);
+  }, [config, isLoading]);
 
   const now = () =>
     new Date().toLocaleString("id-ID", {
