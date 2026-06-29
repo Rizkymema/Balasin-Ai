@@ -22,11 +22,6 @@ const PROTECTED_PREFIXES = [
   "/step-3",
   "/step-4",
   "/complete",
-  "/api/dashboard-config",
-  "/api/dashboard-operations",
-  "/api/resources",
-  "/api/knowledge",
-  "/api/workers",
 ];
 
 function fromBase64Url(value: string) {
@@ -85,6 +80,10 @@ async function hasValidSession(request: NextRequest) {
 }
 
 export async function middleware(request: NextRequest) {
+  if (request.method === "OPTIONS") {
+    return NextResponse.next();
+  }
+
   const { pathname } = request.nextUrl;
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
