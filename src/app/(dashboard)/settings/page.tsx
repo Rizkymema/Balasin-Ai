@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
+import { getTranslation } from "@/lib/translations";
 import { resolveDashboardPublicAppUrl } from "@/lib/runtime-url";
 import type { TeamMember } from "@/types/dashboard-config";
 import { Input } from "@/components/ui/input";
@@ -99,6 +100,7 @@ type ActiveSetting =
 
 export default function SettingsPage() {
   const { config, patchConfig, isLoading } = useDashboardConfig();
+  const t = getTranslation(config.workspace.language);
   const initialized = useRef(false);
 
   const [activeSetting, setActiveSetting] = useState<ActiveSetting>("profile");
@@ -616,45 +618,45 @@ export default function SettingsPage() {
                 <div className="border-b border-white/8 pb-4 mb-4">
                   <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-400">
                     <Building2 className="h-4.5 w-4.5" />
-                    Workspace Profile Settings
+                    {t.profileSettingsTitle}
                   </h3>
-                  <p className="text-[11px] text-slate-400 mt-1">Ubah identitas profil bengkel, deskripsi, alamat, dan jam operasional bisnis Anda.</p>
+                  <p className="text-[11px] text-slate-400 mt-1">{t.profileSettingsDesc}</p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Nama Workspace</label>
+                    <label className="text-xs font-semibold text-slate-300">{t.workspaceName}</label>
                     <Input value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} className="h-10 text-xs" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Industri</label>
+                    <label className="text-xs font-semibold text-slate-300">{t.industry}</label>
                     <Input value={industry} onChange={(event) => setIndustry(event.target.value)} className="h-10 text-xs" />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Email Support</label>
+                  <label className="text-xs font-semibold text-slate-300">{t.emailSupport}</label>
                   <Input type="email" value={supportEmail} onChange={(event) => setSupportEmail(event.target.value)} className="h-10 text-xs" />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Deskripsi Bisnis</label>
+                  <label className="text-xs font-semibold text-slate-300">{t.businessDesc}</label>
                   <Textarea rows={3} value={description} onChange={(event) => setDescription(event.target.value)} className="text-xs" />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Alamat Lengkap</label>
+                  <label className="text-xs font-semibold text-slate-300">{t.address}</label>
                   <Textarea rows={2} value={address} onChange={(event) => setAddress(event.target.value)} className="text-xs" />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Jam Operasional</label>
+                  <label className="text-xs font-semibold text-slate-300">{t.businessHours}</label>
                   <Input value={businessHours} onChange={(event) => setWorkspaceBusinessHours(event.target.value)} className="h-10 text-xs" />
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Zona Waktu</label>
+                    <label className="text-xs font-semibold text-slate-300">{t.timezone}</label>
                     <Select value={timezone} onChange={(event) => setTimezone(event.target.value)}>
                       <option value="Asia/Jakarta">WIB - Asia/Jakarta</option>
                       <option value="Asia/Makassar">WITA - Asia/Makassar</option>
@@ -662,7 +664,7 @@ export default function SettingsPage() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Bahasa Default Sistem</label>
+                    <label className="text-xs font-semibold text-slate-300">{t.defaultLang}</label>
                     <Select value={lang} onChange={(event) => setLang(event.target.value)}>
                       <option value="id">Bahasa Indonesia</option>
                       <option value="en">English</option>
@@ -673,13 +675,13 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between pt-4 border-t border-white/8">
                   {isSavedWorkspace ? (
                     <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 animate-fade-in">
-                      <Check className="h-4 w-4" /> Workspace Profile berhasil diperbarui!
+                      <Check className="h-4 w-4" /> {t.successSaveProfile}
                     </span>
                   ) : (
                     <div />
                   )}
                   <Button type="submit" className="px-5">
-                    <Save className="mr-1.5 h-4 w-4" /> Simpan Profil
+                    <Save className="mr-1.5 h-4 w-4" /> {t.saveProfile}
                   </Button>
                 </div>
               </form>

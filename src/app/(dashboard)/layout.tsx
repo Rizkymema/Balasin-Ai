@@ -29,6 +29,7 @@ import {
   Settings,
 } from "lucide-react";
 import { Dropdown } from "@/components/ui/dropdown";
+import { getTranslation } from "@/lib/translations";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -49,6 +50,27 @@ const AUTOMATION_SUBNAV = [
   { href: "/automation/chatbot-settings", label: "Chatbot settings", icon: Settings },
 ];
 
+function getNavLabel(href: string, defaultLabel: string, t: any) {
+  if (href === "/dashboard") return t.dashboard;
+  if (href === "/inbox") return t.inbox;
+  if (href === "/customers") return t.contacts;
+  if (href === "/products-services") return t.products;
+  if (href === "/booking") return t.booking;
+  if (href === "/broadcast") return t.broadcast;
+  if (href === "/channels") return t.channels;
+  if (href === "/analytics") return t.reports;
+  if (href === "/settings") return t.settings;
+  return defaultLabel;
+}
+
+function getAutomationLabel(href: string, defaultLabel: string, t: any) {
+  if (href === "/automation") return t.conversations;
+  if (href === "/automation/ai-agent") return t.aiAgents;
+  if (href === "/automation/knowledge-base") return t.knowledgeBase;
+  if (href === "/automation/chatbot-settings") return t.chatbotSettings;
+  return defaultLabel;
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -57,6 +79,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [businessName, setBusinessName] = useState("Workspace Baru");
   const [userEmail, setUserEmail] = useState("admin@workspace.local");
   const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
+  const [language, setLanguage] = useState("id");
+  const t = getTranslation(language);
   // Always initialize to false so server and client render the same HTML.
   // The real persisted value is loaded from localStorage after mount.
   const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
@@ -127,12 +151,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           data?: {
             workspace?: {
               name?: string;
+              language?: string;
             };
           };
         };
 
-        if (mounted && payload.data?.workspace?.name?.trim()) {
-          setBusinessName(payload.data.workspace.name);
+        if (mounted && payload.data?.workspace) {
+          if (payload.data.workspace.name?.trim()) {
+            setBusinessName(payload.data.workspace.name);
+          }
+          if (payload.data.workspace.language) {
+            setLanguage(payload.data.workspace.language);
+          }
         }
       } catch {}
     };
@@ -188,7 +218,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       icon: <Building2 className="h-4 w-4 text-[var(--color-brand)]" />,
     },
     {
-      label: "Tambah Workspace",
+      label: language === "id" ? "Tambah Workspace" : "Add Workspace",
       onClick: () => {
         localStorage.removeItem("balesin_onboarded");
         router.push("/step-1");
@@ -199,13 +229,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const profileItems = [
     {
-      label: "Profil Akun",
+      label: t.accountProfile,
       onClick: () => {
         router.push("/settings");
       },
     },
     {
-      label: "Keluar",
+      label: t.logout,
       onClick: handleLogout,
       icon: <LogOut className="h-4 w-4" />,
       danger: true,
@@ -300,11 +330,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               const dynamicBadge = item.href === "/inbox"
                 ? (inboxUnreadCount > 0 ? String(inboxUnreadCount) : undefined)
                 : undefined;
+              const translatedLabel = getNavLabel(item.href, item.label, t);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  onMouseEnter={(e) => handleMouseEnter(e, item.label)}
+                  onMouseEnter={(e) => handleMouseEnter(e, translatedLabel)}
                   onMouseLeave={handleMouseLeave}
                   onClick={() => {
                     setIsSidebarOpen(false);
@@ -318,7 +349,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 >
                   <span className="flex items-center gap-3">
                     <Icon className={`h-4.5 w-4.5 ${isActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
-                    {!isMainSidebarCollapsed && item.label}
+                    {!isMainSidebarCollapsed && translatedLabel}
                   </span>
                   {!isMainSidebarCollapsed && dynamicBadge && (
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-brand)] text-[10px] font-bold text-slate-950">
@@ -343,7 +374,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   {/* Automation parent link */}
                   <Link
                     href="/automation"
-                    onMouseEnter={(e) => handleMouseEnter(e, "Automation")}
+                    onMouseEnter={(e) => handleMouseEnter(e, t.automation)}
                     onMouseLeave={handleMouseLeave}
                     onClick={() => { setIsSidebarOpen(false); handleMouseLeave(); }}
                     className={`group relative flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition duration-150 ${
@@ -354,7 +385,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   >
                     <span className="flex items-center gap-3">
                       <Workflow className={`h-4.5 w-4.5 ${isAutomationActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
-                      {!isMainSidebarCollapsed && "Automation"}
+                      {!isMainSidebarCollapsed && t.automation}
                     </span>
                     {!isMainSidebarCollapsed && (
                       <ChevronDown className={`h-3.5 w-3.5 text-slate-500 transition-transform duration-200 ${isExpanded ? "" : "-rotate-90"}`} />
@@ -369,6 +400,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         const subActive = sub.exact
                           ? pathname === sub.href
                           : pathname.startsWith(sub.href);
+                        const translatedSubLabel = getAutomationLabel(sub.href, sub.label, t);
                         return (
                           <Link
                             key={sub.href}
@@ -381,11 +413,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             }`}
                           >
                             <span className="flex items-center gap-2">
-                              <SubIcon className={`h-3.5 w-3.5 ${subActive ? "text-[var(--color-brand)]" : "text-slate-500"}`} />
-                              {sub.label}
+                              <SubIcon className="h-4 w-4" />
+                              {translatedSubLabel}
                             </span>
                             {sub.badge && (
-                              <span className="rounded bg-cyan-500 px-1 py-0.5 text-[8px] font-extrabold text-slate-950">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-400/20 uppercase tracking-wider">
                                 {sub.badge}
                               </span>
                             )}
@@ -402,11 +434,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {NAV_ITEMS.slice(5).map((item) => {
               const Icon = item.icon;
               const isActive = pathname.startsWith(item.href);
+              const translatedLabel = getNavLabel(item.href, item.label, t);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  onMouseEnter={(e) => handleMouseEnter(e, item.label)}
+                  onMouseEnter={(e) => handleMouseEnter(e, translatedLabel)}
                   onMouseLeave={handleMouseLeave}
                   onClick={() => {
                     setIsSidebarOpen(false);
@@ -420,7 +453,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 >
                   <span className="flex items-center gap-3">
                     <Icon className={`h-4.5 w-4.5 ${isActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
-                    {!isMainSidebarCollapsed && item.label}
+                    {!isMainSidebarCollapsed && translatedLabel}
                   </span>
                 </Link>
               );
@@ -493,7 +526,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Menu className="h-5 w-5" />
             </button>
             <div className="text-sm font-semibold text-slate-300">
-              Workspace: <span className="text-white">{businessName}</span>
+              {t.workspace}: <span className="text-white">{businessName}</span>
             </div>
           </div>
 
@@ -507,7 +540,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Status Indicator */}
             <div className="hidden sm:flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-300">
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
-              Sistem aktif
+              {t.systemActive}
             </div>
           </div>
         </header>
