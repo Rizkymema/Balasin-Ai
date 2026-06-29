@@ -299,9 +299,14 @@ function isGreetingMessage(input: string, config: DashboardConfig) {
   const normalized = normalizeText(input);
   const compact = normalized.replace(/\s+/g, "");
   const greetingKeywords = getGreetingKeywords(config);
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+
+  if (tokens.length > 3) {
+    return false;
+  }
 
   return greetingKeywords.some(
-    (keyword) => normalized === keyword || compact === keyword || normalized.includes(keyword),
+    (keyword) => normalized === keyword || compact === keyword || tokens.includes(keyword),
   );
 }
 
@@ -1516,6 +1521,15 @@ function isInstructionOnly(text: string): boolean {
     lower.startsWith("pertanyaan ") ||
     lower.startsWith("keluhan ") ||
     lower.startsWith("keluhan:") ||
+    lower.startsWith("balas ") ||
+    lower.startsWith("jawab ") ||
+    lower.startsWith("jelaskan ") ||
+    lower.startsWith("tawarkan ") ||
+    lower.startsWith("arahkan ") ||
+    lower.includes("contoh:") ||
+    lower.includes("panduan jawaban") ||
+    lower.includes("balas ramah") ||
+    lower.includes("tawarkan bantuan") ||
     lower.includes("minta tipe motor") ||
     lower.includes("jangan beri") ||
     lower.includes("jangan rekomendasikan") ||
