@@ -102,7 +102,27 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
           }),
         );
 
-        const isOnboarded = localStorage.getItem("balesin_onboarded") === "true";
+        // Cek status onboarding di server
+        let isOnboarded = localStorage.getItem("balesin_onboarded") === "true";
+        if (!isOnboarded) {
+          try {
+            const configRes = await fetch("/api/dashboard-config", {
+              credentials: "include",
+              cache: "no-store",
+            });
+            if (configRes.ok) {
+              const configPayload = await configRes.json();
+              if (configPayload?.data?.workspace?.onboarded) {
+                isOnboarded = true;
+                localStorage.setItem("balesin_onboarded", "true");
+                localStorage.setItem("balesin_dashboard_config", JSON.stringify(configPayload.data));
+              }
+            }
+          } catch (e) {
+            console.error("Gagal memeriksa status onboarding di server:", e);
+          }
+        }
+
         router.push(redirectTo || (isOnboarded ? "/dashboard" : "/step-1"));
       } catch (fetchError: unknown) {
         setError(
@@ -116,10 +136,38 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
 
   useEffect(() => {
     const user = localStorage.getItem("balesin_user");
-    const isOnboarded = localStorage.getItem("balesin_onboarded") === "true";
-    if (user) {
-      router.push(redirectTo || (isOnboarded ? "/dashboard" : "/step-1"));
-    }
+    if (!user) return;
+
+    let mounted = true;
+    const checkOnboardedStatus = async () => {
+      let isOnboarded = localStorage.getItem("balesin_onboarded") === "true";
+      if (!isOnboarded) {
+        try {
+          const configRes = await fetch("/api/dashboard-config", {
+            credentials: "include",
+            cache: "no-store",
+          });
+          if (configRes.ok && mounted) {
+            const configPayload = await configRes.json();
+            if (configPayload?.data?.workspace?.onboarded) {
+              isOnboarded = true;
+              localStorage.setItem("balesin_onboarded", "true");
+              localStorage.setItem("balesin_dashboard_config", JSON.stringify(configPayload.data));
+            }
+          }
+        } catch (e) {
+          console.error("Gagal memeriksa status onboarding di server:", e);
+        }
+      }
+      if (mounted) {
+        router.push(redirectTo || (isOnboarded ? "/dashboard" : "/step-1"));
+      }
+    };
+
+    void checkOnboardedStatus();
+    return () => {
+      mounted = false;
+    };
   }, [redirectTo, router]);
 
   useEffect(() => {

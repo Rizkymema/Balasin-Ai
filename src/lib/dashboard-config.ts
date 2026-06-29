@@ -93,6 +93,7 @@ export const defaultDashboardConfig: DashboardConfig = {
     timezone: "Asia/Jakarta",
     language: "id",
     supportEmail: "",
+    onboarded: false,
   },
   aiAgent: {
     name: "AI Assistant",

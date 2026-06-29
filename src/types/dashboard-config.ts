@@ -259,6 +259,7 @@ export type DashboardConfig = {
     timezone: string;
     language: string;
     supportEmail: string;
+    onboarded?: boolean;
   };
   aiAgent: {
     name: string;

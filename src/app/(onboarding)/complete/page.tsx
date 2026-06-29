@@ -13,6 +13,8 @@ export default function CompletePage() {
     faqCount: 0,
     inviteCount: 0,
   });
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     const biz = localStorage.getItem("onboarding_business");
@@ -50,9 +52,131 @@ export default function CompletePage() {
     setSummary({ businessName, channelName, faqCount, inviteCount });
   }, []);
 
-  const handleFinish = () => {
-    localStorage.setItem("balesin_onboarded", "true");
-    router.push("/dashboard");
+  const handleFinish = async () => {
+    setIsSaving(true);
+    setSaveError("");
+
+    try {
+      const biz = localStorage.getItem("onboarding_business");
+      const ch = localStorage.getItem("onboarding_channel");
+      const faqsRaw = localStorage.getItem("onboarding_faqs");
+      const invitesRaw = localStorage.getItem("onboarding_invites");
+
+      let businessName = "Bisnis Saya";
+      let industry = "";
+      let description = "";
+      let faqs: any[] = [];
+      let invites: any[] = [];
+
+      if (biz) {
+        try {
+          const parsed = JSON.parse(biz);
+          businessName = parsed.name || "Bisnis Saya";
+          industry = parsed.industry || "";
+          description = parsed.description || "";
+        } catch (e) {}
+      }
+
+      if (faqsRaw) {
+        try {
+          faqs = JSON.parse(faqsRaw);
+        } catch (e) {}
+      }
+
+      if (invitesRaw) {
+        try {
+          invites = JSON.parse(invitesRaw);
+        } catch (e) {}
+      }
+
+      // Fetch current config from server
+      const configRes = await fetch("/api/dashboard-config", {
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (!configRes.ok) {
+        throw new Error("Gagal mengambil konfigurasi awal dari server.");
+      }
+
+      const payload = await configRes.json();
+      const currentConfig = payload.data;
+
+      // Construct next configuration
+      const nextConfig = {
+        ...currentConfig,
+        workspace: {
+          ...currentConfig.workspace,
+          name: businessName,
+          industry: industry,
+          description: description,
+          onboarded: true,
+        },
+        knowledgeBase: {
+          ...currentConfig.knowledgeBase,
+          faqs: faqs.map((faq) => ({
+            id: faq.id ? String(faq.id) : Math.random().toString(36).substr(2, 9),
+            question: faq.question,
+            answer: faq.answer,
+          })),
+        },
+        channels: {
+          ...currentConfig.channels,
+          webchat: {
+            ...currentConfig.channels.webchat,
+            enabled: ch === "webchat",
+            status: ch === "webchat" ? "connected" : currentConfig.channels?.webchat?.status || "draft",
+          },
+          whatsapp: {
+            ...currentConfig.channels.whatsapp,
+            enabled: ch === "whatsapp",
+            status: ch === "whatsapp" ? "connected" : currentConfig.channels?.whatsapp?.status || "disconnected",
+          },
+        },
+        team: {
+          ...currentConfig.team,
+          members: invites.map((inv) => ({
+            id: inv.id ? String(inv.id) : Math.random().toString(36).substr(2, 9),
+            name: inv.email.split("@")[0],
+            email: inv.email,
+            role: inv.role === "Admin" ? "Admin" : "Operator",
+            status: "pending",
+          })),
+        },
+      };
+
+      // Save config to server
+      const saveRes = await fetch("/api/dashboard-config", {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(nextConfig),
+      });
+
+      if (!saveRes.ok) {
+        const errPayload = await saveRes.json().catch(() => ({}));
+        throw new Error(errPayload.error || "Gagal menyimpan konfigurasi ke server.");
+      }
+
+      // Mark as onboarded in client
+      localStorage.setItem("balesin_onboarded", "true");
+      localStorage.setItem("balesin_dashboard_config", JSON.stringify(nextConfig));
+
+      // Remove temp onboarding keys
+      localStorage.removeItem("onboarding_business");
+      localStorage.removeItem("onboarding_channel");
+      localStorage.removeItem("onboarding_faqs");
+      localStorage.removeItem("onboarding_invites");
+
+      router.push("/dashboard");
+    } catch (err) {
+      console.error(err);
+      setSaveError(err instanceof Error ? err.message : "Terjadi kesalahan saat menyimpan data.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -118,14 +242,21 @@ export default function CompletePage() {
         </div>
       </div>
 
+      {saveError && (
+        <div className="mb-6 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3.5 max-w-md mx-auto">
+          {saveError}
+        </div>
+      )}
+
       <div className="flex justify-center">
         <Button
           onClick={handleFinish}
+          disabled={isSaving}
           className="w-full max-w-xs px-6 py-5.5 rounded-full shadow-[0_4px_25px_rgba(0,210,255,0.2)] hover:shadow-[0_4px_30px_rgba(0,210,255,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
         >
           <span className="flex items-center justify-center gap-1.5 font-bold tracking-wide">
-            Masuk ke Dashboard
-            <ChevronRight className="h-5 w-5" />
+            {isSaving ? "Menyimpan..." : "Masuk ke Dashboard"}
+            {!isSaving && <ChevronRight className="h-5 w-5" />}
           </span>
         </Button>
       </div>
