@@ -237,7 +237,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       label: t.logout,
       onClick: handleLogout,
-      icon: <LogOut className="h-4 w-4" />,
+      icon: <LogOut className="h-4 w-4 text-red-400" />,
       danger: true,
     },
   ];
@@ -530,7 +530,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {/* Notification bell */}
             <button className="relative p-2 rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition duration-200">
               <Bell className="h-5 w-5" />
@@ -542,6 +542,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
               {t.systemActive}
             </div>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              title={t.logout}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/15 hover:border-red-500/40 transition-all duration-200 text-xs font-semibold"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{t.logout}</span>
+            </button>
           </div>
         </header>
 
