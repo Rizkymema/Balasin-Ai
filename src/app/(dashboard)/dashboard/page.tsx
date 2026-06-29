@@ -292,61 +292,130 @@ export default function DashboardPage() {
           </Card>
 
           {/* Setup Checklist Progress */}
-          <Card className="p-6 bg-[var(--color-surface)]">
-            <div className="border-b border-[var(--color-border)] pb-4 mb-5">
+          <Card className="p-6 bg-[var(--color-surface)] border border-[var(--color-border)]">
+            <div className="border-b border-[var(--color-border)] pb-4 mb-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
-                  <h3 className="text-base font-bold tracking-tight text-white">
-                    Setup & Integrasi Workspace
+                  <h3 className="text-base font-bold tracking-tight text-white flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-[var(--color-brand)] animate-pulse" />
+                    Panduan Cepat Mulai Balesin AI
                   </h3>
                   <p className="mt-1 text-xs text-[var(--color-muted)]">
-                    Selesaikan langkah-langkah di bawah untuk memaksimalkan seluruh fitur dashboard.
+                    Ikuti 5 langkah mudah berikut untuk mengaktifkan asisten AI pintar di bengkel Anda.
                   </p>
                 </div>
-                <Badge className="border-[var(--color-brand)]/20 bg-[var(--color-brand)]/5 text-[var(--color-brand)] self-start sm:self-center font-bold px-2.5 py-0.5">
+                <Badge className="border-[var(--color-brand)]/20 bg-[var(--color-brand)]/5 text-[var(--color-brand)] font-bold px-2.5 py-1 text-xs">
                   {completedChecklist} dari {setupChecklist.length} Siap
                 </Badge>
               </div>
 
               {/* Progress Bar */}
               <div className="mt-4">
-                <div className="flex justify-between text-[10px] font-bold text-[var(--color-muted)] mb-1.5 uppercase">
-                  <span>Progress Kelengkapan</span>
+                <div className="flex justify-between text-[10px] font-bold text-[var(--color-muted)] mb-2 uppercase tracking-wider">
+                  <span>Kelengkapan Sistem</span>
                   <span>{checklistPercentage}%</span>
                 </div>
-                <div className="h-1.5 w-full bg-[var(--color-surface-strong)] rounded-full overflow-hidden border border-[var(--color-border)]">
+                <div className="h-2 w-full bg-[var(--color-surface-strong)] rounded-full overflow-hidden border border-[var(--color-border)] p-[1px]">
                   <div
-                    className="h-full bg-[var(--color-brand)] rounded-full transition-all duration-300"
+                    className="h-full bg-gradient-to-r from-[var(--color-brand)] to-cyan-400 rounded-full transition-all duration-500 ease-out"
                     style={{ width: `${checklistPercentage}%` }}
                   />
                 </div>
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              {setupChecklist.map((item) => {
-                const Icon = item.complete ? CheckCircle2 : CircleDashed;
-
+            {/* Interactive Timeline Roadmap */}
+            <div className="relative border-l-2 border-white/8 ml-3.5 pl-6 space-y-8">
+              {[
+                {
+                  step: 1,
+                  title: "Lengkapi Profil & Jam Buka Bengkel",
+                  desc: "Isi alamat resmi, jam operasional (Sabtu-Kamis), dan deskripsi bengkel Anda agar AI memiliki informasi dasar yang akurat.",
+                  href: "/settings",
+                  complete: setupChecklist[0].complete,
+                  actionText: "Atur Profil Bengkel",
+                },
+                {
+                  step: 2,
+                  title: "Hubungkan Media Sosial (Instagram/WhatsApp)",
+                  desc: "Tautkan akun bisnis Instagram DM atau WhatsApp Anda agar AI dapat membalas chat secara otomatis.",
+                  href: "/channels",
+                  complete: setupChecklist[3].complete,
+                  actionText: "Hubungkan Saluran Chat",
+                },
+                {
+                  step: 3,
+                  title: "Buat Custom Instructions & Persona AI",
+                  desc: "Atur identitas asisten AI (seperti Johan Garage, nada santai anak motor/mekanik, sapaan 'pren', dan aturan dilarang mengarang harga).",
+                  href: "/automation/knowledge-base",
+                  complete: Boolean(config.aiAgent.replyInstructions?.trim()),
+                  actionText: "Tulis Instruksi AI",
+                },
+                {
+                  step: 4,
+                  title: "Aktifkan Fitur Balas Otomatis AI (Auto Reply)",
+                  desc: "Nyalakan tombol utama Auto Reply agar sistem memproses dan menjawab chat masuk berdasarkan kecerdasan buatan.",
+                  href: "/automation/chatbot-settings",
+                  complete: config.aiAgent.autoReplyEnabled,
+                  actionText: "Nyalakan Auto Reply",
+                },
+                {
+                  step: 5,
+                  title: "Pantau Chat & Intervensi di Unified Inbox",
+                  desc: "Monitor semua chat yang masuk secara terpadu. Admin manusia dapat mengambil alih percakapan kapan saja untuk kenyamanan pelanggan.",
+                  href: "/inbox",
+                  complete: true,
+                  actionText: "Buka Inbox Percakapan",
+                },
+              ].map((item) => {
+                const isStepComplete = item.complete;
                 return (
-                  <Link
-                    key={item.title}
-                    href={item.href}
-                    className="flex items-start justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-strong)]/20 p-3.5 transition duration-150 hover:border-[var(--color-border-hover)] hover:bg-[var(--color-surface-hover)]/30 group"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-white group-hover:text-[var(--color-brand)] transition-colors duration-150">
-                        {item.title}
-                      </p>
-                      <p className="mt-1 text-[10px] text-[var(--color-muted)] truncate">
-                        {item.note}
-                      </p>
+                  <div key={item.step} className="relative group">
+                    {/* Circle Indicator */}
+                    <div className={`absolute -left-[35px] top-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 transition-all duration-200 ${
+                      isStepComplete
+                        ? "bg-[var(--color-success)] border-[var(--color-success)] text-slate-950 font-bold"
+                        : "bg-[var(--color-surface)] border-slate-600 text-slate-500 font-semibold"
+                    }`}>
+                      {isStepComplete ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-slate-950 stroke-[3px]" />
+                      ) : (
+                        <span className="text-[9px]">{item.step}</span>
+                      )}
                     </div>
-                    <Icon
-                      className={`h-4 w-4 shrink-0 mt-0.5 transition-colors duration-150 ${
-                        item.complete ? "text-[var(--color-success)]" : "text-[var(--color-warning)] group-hover:opacity-85"
-                      }`}
-                    />
-                  </Link>
+
+                    {/* Content Area */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-white/4 bg-white/[0.01] p-4 transition-all duration-150 group-hover:border-white/8 group-hover:bg-white/[0.03]">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className={`text-xs font-bold tracking-tight transition-colors duration-150 ${
+                            isStepComplete ? "text-emerald-400" : "text-white"
+                          }`}>
+                            Langkah {item.step}: {item.title}
+                          </h4>
+                          {isStepComplete && (
+                            <span className="rounded bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 text-[9px] font-black text-emerald-400 uppercase tracking-wider">
+                              Selesai
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] leading-relaxed text-[var(--color-muted)] max-w-xl">
+                          {item.desc}
+                        </p>
+                      </div>
+                      <Link
+                        href={item.href}
+                        className={`inline-flex items-center justify-center h-8.5 px-4 rounded-lg text-[10px] font-bold tracking-tight transition-all shrink-0 ${
+                          isStepComplete
+                            ? "bg-white/5 border border-white/8 text-slate-300 hover:bg-white/10"
+                            : "bg-[var(--color-brand)] text-slate-950 hover:bg-[var(--color-brand-hover)] shadow-sm"
+                        }`}
+                      >
+                        {item.actionText}
+                        <ArrowRight className="h-3 w-3 ml-1.5 transform transition-transform group-hover:translate-x-0.5" />
+                      </Link>
+                    </div>
+                  </div>
                 );
               })}
             </div>
