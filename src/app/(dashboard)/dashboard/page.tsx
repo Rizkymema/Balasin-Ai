@@ -53,30 +53,30 @@ export default function DashboardPage() {
       value: config.aiAgent.autoReplyEnabled ? "ON" : "OFF",
       icon: Zap,
       color: config.aiAgent.autoReplyEnabled
-        ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/20"
-        : "text-amber-400 bg-amber-400/10 border-amber-400/20",
+        ? "text-[var(--color-success)] bg-[var(--color-success)]/10 border-[var(--color-success)]/20"
+        : "text-[var(--color-warning)] bg-[var(--color-warning)]/10 border-[var(--color-warning)]/20",
       note: `Confidence threshold ${config.aiAgent.confidenceThreshold}%`,
       badgeColor: config.aiAgent.autoReplyEnabled
-        ? "bg-emerald-400/10 text-emerald-400 border-emerald-400/20"
-        : "bg-amber-400/10 text-amber-400 border-amber-400/20",
+        ? "bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/20"
+        : "bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-[var(--color-warning)]/20",
       badgeText: `Mode ${config.aiAgent.safetyMode}`,
     },
     {
       label: "TIKET TERBUKA",
       value: `${data.tickets.filter((ticket) => ticket.status !== "resolved").length}`,
       icon: Ticket,
-      color: "text-amber-400 bg-amber-400/10 border-amber-400/20",
+      color: "text-[var(--color-warning)] bg-[var(--color-warning)]/10 border-[var(--color-warning)]/20",
       note: "Handoff, keluhan & eskalasi",
-      badgeColor: "bg-amber-400/10 text-amber-400 border-amber-400/20",
+      badgeColor: "bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-[var(--color-warning)]/20",
       badgeText: `${automationCoverage}% Auto-Rule`,
     },
     {
       label: "KATALOG & LAYANAN",
       value: `${data.products.length + data.services.length}`,
       icon: Package2,
-      color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+      color: "text-[var(--color-success)] bg-[var(--color-success)]/10 border-[var(--color-success)]/20",
       note: `${data.services.length} layanan | ${data.products.length} produk terdaftar`,
-      badgeColor: "bg-emerald-400/10 text-emerald-400 border-emerald-400/20",
+      badgeColor: "bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/20",
       badgeText: `${data.products.length} Produk`,
     },
   ];
@@ -195,7 +195,7 @@ export default function DashboardPage() {
       <div className="relative overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 md:p-8">
         <div className="relative z-10 space-y-2">
           <div className="flex items-center gap-2">
-            <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-[10px]">
+            <Badge className="border-[var(--color-success)]/20 bg-[var(--color-success)]/10 text-[var(--color-success)] text-[10px]">
               Sistem Aktif
             </Badge>
             <span className="text-xs text-[var(--color-muted)] font-medium">
@@ -343,7 +343,7 @@ export default function DashboardPage() {
                     </div>
                     <Icon
                       className={`h-4 w-4 shrink-0 mt-0.5 transition-colors duration-150 ${
-                        item.complete ? "text-emerald-400" : "text-amber-400 group-hover:text-amber-300"
+                        item.complete ? "text-[var(--color-success)]" : "text-[var(--color-warning)] group-hover:opacity-85"
                       }`}
                     />
                   </Link>
@@ -358,7 +358,7 @@ export default function DashboardPage() {
           {/* Security & Env Configuration Card */}
           <Card className="p-6 bg-[var(--color-surface)] border border-[var(--color-border)]">
             <div className="flex items-center gap-2.5 border-b border-[var(--color-border)] pb-4 mb-4">
-              <ShieldCheck className="h-5 w-5 text-emerald-400" />
+              <ShieldCheck className="h-5 w-5 text-[var(--color-success)]" />
               <h3 className="text-sm font-bold tracking-tight text-white">
                 Kredensial & Integrasi Aman
               </h3>
@@ -369,7 +369,7 @@ export default function DashboardPage() {
             <div className="mt-4 space-y-2 border-t border-[var(--color-border)] pt-4">
               <div className="flex items-center justify-between text-[11px] py-1">
                 <span className="text-[var(--color-muted)] font-medium">App Environment</span>
-                <Badge className="bg-emerald-400/10 text-emerald-400 border-emerald-400/20 text-[10px] px-2 py-0">
+                <Badge className="bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/20 text-[10px] px-2 py-0">
                   Secure Live
                 </Badge>
               </div>
@@ -383,8 +383,8 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-center justify-between text-[11px] py-1">
                 <span className="text-[var(--color-muted)] font-medium">Workspace Status</span>
-                <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[var(--color-success)] font-semibold flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)] animate-pulse" />
                   Online
                 </span>
               </div>

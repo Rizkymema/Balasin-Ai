@@ -10,9 +10,9 @@ interface ToastProps {
 
 export function Toast({ message, type = "info", onClose, className }: ToastProps) {
   const typeClasses = {
-    info: "border-cyan-500/20 bg-[#091223]/95 text-cyan-400 shadow-[0_0_12px_rgba(64,223,255,0.1)]",
-    success: "border-emerald-500/20 bg-[#061812]/95 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.1)]",
-    error: "border-red-500/20 bg-[#1a0c0c]/95 text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.1)]",
+    info: "border-[var(--color-brand)]/20 bg-[var(--color-surface)]/95 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.08)]",
+    success: "border-[var(--color-success)]/20 bg-[var(--color-surface)]/95 text-[var(--color-success)] shadow-[0_0_12px_rgba(48,209,88,0.08)]",
+    error: "border-red-500/20 bg-[var(--color-surface)]/95 text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.08)]",
   };
 
   return (

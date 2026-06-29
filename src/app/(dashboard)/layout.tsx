@@ -243,7 +243,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
 
   return (
-    <div className="relative h-screen bg-[var(--color-bg)] text-white flex overflow-hidden">
+    <div className="relative h-screen bg-[var(--color-bg)] text-[var(--color-text)] flex overflow-hidden">
       {/* MOBILE SIDEBAR DRAWEROVERLAY */}
       {isSidebarOpen && (
         <div
@@ -300,7 +300,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] text-[var(--color-brand)] border border-[var(--color-brand)]/20 text-xs font-bold font-heading">
                         {businessName.substring(0, 2).toUpperCase()}
                       </div>
-                      <span className="text-xs font-semibold text-white truncate">
+                      <span className="text-xs font-semibold text-[var(--color-text)] truncate">
                         {businessName}
                       </span>
                     </div>
@@ -312,7 +312,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               header={
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Workspace</span>
-                  <span className="text-xs font-bold text-white truncate">{businessName}</span>
+                  <span className="text-xs font-bold text-[var(--color-text)] truncate">{businessName}</span>
                 </div>
               }
               align={isMainSidebarCollapsed ? "left" : "left"}
@@ -417,7 +417,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                               {translatedSubLabel}
                             </span>
                             {sub.badge && (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-400/20 uppercase tracking-wider">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[var(--color-brand)]/10 text-[var(--color-brand)] border border-[var(--color-brand)]/20 uppercase tracking-wider">
                                 {sub.badge}
                               </span>
                             )}
@@ -479,8 +479,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       AD
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold text-white truncate">Administrator</div>
-                      <div className="text-[10px] text-slate-500 truncate">{userEmail}</div>
+                      <div className="text-xs font-bold text-[var(--color-text)] truncate">Administrator</div>
+                      <div className="text-[10px] text-[var(--color-muted)] truncate">{userEmail}</div>
                     </div>
                     <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
                   </div>
@@ -490,8 +490,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               header={
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Menu Akun</span>
-                  <span className="text-xs font-bold text-white truncate">Administrator</span>
-                  <span className="text-[10px] text-slate-400 truncate">{userEmail}</span>
+                  <span className="text-xs font-bold text-[var(--color-text)] truncate">Administrator</span>
+                  <span className="text-[10px] text-[var(--color-muted)] truncate">{userEmail}</span>
                 </div>
               }
               align={isMainSidebarCollapsed ? "left" : "right"}
@@ -525,20 +525,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="text-sm font-semibold text-slate-300">
-              {t.workspace}: <span className="text-white">{businessName}</span>
+            <div className="text-sm font-semibold text-[var(--color-muted)]">
+              {t.workspace}: <span className="text-[var(--color-text)]">{businessName}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             {/* Notification bell */}
-            <button className="relative p-2 rounded-lg text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white transition duration-200">
+            <button className="relative p-2 rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition duration-200">
               <Bell className="h-5 w-5" />
               <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--color-brand)]" />
             </button>
 
             {/* Status Indicator */}
-            <div className="hidden sm:flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-300">
+            <div className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-muted)]">
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
               {t.systemActive}
             </div>
@@ -576,7 +576,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             left: `${tooltipState.left}px`,
             transform: "translateY(-50%)",
           }}
-          className={`z-50 pointer-events-none px-3 py-2 bg-[#091223]/95 border border-white/8 text-xs font-semibold text-white rounded-lg shadow-xl whitespace-nowrap backdrop-blur-md transition-all duration-150 ease-out normal-case font-sans ${
+          className={`z-50 pointer-events-none px-3 py-2 bg-[var(--color-surface-hover)]/95 border border-[var(--color-border)] text-xs font-semibold text-[var(--color-text)] rounded-lg shadow-xl whitespace-nowrap backdrop-blur-md transition-all duration-150 ease-out normal-case font-sans ${
             tooltipState.visible && isMainSidebarCollapsed
               ? "opacity-100 translate-x-0 scale-100"
               : "opacity-0 -translate-x-2 scale-95 pointer-events-none"

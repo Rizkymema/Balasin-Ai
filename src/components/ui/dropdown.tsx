@@ -40,12 +40,12 @@ export function Dropdown({ trigger, items, align = "right", className, header }:
       {isOpen && (
         <div
           className={cn(
-            "absolute z-40 mt-2 w-56 rounded-lg border border-white/8 bg-[#091223]/95 p-1 shadow-xl backdrop-blur-md animate-fade-in",
+            "absolute z-40 mt-2 w-56 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-1 shadow-xl backdrop-blur-md animate-fade-in",
             align === "right" ? "right-0" : "left-0"
           )}
         >
           {header && (
-            <div className="px-3 py-2 border-b border-white/[0.06] mb-1">
+            <div className="px-3 py-2 border-b border-[var(--color-border)]/50 mb-1">
               {header}
             </div>
           )}
@@ -60,10 +60,10 @@ export function Dropdown({ trigger, items, align = "right", className, header }:
                 "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium transition duration-150",
                 item.danger
                   ? "text-red-400 hover:bg-red-500/10"
-                  : "text-slate-200 hover:bg-white/6 hover:text-white"
+                  : "text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
               )}
             >
-              {item.icon && <span className="text-slate-400 group-hover:text-white">{item.icon}</span>}
+              {item.icon && <span className="text-[var(--color-muted)] group-hover:text-[var(--color-text)]">{item.icon}</span>}
               <span className="flex-1">{item.label}</span>
             </button>
           ))}

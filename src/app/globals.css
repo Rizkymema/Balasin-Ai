@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --color-bg: #050814;
-  --color-surface: #0a0e1c;
-  --color-surface-hover: #121932;
-  --color-surface-strong: #030408;
-  --color-border: rgba(255, 255, 255, 0.06);
+  --color-bg: #000000;
+  --color-surface: #121214;
+  --color-surface-hover: #1c1c1e;
+  --color-surface-strong: #0a0a0c;
+  --color-border: rgba(255, 255, 255, 0.08);
   --color-border-hover: rgba(255, 255, 255, 0.16);
-  --color-text: #f1f5f9;
-  --color-muted: #94a3b8;
-  --color-brand: #00d2ff;
-  --color-brand-hover: #4de0ff;
+  --color-text: #f5f5f7;
+  --color-muted: #86868b;
+  --color-brand: #0a84ff;
+  --color-brand-hover: #2997ff;
   --color-brand-blue: #0066cc;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
+  --color-success: #30d158;
+  --color-warning: #ff9f0a;
 }
 
 .theme-light {
@@ -25,11 +25,11 @@
   --color-border-hover: rgba(0, 0, 0, 0.16);
   --color-text: #1d1d1f;
   --color-muted: #86868b;
-  --color-brand: #1d1d1f;
-  --color-brand-hover: #000000;
+  --color-brand: #0071e3;
+  --color-brand-hover: #0077ed;
   --color-brand-blue: #0066cc;
-  --color-success: #2e7d32;
-  --color-warning: #b58100;
+  --color-success: #30d158;
+  --color-warning: #ff9f0a;
 }
 
 @theme inline {
@@ -68,8 +68,8 @@ a {
 }
 
 select option {
-  background-color: #0a0e1c;
-  color: #f1f5f9;
+  background-color: var(--color-surface);
+  color: var(--color-text);
 }
 
 ::selection {
@@ -133,6 +133,6 @@ select option {
 }
 
 /* Custom subtle border glow for active elements */
-.glow-cyan {
-  box-shadow: 0 0 12px rgba(20, 184, 166, 0.06);
+.glow-brand {
+  box-shadow: 0 0 12px rgba(10, 132, 255, 0.06);
 }
