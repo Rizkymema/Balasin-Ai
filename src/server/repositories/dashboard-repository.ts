@@ -26,6 +26,8 @@ import {
   upsertJsonRowAsync,
   writeAppConfigRecord,
   listKnowledgeChunkRowsAsync,
+  replaceKnowledgeChunksForDocumentAsync,
+  deleteKnowledgeChunksForDocumentAsync,
 } from "@/server/db";
 import type {
   DashboardConfig,
@@ -498,16 +500,36 @@ async function replaceKnowledgeChunksForDocument(
   documentId: string,
   nextChunks: KnowledgeChunk[],
 ) {
-  const chunks = await readAllKnowledgeChunks();
-  const filtered = chunks.filter((chunk) => chunk.documentId !== documentId);
-  await writeAllKnowledgeChunks([...nextChunks, ...filtered]);
+  if (shouldUseBlobState()) {
+    const chunks = await readAllKnowledgeChunks();
+    const filtered = chunks.filter((chunk) => chunk.documentId !== documentId);
+    await writeAllKnowledgeChunks([...nextChunks, ...filtered]);
+    return;
+  }
+
+  await replaceKnowledgeChunksForDocumentAsync(
+    documentId,
+    nextChunks.map((item) => ({
+      id: item.id,
+      document_id: item.documentId,
+      chunk_index: item.chunkIndex,
+      content: item.content,
+      metadata_json: item.metadata,
+      created_at: item.createdAt,
+    })),
+  );
 }
 
 async function deleteKnowledgeChunksForDocument(documentId: string) {
-  const chunks = await readAllKnowledgeChunks();
-  await writeAllKnowledgeChunks(
-    chunks.filter((chunk) => chunk.documentId !== documentId),
-  );
+  if (shouldUseBlobState()) {
+    const chunks = await readAllKnowledgeChunks();
+    await writeAllKnowledgeChunks(
+      chunks.filter((chunk) => chunk.documentId !== documentId),
+    );
+    return;
+  }
+
+  await deleteKnowledgeChunksForDocumentAsync(documentId);
 }
 
 async function upsertKnowledgeDocumentRecord(document: KnowledgeDocument) {

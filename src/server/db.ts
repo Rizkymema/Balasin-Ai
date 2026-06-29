@@ -718,3 +718,96 @@ export async function replaceKnowledgeChunkRowsAsync(
     throw error;
   }
 }
+
+export async function replaceKnowledgeChunksForDocumentAsync(
+  documentId: string,
+  chunks: Array<{
+    id: string;
+    document_id: string;
+    chunk_index: number;
+    content: string;
+    metadata_json: unknown;
+    created_at: string;
+  }>,
+) {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseServerClient();
+    const { error: deleteError } = await supabase
+      .from("knowledge_chunks")
+      .delete()
+      .eq("document_id", documentId);
+
+    if (deleteError) {
+      throw new Error(
+        `Supabase knowledge_chunks delete for ${documentId} failed: ${deleteError.message}`,
+      );
+    }
+
+    if (chunks.length === 0) {
+      return;
+    }
+
+    const { error: insertError } = await supabase
+      .from("knowledge_chunks")
+      .upsert(chunks, { onConflict: "id" });
+
+    if (insertError) {
+      throw new Error(
+        `Supabase knowledge_chunks insert for ${documentId} failed: ${insertError.message}`,
+      );
+    }
+
+    return;
+  }
+
+  const database = getDatabase();
+  database.prepare("DELETE FROM knowledge_chunks WHERE document_id = ?").run(documentId);
+
+  if (chunks.length === 0) {
+    return;
+  }
+
+  const insertChunk = database.prepare(
+    "INSERT INTO knowledge_chunks (id, document_id, chunk_index, content, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+  );
+
+  database.exec("BEGIN");
+
+  try {
+    for (const item of chunks) {
+      insertChunk.run(
+        item.id,
+        item.document_id,
+        item.chunk_index,
+        item.content,
+        JSON.stringify(item.metadata_json),
+        item.created_at,
+      );
+    }
+    database.exec("COMMIT");
+  } catch (error) {
+    database.exec("ROLLBACK");
+    throw error;
+  }
+}
+
+export async function deleteKnowledgeChunksForDocumentAsync(documentId: string) {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseServerClient();
+    const { error } = await supabase
+      .from("knowledge_chunks")
+      .delete()
+      .eq("document_id", documentId);
+
+    if (error) {
+      throw new Error(
+        `Supabase knowledge_chunks delete for ${documentId} failed: ${error.message}`,
+      );
+    }
+
+    return;
+  }
+
+  const database = getDatabase();
+  database.prepare("DELETE FROM knowledge_chunks WHERE document_id = ?").run(documentId);
+}
