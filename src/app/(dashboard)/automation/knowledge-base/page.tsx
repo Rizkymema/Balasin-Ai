@@ -48,9 +48,11 @@ export default function KnowledgeBasePage() {
   const [guardrails, setGuardrails] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (!config) return;
+    if (!config || isInitializedRef.current) return;
+    isInitializedRef.current = true;
     const rawPrompt = config.aiAgent.replyInstructions || "";
     const personaMatch = rawPrompt.match(/\[PERSONA\]\n([\s\S]*?)(?=\n\n\[TONE\]|$)/);
     const toneMatch = rawPrompt.match(/\[TONE\]\n([\s\S]*?)(?=\n\n\[GUARDRAILS\]|$)/);

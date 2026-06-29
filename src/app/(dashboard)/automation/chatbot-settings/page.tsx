@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Sliders,
   Clock,
@@ -788,8 +788,11 @@ export default function ChatbotSettingsPage() {
   const [activeTab, setActiveTab] = useState("ai_config");
   const [settings, setSettings] = useState<ChatbotSettingsState>(DEFAULT_SETTINGS);
   const [isSaved, setIsSaved] = useState(false);
+  const isInitializedRef = useRef(false);
 
   useEffect(() => {
+    if (!config || isInitializedRef.current) return;
+    isInitializedRef.current = true;
     setSettings({
       aiConfig: { ...config.automation.aiConfig },
       idleAction: { ...config.automation.idleAction },

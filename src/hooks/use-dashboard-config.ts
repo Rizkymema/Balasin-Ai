@@ -94,8 +94,10 @@ export function useDashboardConfig() {
             })
             .then((payload) => {
               if (mounted && payload?.data) {
-                setConfig(payload.data);
-                configRef.current = payload.data;
+                if (JSON.stringify(payload.data) !== JSON.stringify(configRef.current)) {
+                  setConfig(payload.data);
+                  configRef.current = payload.data;
+                }
               }
             })
             .catch(() => {});

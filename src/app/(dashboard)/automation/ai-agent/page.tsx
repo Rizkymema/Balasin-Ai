@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
   Bot,
   PlusCircle,
@@ -400,8 +400,11 @@ export default function AIAgentsPage() {
   const [deletingAgent, setDeletingAgent] = useState<AIAgent | null>(null);
   const [testingAgent, setTestingAgent] = useState<AIAgent | null>(null);
 
+  const isInitializedRef = useRef(false);
+
   useEffect(() => {
-    if (!config) return;
+    if (!config || isInitializedRef.current) return;
+    isInitializedRef.current = true;
     setAgents(config.automation.aiAgents || []);
   }, [config]);
 
