@@ -152,6 +152,19 @@ export default function AutomationPage() {
         </Button>
       </div>
 
+      {/* Info Tip regarding overlap between Conversation Flow & AI Agent */}
+      <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/10 p-4 text-xs text-cyan-200 animate-fade-in">
+        <div className="flex items-start gap-3">
+          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-cyan-500/10 text-cyan-400 font-black">i</div>
+          <div>
+            <p className="font-bold text-white">Tips Integrasi Alur Percakapan & AI Agent</p>
+            <p className="mt-1 text-cyan-200/80 leading-relaxed">
+              Alur percakapan (Conversations) bekerja secara kaku berdasarkan pemicu/kata kunci tertentu. Jika Anda juga mengaktifkan <strong>AI Agent</strong> pada channel yang sama, pastikan alur di sini tidak bertabrakan dengan respon dinamis AI. Anda dapat memicu AI Agent secara otomatis dari dalam langkah alur percakapan.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <BotResponseQuotaCard quota={config?.aiProvider?.quotaLimit ?? 999999996} />
       </div>

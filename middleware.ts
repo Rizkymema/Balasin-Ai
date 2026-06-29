@@ -9,8 +9,6 @@ const PROTECTED_PREFIXES = [
   "/dashboard",
   "/inbox",
   "/customers",
-  "/ai-agent",
-  "/knowledge-base",
   "/products-services",
   "/booking",
   "/tickets",
