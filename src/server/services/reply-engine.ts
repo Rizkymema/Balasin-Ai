@@ -503,22 +503,20 @@ function buildConversationSnippet(context?: ReplyContext) {
 
 function messageNeedsConversationContext(messageText: string) {
   const normalized = normalizeText(messageText);
+  const tokens = tokenize(messageText);
 
-  if (
-    hasKeyword(normalized, LOCATION_KEYWORDS) ||
-    hasKeyword(normalized, HOURS_KEYWORDS) ||
-    hasKeyword(normalized, EMAIL_KEYWORDS) ||
-    hasKeyword(normalized, DESCRIPTION_KEYWORDS) ||
-    hasKeyword(normalized, NAME_KEYWORDS) ||
-    hasKeyword(normalized, PRICE_KEYWORDS) ||
-    hasKeyword(normalized, BOOKING_KEYWORDS) ||
-    /(?:service|servis|tune\s*up|cvt|oli|bore\s*up|remap|dyno|bubut|kosong|ada|bisa|jual|beli|harga|biaya|ongkos|jadwal|kapan|dimana|berapa|apa|kenapa|keluhan)/i.test(normalized)
-  ) {
-    return false;
+  // Jika pesan pendek (<= 5 kata) atau berupa 4 angka (seperti tahun motor/waktu)
+  if (tokens.length <= 5 || /^\d{4}$/.test(normalized)) {
+    return true;
   }
 
-  const tokens = tokenize(messageText);
-  return tokens.length <= 3 || /^\d{4}$/.test(normalized);
+  // Jika mengandung kata kunci yang merujuk pada konteks pembicaraan sebelumnya
+  const CONTEXT_FOLLOWUP_RX = /\b(ada|kosong|ready|harganya|ongkosnya|biayanya|kapan|dimana|alamatnya|itu|ini|tersebut|disitu|sana|sini|besok|lusa|jumat|sabtu|minggu|senin|selasa|rabu|kamis)\b/i;
+  if (CONTEXT_FOLLOWUP_RX.test(normalized)) {
+    return true;
+  }
+
+  return false;
 }
 
 function previousMessageNeedsFollowUp(message: string) {
@@ -1563,6 +1561,9 @@ export async function generateReplyDecision(
   config: DashboardConfig,
   context?: ReplyContext,
 ): Promise<ReplyDecision> {
+  const rawOpener = stripOpeningPhrase(messageText);
+  const rawLower = normalizeText(rawOpener.stripped || messageText);
+
   const effectiveMessage = buildContextualMessage(messageText, context);
   const opener = stripOpeningPhrase(effectiveMessage);
   const routedMessage = opener.stripped || effectiveMessage;
@@ -1576,7 +1577,7 @@ export async function generateReplyDecision(
     );
   }
 
-  if (hasKeyword(lower, SPAM_KEYWORDS)) {
+  if (hasKeyword(rawLower, SPAM_KEYWORDS)) {
     return {
       intent: "Spam",
       confidence: 99,
@@ -1588,7 +1589,7 @@ export async function generateReplyDecision(
   }
 
   // 1. Keuangan / Financial
-  if (hasKeyword(lower, FINANCE_KEYWORDS)) {
+  if (hasKeyword(rawLower, FINANCE_KEYWORDS)) {
     const waLink = getWaHandoffLink(config);
     return {
       intent: "Keuangan",
@@ -1606,7 +1607,7 @@ export async function generateReplyDecision(
   }
 
   // 2. Negosiasi / Diskon
-  if (hasKeyword(lower, DISCOUNT_KEYWORDS)) {
+  if (hasKeyword(rawLower, DISCOUNT_KEYWORDS)) {
     const waLink = getWaHandoffLink(config);
     return {
       intent: "Negosiasi",
@@ -1624,7 +1625,7 @@ export async function generateReplyDecision(
   }
 
   // 3. Komplain / Garansi
-  if (hasKeyword(lower, DETAILED_COMPLAINT_KEYWORDS)) {
+  if (hasKeyword(rawLower, DETAILED_COMPLAINT_KEYWORDS)) {
     const waLink = getWaHandoffLink(config);
     return {
       intent: "Komplain",
@@ -1642,7 +1643,7 @@ export async function generateReplyDecision(
   }
 
   // 4. Safety / Urgensi
-  if (hasKeyword(lower, SAFETY_KEYWORDS)) {
+  if (hasKeyword(rawLower, SAFETY_KEYWORDS)) {
     const waLink = getWaHandoffLink(config);
     return {
       intent: "Keamanan",
@@ -1660,7 +1661,7 @@ export async function generateReplyDecision(
   }
 
   // 5. Marah / Frustrasi / Ancaman
-  if (hasKeyword(lower, ANGRY_KEYWORDS)) {
+  if (hasKeyword(rawLower, ANGRY_KEYWORDS)) {
     const waLink = getWaHandoffLink(config);
     return {
       intent: "Pelanggan Marah",
@@ -1677,7 +1678,7 @@ export async function generateReplyDecision(
     };
   }
 
-  if (hasKeyword(lower, BOOKING_KEYWORDS)) {
+  if (hasKeyword(rawLower, BOOKING_KEYWORDS)) {
     return {
       intent: "Booking",
       confidence: 83,
@@ -1719,7 +1720,7 @@ export async function generateReplyDecision(
     };
   }
 
-  if (hasKeyword(lower, LOCATION_KEYWORDS) && config.workspace.address.trim()) {
+  if (hasKeyword(rawLower, LOCATION_KEYWORDS) && config.workspace.address.trim()) {
     return {
       intent: "Tanya alamat",
       confidence: 98,
@@ -1736,7 +1737,7 @@ export async function generateReplyDecision(
     };
   }
 
-  if (hasKeyword(lower, HOURS_KEYWORDS) && config.workspace.businessHours.trim()) {
+  if (hasKeyword(rawLower, HOURS_KEYWORDS) && config.workspace.businessHours.trim()) {
     return {
       intent: "Tanya jam buka",
       confidence: 96,
@@ -1751,7 +1752,7 @@ export async function generateReplyDecision(
     };
   }
 
-  if (hasKeyword(lower, EMAIL_KEYWORDS) && config.workspace.supportEmail.trim()) {
+  if (hasKeyword(rawLower, EMAIL_KEYWORDS) && config.workspace.supportEmail.trim()) {
     return {
       intent: "Tanya email",
       confidence: 97,
@@ -1768,7 +1769,7 @@ export async function generateReplyDecision(
     };
   }
 
-  if (hasKeyword(lower, DESCRIPTION_KEYWORDS) && config.workspace.description.trim()) {
+  if (hasKeyword(rawLower, DESCRIPTION_KEYWORDS) && config.workspace.description.trim()) {
     return {
       intent: "Tanya profil bisnis",
       confidence: 95,
@@ -1783,7 +1784,7 @@ export async function generateReplyDecision(
     };
   }
 
-  if (hasKeyword(lower, NAME_KEYWORDS) && config.workspace.name.trim()) {
+  if (hasKeyword(rawLower, NAME_KEYWORDS) && config.workspace.name.trim()) {
     return {
       intent: "Tanya nama bisnis",
       confidence: 98,
