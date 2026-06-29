@@ -31,44 +31,59 @@ import {
 import { Dropdown } from "@/components/ui/dropdown";
 import { getTranslation } from "@/lib/translations";
 
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/inbox", label: "Unified Inbox", icon: MessageSquare },
-  { href: "/customers", label: "Contacts / CRM", icon: Users2 },
-  { href: "/products-services", label: "Products & Services", icon: Package2 },
-  { href: "/booking", label: "Booking", icon: CalendarRange },
-  { href: "/broadcast", label: "Broadcast / Campaign", icon: SendHorizontal },
-  { href: "/channels", label: "Channels", icon: Wifi },
-  { href: "/analytics", label: "Reports", icon: BarChart2 },
-  { href: "/settings", label: "Team & Settings", icon: Settings2 },
+const NAVIGATION_STRUCTURE = [
+  {
+    id: "workspace",
+    items: [
+      { href: "/dashboard", labelKey: "dashboard", icon: LayoutDashboard },
+      { href: "/inbox", labelKey: "inbox", icon: MessageSquare, showUnread: true },
+      { href: "/customers", labelKey: "contacts", icon: Users2 },
+    ],
+  },
+  {
+    id: "ai",
+    items: [
+      { href: "/automation/knowledge-base", labelKey: "knowledgeBase", icon: Database },
+      { href: "/products-services", labelKey: "products", icon: Package2 },
+      { href: "/automation/chatbot-settings", labelKey: "chatbotSettings", icon: Settings },
+      { href: "/automation", labelKey: "conversations", icon: GitBranch, exact: true },
+      { href: "/automation/ai-agent", labelKey: "aiAgents", icon: Bot, badge: "NEW" },
+    ],
+  },
+  {
+    id: "tools",
+    items: [
+      { href: "/booking", labelKey: "booking", icon: CalendarRange },
+      { href: "/broadcast", labelKey: "broadcast", icon: SendHorizontal },
+      { href: "/channels", labelKey: "channels", icon: Wifi },
+    ],
+  },
+  {
+    id: "admin",
+    items: [
+      { href: "/analytics", labelKey: "reports", icon: BarChart2 },
+      { href: "/settings", labelKey: "settings", icon: Settings2 },
+    ],
+  },
 ];
 
-const AUTOMATION_SUBNAV = [
-  { href: "/automation", label: "Conversations", icon: GitBranch, exact: true },
-  { href: "/automation/ai-agent", label: "AI agents", icon: Bot, badge: "NEW" },
-  { href: "/automation/knowledge-base", label: "Knowledge Base", icon: Database },
-  { href: "/automation/chatbot-settings", label: "Chatbot settings", icon: Settings },
-];
-
-function getNavLabel(href: string, defaultLabel: string, t: any) {
-  if (href === "/dashboard") return t.dashboard;
-  if (href === "/inbox") return t.inbox;
-  if (href === "/customers") return t.contacts;
-  if (href === "/products-services") return t.products;
-  if (href === "/booking") return t.booking;
-  if (href === "/broadcast") return t.broadcast;
-  if (href === "/channels") return t.channels;
-  if (href === "/analytics") return t.reports;
-  if (href === "/settings") return t.settings;
-  return defaultLabel;
+function getGroupLabel(id: string, lang: string) {
+  if (lang === "id") {
+    if (id === "workspace") return "Workspace & Chat";
+    if (id === "ai") return "Kecerdasan AI";
+    if (id === "tools") return "Alat & Kampanye";
+    if (id === "admin") return "Laporan & Admin";
+  } else {
+    if (id === "workspace") return "Workspace & Chat";
+    if (id === "ai") return "AI & Knowledge";
+    if (id === "tools") return "Tools & Campaigns";
+    if (id === "admin") return "Reports & Admin";
+  }
+  return id.toUpperCase();
 }
 
-function getAutomationLabel(href: string, defaultLabel: string, t: any) {
-  if (href === "/automation") return t.conversations;
-  if (href === "/automation/ai-agent") return t.aiAgents;
-  if (href === "/automation/knowledge-base") return t.knowledgeBase;
-  if (href === "/automation/chatbot-settings") return t.chatbotSettings;
-  return defaultLabel;
+function getTranslationLabel(key: string, t: any) {
+  return t[key] || key;
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -321,143 +336,78 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto custom-scrollbar">
-            {/* Main nav items BEFORE automation (Dashboard, Inbox, Contacts, Products, Booking) */}
-            {NAV_ITEMS.slice(0, 5).map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname.startsWith(item.href) && (item.href === "/dashboard" ? pathname === "/dashboard" : true);
-              // For Unified Inbox: use live unread count
-              const dynamicBadge = item.href === "/inbox"
-                ? (inboxUnreadCount > 0 ? String(inboxUnreadCount) : undefined)
-                : undefined;
-              const translatedLabel = getNavLabel(item.href, item.label, t);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onMouseEnter={(e) => handleMouseEnter(e, translatedLabel)}
-                  onMouseLeave={handleMouseLeave}
-                  onClick={() => {
-                    setIsSidebarOpen(false);
-                    handleMouseLeave();
-                  }}
-                  className={`group relative flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition duration-150 ${
-                    isActive
-                      ? "bg-[var(--color-surface)] border border-[var(--color-brand)]/25 text-[var(--color-brand)]"
-                      : "text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white"
-                  } ${isMainSidebarCollapsed ? "justify-center px-1" : ""}`}
-                >
-                  <span className="flex items-center gap-3">
-                    <Icon className={`h-4.5 w-4.5 ${isActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
-                    {!isMainSidebarCollapsed && translatedLabel}
-                  </span>
-                  {!isMainSidebarCollapsed && dynamicBadge && (
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-brand)] text-[10px] font-bold text-slate-950">
-                      {dynamicBadge}
-                    </span>
-                  )}
-                  {isMainSidebarCollapsed && dynamicBadge && (
-                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-brand)] text-[8px] font-bold text-slate-950 shadow-[0_1px_4px_rgba(0,0,0,0.4)]">
-                      {dynamicBadge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-
-            {/* AUTOMATION GROUP with sub-menu */}
-            {(() => {
-              const isAutomationActive = pathname.startsWith("/automation");
-              const isExpanded = isAutomationActive;
-              return (
+          <nav className="flex-1 px-3 py-3 space-y-5 overflow-y-auto custom-scrollbar">
+            {NAVIGATION_STRUCTURE.map((group) => (
+              <div key={group.id} className="space-y-1">
+                {/* Group Title (hidden when sidebar is collapsed) */}
+                {hasMounted && !isMainSidebarCollapsed && (
+                  <div className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 mt-2 select-none">
+                    {getGroupLabel(group.id, language)}
+                  </div>
+                )}
+                
+                {/* Group Items */}
                 <div className="space-y-0.5">
-                  {/* Automation parent link */}
-                  <Link
-                    href="/automation"
-                    onMouseEnter={(e) => handleMouseEnter(e, t.automation)}
-                    onMouseLeave={handleMouseLeave}
-                    onClick={() => { setIsSidebarOpen(false); handleMouseLeave(); }}
-                    className={`group relative flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition duration-150 ${
-                      isAutomationActive
-                        ? "bg-[var(--color-surface)] border border-[var(--color-brand)]/25 text-[var(--color-brand)]"
-                        : "text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white"
-                    } ${isMainSidebarCollapsed ? "justify-center px-1" : ""}`}
-                  >
-                    <span className="flex items-center gap-3">
-                      <Workflow className={`h-4.5 w-4.5 ${isAutomationActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
-                      {!isMainSidebarCollapsed && t.automation}
-                    </span>
-                    {!isMainSidebarCollapsed && (
-                      <ChevronDown className={`h-3.5 w-3.5 text-slate-500 transition-transform duration-200 ${isExpanded ? "" : "-rotate-90"}`} />
-                    )}
-                  </Link>
-
-                  {/* Sub-items */}
-                  {!isMainSidebarCollapsed && isExpanded && (
-                    <div className="ml-3 pl-3 border-l border-white/[0.06] space-y-0.5 py-1">
-                      {AUTOMATION_SUBNAV.map((sub) => {
-                        const SubIcon = sub.icon;
-                        const subActive = sub.exact
-                          ? pathname === sub.href
-                          : pathname.startsWith(sub.href);
-                        const translatedSubLabel = getAutomationLabel(sub.href, sub.label, t);
-                        return (
-                          <Link
-                            key={sub.href}
-                            href={sub.href}
-                            onClick={() => setIsSidebarOpen(false)}
-                            className={`flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold transition duration-150 ${
-                              subActive
-                                ? "text-[var(--color-brand)] bg-[var(--color-surface)]"
-                                : "text-slate-500 hover:text-slate-200 hover:bg-white/[0.04]"
-                            }`}
-                          >
-                            <span className="flex items-center gap-2">
-                              <SubIcon className="h-4 w-4" />
-                              {translatedSubLabel}
-                            </span>
-                            {sub.badge && (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[var(--color-brand)]/10 text-[var(--color-brand)] border border-[var(--color-brand)]/20 uppercase tracking-wider">
-                                {sub.badge}
-                              </span>
-                            )}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    // Custom active check
+                    const isActive = (item as any).exact
+                      ? pathname === item.href
+                      : item.href === "/dashboard"
+                      ? pathname === "/dashboard"
+                      : pathname.startsWith(item.href);
+                    
+                    // For Unified Inbox: use live unread count
+                    const dynamicBadge = (item as any).showUnread
+                      ? (inboxUnreadCount > 0 ? String(inboxUnreadCount) : undefined)
+                      : undefined;
+                    
+                    const translatedLabel = getTranslationLabel(item.labelKey, t);
+                    
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onMouseEnter={(e) => handleMouseEnter(e, translatedLabel)}
+                        onMouseLeave={handleMouseLeave}
+                        onClick={() => {
+                          setIsSidebarOpen(false);
+                          handleMouseLeave();
+                        }}
+                        className={`group relative flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition duration-150 ${
+                          isActive
+                            ? "bg-[var(--color-surface)] border border-[var(--color-brand)]/25 text-[var(--color-brand)]"
+                            : "text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white"
+                        } ${isMainSidebarCollapsed ? "justify-center px-1" : ""}`}
+                      >
+                        <span className="flex items-center gap-3">
+                          <Icon className={`h-4.5 w-4.5 ${isActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
+                          {!isMainSidebarCollapsed && translatedLabel}
+                        </span>
+                        
+                        {!isMainSidebarCollapsed && (item as any).badge && (
+                          <span className="rounded bg-[var(--color-brand)]/10 text-[var(--color-brand)] border border-[var(--color-brand)]/20 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider leading-none">
+                            {(item as any).badge}
+                          </span>
+                        )}
+                        
+                        {!isMainSidebarCollapsed && dynamicBadge && (
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-brand)] text-[10px] font-bold text-slate-950">
+                            {dynamicBadge}
+                          </span>
+                        )}
+                        
+                        {isMainSidebarCollapsed && dynamicBadge && (
+                          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-brand)] text-[8px] font-bold text-slate-950 shadow-[0_1px_4px_rgba(0,0,0,0.4)]">
+                            {dynamicBadge}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
                 </div>
-              );
-            })()}
-
-            {/* Remaining nav items (Broadcast, Channels, Reports, Settings) */}
-            {NAV_ITEMS.slice(5).map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname.startsWith(item.href);
-              const translatedLabel = getNavLabel(item.href, item.label, t);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onMouseEnter={(e) => handleMouseEnter(e, translatedLabel)}
-                  onMouseLeave={handleMouseLeave}
-                  onClick={() => {
-                    setIsSidebarOpen(false);
-                    handleMouseLeave();
-                  }}
-                  className={`group relative flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition duration-150 ${
-                    isActive
-                      ? "bg-[var(--color-surface)] border border-[var(--color-brand)]/25 text-[var(--color-brand)]"
-                      : "text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white"
-                  } ${isMainSidebarCollapsed ? "justify-center px-1" : ""}`}
-                >
-                  <span className="flex items-center gap-3">
-                    <Icon className={`h-4.5 w-4.5 ${isActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
-                    {!isMainSidebarCollapsed && translatedLabel}
-                  </span>
-                </Link>
-              );
-            })}
+              </div>
+            ))}
           </nav>
 
           {/* Sidebar Footer User Info */}
