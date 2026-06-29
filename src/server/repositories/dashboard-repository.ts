@@ -15,7 +15,7 @@ import {
   readPrivateJsonBlob,
   writePrivateJsonBlob,
 } from "@/server/blob-state";
-import { isSupabaseEnabled } from "@/server/supabase";
+import { isSupabaseWriteable } from "@/server/supabase";
 import {
   getUploadDirectory,
   deleteJsonRowAsync,
@@ -119,7 +119,9 @@ async function replaceOptionalCrmRows<T extends { id: string }>(
 }
 
 function shouldUseBlobState() {
-  return isBlobStateEnabled() && !isSupabaseEnabled();
+  // Prefer Blob when it's enabled AND Supabase doesn't have a service_role key.
+  // Publishable/anon key cannot write past Supabase RLS — Blob is the safe fallback.
+  return isBlobStateEnabled() && !isSupabaseWriteable();
 }
 
 function finalizeDashboardConfig(

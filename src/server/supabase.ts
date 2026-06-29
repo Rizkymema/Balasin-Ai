@@ -16,6 +16,18 @@ export function isSupabaseEnabled() {
   return getSupabaseUrl().length > 0 && getSupabaseKey().length > 0;
 }
 
+/**
+ * Returns true only when a service_role key is available.
+ * Publishable/anon keys are typically blocked by Supabase RLS for write operations.
+ * Only service_role bypasses RLS and can safely write data.
+ */
+export function isSupabaseWriteable() {
+  return (
+    getSupabaseUrl().length > 0 &&
+    (process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "").length > 0
+  );
+}
+
 declare global {
   var __balesinSupabase: SupabaseClient | undefined;
 }

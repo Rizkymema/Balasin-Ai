@@ -5,7 +5,7 @@ import BetterSqlite3 from "better-sqlite3";
 
 import { defaultDashboardConfig } from "@/lib/dashboard-config";
 import { defaultDashboardOperations } from "@/lib/dashboard-operations";
-import { getSupabaseServerClient, isSupabaseEnabled } from "@/server/supabase";
+import { getSupabaseServerClient, isSupabaseEnabled, isSupabaseWriteable } from "@/server/supabase";
 
 const IS_EPHEMERAL_RUNTIME = process.env.VERCEL === "1";
 const DATA_DIR =
@@ -472,7 +472,8 @@ export async function readAppConfigRecord<T>() {
 }
 
 export async function writeAppConfigRecord(value: unknown) {
-  if (isSupabaseEnabled()) {
+  // Requires service_role key to bypass RLS — publishable/anon key is blocked from writes.
+  if (isSupabaseWriteable()) {
     const supabase = getSupabaseServerClient();
     const { error } = await supabase.from("app_config").upsert(
       {
@@ -519,7 +520,8 @@ export async function replaceJsonRowsAsync<T extends { id: string }>(
   tableName: string,
   items: T[],
 ) {
-  if (isSupabaseEnabled()) {
+  // Requires service_role key to bypass RLS — publishable/anon key is blocked from writes.
+  if (isSupabaseWriteable()) {
     ensureSupabaseJsonTable(tableName);
     const supabase = getSupabaseServerClient();
     const { error: deleteError } = await supabase
@@ -559,7 +561,8 @@ export async function upsertJsonRowAsync<T extends { id: string }>(
   tableName: string,
   item: T,
 ) {
-  if (isSupabaseEnabled()) {
+  // Requires service_role key to bypass RLS — publishable/anon key is blocked from writes.
+  if (isSupabaseWriteable()) {
     ensureSupabaseJsonTable(tableName);
     const supabase = getSupabaseServerClient();
     const { error } = await supabase.from(tableName).upsert(
@@ -602,7 +605,8 @@ export async function getJsonRowAsync<T>(tableName: string, id: string) {
 }
 
 export async function deleteJsonRowAsync(tableName: string, id: string) {
-  if (isSupabaseEnabled()) {
+  // Requires service_role key to bypass RLS — publishable/anon key is blocked from writes.
+  if (isSupabaseWriteable()) {
     ensureSupabaseJsonTable(tableName);
     const supabase = getSupabaseServerClient();
     const { error } = await supabase.from(tableName).delete().eq("id", id);
