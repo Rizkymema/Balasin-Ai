@@ -367,6 +367,18 @@ function extractStyleSignals(config: DashboardConfig) {
       combined.includes("bapak ibu") ||
       /\bbapak\b/.test(config.aiAgent.replyStyleExample.toLowerCase()) ||
       /\bibu\b/.test(config.aiAgent.replyStyleExample.toLowerCase()),
+    useGuaLu:
+      combined.includes("gua / lu") ||
+      combined.includes("gua/lu") ||
+      combined.includes("kata ganti gua") ||
+      /\bgua\b/.test(combined) ||
+      /\blu\b/.test(combined),
+    usePren:
+      combined.includes("pren") ||
+      combined.includes("besti") ||
+      combined.includes("bro") ||
+      combined.includes("anak bengkel") ||
+      combined.includes("johan garage"),
   };
 }
 
@@ -395,7 +407,10 @@ function applyStyleInstructions(
   const signals = extractStyleSignals(config);
   let text = reply.trim();
 
-  if (signals.useBapakIbu) {
+  if (signals.useGuaLu || signals.usePren) {
+    text = text.replace(/\bAnda\b/g, "lu").replace(/\banda\b/g, "lu");
+    text = text.replace(/\bBapak\/Ibu\b/g, "pren").replace(/\bbapak\/ibu\b/g, "pren");
+  } else if (signals.useBapakIbu) {
     text = text.replace(/\bAnda\b/g, "Bapak/Ibu").replace(/\banda\b/g, "Bapak/Ibu");
   } else if (signals.useKak) {
     text = text.replace(/\bAnda\b/g, "kak").replace(/\banda\b/g, "kak");
@@ -1385,11 +1400,11 @@ async function generateProviderReply(
       : "Tidak ada dokumen relevan.";
 
   const waLink = getWaHandoffLink(config);
+  const customInstructions = config.aiAgent.replyInstructions ? `\n=== INSTRUKSI MUTLAK (CUSTOM INSTRUCTIONS) ===\n${config.aiAgent.replyInstructions}\n==============================================\n` : "";
   const systemPrompt = `
 Anda adalah ${config.aiAgent.name || "AI Assistant"} untuk ${config.workspace.name || "sebuah bisnis"}.
 Jawab dalam bahasa ${config.aiAgent.language === "en" ? "English" : "Bahasa Indonesia"}.
-Gaya: ${config.aiAgent.tone}.
-Instruksi balasan: ${config.aiAgent.replyInstructions || "-"}.
+Gaya: ${config.aiAgent.tone}.${customInstructions}
 Contoh gaya bicara: ${config.aiAgent.replyStyleExample || "-"}.
 
 Aturan penting & pembatasan AI (PANDUAN AI):

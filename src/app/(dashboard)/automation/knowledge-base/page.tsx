@@ -42,6 +42,7 @@ export default function KnowledgeBasePage() {
   const [isIngestingText, setIsIngestingText] = useState(false);
   const [isUploadingKbFile, setIsUploadingKbFile] = useState(false);
   const [kbSearchQuery, setKbSearchQuery] = useState("");
+  const [isSavingInstructions, setIsSavingInstructions] = useState(false);
 
   const [personaConfig, setPersonaConfig] = useState("");
   const [toneOfVoice, setToneOfVoice] = useState("");
@@ -54,9 +55,9 @@ export default function KnowledgeBasePage() {
     if (!config || isInitializedRef.current) return;
     isInitializedRef.current = true;
     const rawPrompt = config.aiAgent.replyInstructions || "";
-    const personaMatch = rawPrompt.match(/\[PERSONA\]\n([\s\S]*?)(?=\n\n\[TONE\]|$)/);
-    const toneMatch = rawPrompt.match(/\[TONE\]\n([\s\S]*?)(?=\n\n\[GUARDRAILS\]|$)/);
-    const guardMatch = rawPrompt.match(/\[GUARDRAILS\]\n([\s\S]*?)$/);
+    const personaMatch = rawPrompt.match(/\[PERSONA\]\r?\n([\s\S]*?)(?=\r?\n+\[TONE\]|$)/i);
+    const toneMatch = rawPrompt.match(/\[TONE\]\r?\n([\s\S]*?)(?=\r?\n+\[GUARDRAILS\]|$)/i);
+    const guardMatch = rawPrompt.match(/\[GUARDRAILS\]\r?\n([\s\S]*?)$/i);
 
     if (personaMatch || toneMatch || guardMatch) {
       setPersonaConfig(personaMatch ? personaMatch[1].trim() : "");
@@ -185,15 +186,23 @@ export default function KnowledgeBasePage() {
     setUnansweredQuestions((prev) => prev.filter((q) => q !== question));
   };
 
-  const handleSaveInstructions = (event: FormEvent) => {
+  const handleSaveInstructions = async (event: FormEvent) => {
     event.preventDefault();
-    const assembledPrompt = `[PERSONA]\n${personaConfig.trim()}\n\n[TONE]\n${toneOfVoice.trim()}\n\n[GUARDRAILS]\n${guardrails.trim()}`;
-    patchConfig((current) => ({
-      ...current,
-      aiAgent: { ...current.aiAgent, replyInstructions: assembledPrompt },
-    }));
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2500);
+    setIsSavingInstructions(true);
+    try {
+      const assembledPrompt = `[PERSONA]\n${personaConfig.trim()}\n\n[TONE]\n${toneOfVoice.trim()}\n\n[GUARDRAILS]\n${guardrails.trim()}`;
+      await patchConfig((current) => ({
+        ...current,
+        aiAgent: { ...current.aiAgent, replyInstructions: assembledPrompt },
+      }));
+      await refreshConfig();
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2500);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Gagal menyimpan instruksi custom.");
+    } finally {
+      setIsSavingInstructions(false);
+    }
   };
 
   if (isLoading) {
@@ -613,8 +622,15 @@ export default function KnowledgeBasePage() {
               ) : (
                 <div />
               )}
-              <Button type="submit" className="px-6 h-9.5 text-xs">
-                Simpan Instruksi Custom
+               <Button type="submit" disabled={isSavingInstructions} className="px-6 h-9.5 text-xs">
+                {isSavingInstructions ? (
+                  <>
+                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  "Simpan Instruksi Custom"
+                )}
               </Button>
             </div>
           </form>
