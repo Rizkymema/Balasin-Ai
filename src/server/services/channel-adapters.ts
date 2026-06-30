@@ -1,6 +1,7 @@
 import { getDashboardConfigRecord } from "@/server/repositories/dashboard-repository";
 import { serverEnv } from "@/server/env";
 import type { ChannelKind } from "@/types/operations";
+import type { PreparedOutboundMediaUpload } from "@/server/services/outbound-media";
 
 type SendMessageInput = {
   channel: ChannelKind;
@@ -8,25 +9,29 @@ type SendMessageInput = {
   message: string;
   phoneNumberIdOverride?: string;
   instagramAccountIdOverride?: string;
+  mediaAttachment?: PreparedOutboundMediaUpload;
+};
+
+type GraphApiError = {
+  message?: string;
+  type?: string;
+  code?: number;
+  error_subcode?: number;
+  fbtrace_id?: string;
+  error_data?: {
+    details?: string;
+  };
 };
 
 type WhatsAppGraphResponse = {
   messages?: Array<{
     id?: string;
   }>;
-  error?: {
-    message?: string;
-    type?: string;
-    code?: number;
-    error_subcode?: number;
-    fbtrace_id?: string;
-    error_data?: {
-      details?: string;
-    };
-  };
+  id?: string;
+  error?: GraphApiError;
 };
 
-function formatWhatsAppGraphError(error?: WhatsAppGraphResponse["error"]) {
+function formatWhatsAppGraphError(error?: GraphApiError) {
   if (!error) {
     return undefined;
   }
@@ -62,7 +67,8 @@ async function parseGraphResponse(
 async function sendWhatsAppGraphRequest(
   accessToken: string,
   phoneNumberId: string,
-  body: Record<string, unknown>,
+  body: BodyInit,
+  contentType = "application/json",
 ) {
   const response = await fetch(
     `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/${phoneNumberId}/messages`,
@@ -70,9 +76,43 @@ async function sendWhatsAppGraphRequest(
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+        ...(contentType ? { "Content-Type": contentType } : {}),
       },
-      body: JSON.stringify(body),
+      body,
+    },
+  );
+  const payload = await parseGraphResponse(response);
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    body: payload,
+  };
+}
+
+async function uploadWhatsAppMedia(
+  accessToken: string,
+  phoneNumberId: string,
+  mediaAttachment: PreparedOutboundMediaUpload,
+) {
+  const formData = new FormData();
+  const fileBytes = new Uint8Array(mediaAttachment.buffer.byteLength);
+  fileBytes.set(mediaAttachment.buffer);
+  formData.set("messaging_product", "whatsapp");
+  formData.set(
+    "file",
+    new Blob([fileBytes], { type: mediaAttachment.mimeType }),
+    mediaAttachment.fileName,
+  );
+
+  const response = await fetch(
+    `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/${phoneNumberId}/media`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: formData,
     },
   );
   const payload = await parseGraphResponse(response);
@@ -86,6 +126,7 @@ async function sendWhatsAppGraphRequest(
 
 export async function sendChannelMessage(input: SendMessageInput) {
   const config = await getDashboardConfigRecord();
+  const trimmedMessage = input.message.trim();
 
   if (input.channel === "WhatsApp") {
     const phoneNumberId =
@@ -116,18 +157,62 @@ export async function sendChannelMessage(input: SendMessageInput) {
       };
     }
 
-    const response = await sendWhatsAppGraphRequest(
-      accessToken,
-      phoneNumberId,
-      {
-        messaging_product: "whatsapp",
-        to: input.recipientId,
-        type: "text",
-        text: {
-          body: input.message,
-        },
-      },
-    );
+    let response;
+
+    if (input.mediaAttachment) {
+      const upload = await uploadWhatsAppMedia(
+        accessToken,
+        phoneNumberId,
+        input.mediaAttachment,
+      );
+
+      if (!upload.ok || !upload.body?.id) {
+        return {
+          ok: false,
+          provider: "whatsapp",
+          status: upload.status,
+          body: upload.body,
+          note: formatWhatsAppGraphError(upload.body?.error) ??
+            "Gagal mengunggah media ke WhatsApp.",
+        };
+      }
+
+      response = await sendWhatsAppGraphRequest(
+        accessToken,
+        phoneNumberId,
+        JSON.stringify({
+          messaging_product: "whatsapp",
+          to: input.recipientId,
+          type: input.mediaAttachment.kind,
+          [input.mediaAttachment.kind]: {
+            id: upload.body.id,
+            ...(trimmedMessage ? { caption: trimmedMessage } : {}),
+          },
+        }),
+      );
+    } else {
+      if (!trimmedMessage) {
+        return {
+          ok: false,
+          provider: "whatsapp",
+          status: 422,
+          note: "Pesan teks WhatsApp tidak boleh kosong.",
+        };
+      }
+
+      response = await sendWhatsAppGraphRequest(
+        accessToken,
+        phoneNumberId,
+        JSON.stringify({
+          messaging_product: "whatsapp",
+          to: input.recipientId,
+          type: "text",
+          text: {
+            body: trimmedMessage,
+          },
+        }),
+      );
+    }
 
     return {
       ok: response.ok,
@@ -136,6 +221,15 @@ export async function sendChannelMessage(input: SendMessageInput) {
       body: response.body,
       messageId: response.body?.messages?.[0]?.id,
       note: formatWhatsAppGraphError(response.body?.error),
+    };
+  }
+
+  if (input.mediaAttachment) {
+    return {
+      ok: false,
+      provider: "unsupported_media",
+      status: 422,
+      note: `Channel ${input.channel} belum mendukung kirim foto/video dari dashboard.`,
     };
   }
 
@@ -269,18 +363,18 @@ export async function sendWhatsAppReadTypingIndicator(input: {
     };
   }
 
-  const response = await sendWhatsAppGraphRequest(
-    accessToken,
-    phoneNumberId,
-    {
-      messaging_product: "whatsapp",
-      status: "read",
-      message_id: input.incomingMessageId,
-      typing_indicator: {
-        type: "text",
-      },
-    },
-  );
+    const response = await sendWhatsAppGraphRequest(
+      accessToken,
+      phoneNumberId,
+      JSON.stringify({
+        messaging_product: "whatsapp",
+        status: "read",
+        message_id: input.incomingMessageId,
+        typing_indicator: {
+          type: "text",
+        },
+      }),
+    );
 
   return {
     ok: response.ok,

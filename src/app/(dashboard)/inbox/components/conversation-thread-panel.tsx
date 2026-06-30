@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   Bot,
   CheckCheck,
+  ImageIcon,
   MessageSquareDiff,
   Paperclip,
   PanelRight,
@@ -17,8 +18,11 @@ import {
   Ticket,
   Trash2,
   User,
+  Video,
+  X,
 } from "lucide-react";
 
+import { OUTBOUND_MEDIA_ACCEPT } from "@/constants/media";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,11 +38,22 @@ import {
   getMessageStatusMeta,
 } from "./inbox-view-model";
 
+type ReplyAttachment = {
+  kind: "image" | "video";
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  previewUrl: string;
+} | null;
+
 type ConversationThreadPanelProps = {
   conversation: ConversationRecord | null;
   config: DashboardConfig;
   replyText: string;
   onReplyTextChange: (value: string) => void;
+  replyAttachment: ReplyAttachment;
+  onReplyAttachmentSelect: (file: File | null) => void;
+  onReplyAttachmentRemove: () => void;
   noteDraft: string;
   onNoteDraftChange: (value: string) => void;
   composerMode: "reply" | "note";
@@ -58,6 +73,7 @@ type ConversationThreadPanelProps = {
   onDeleteConversation: () => void;
   isSubmitting: boolean;
   isReplyTyping: boolean;
+  allowMediaAttachments: boolean;
   noteSaved: boolean;
   showContextPanel: boolean;
   onToggleContextPanel: () => void;
@@ -95,11 +111,26 @@ function resolveStatusTone(status: ConversationRecord["status"]) {
   }
 }
 
+function formatMediaFileSize(sizeBytes: number) {
+  if (sizeBytes >= 1024 * 1024) {
+    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  if (sizeBytes >= 1024) {
+    return `${Math.max(1, Math.round(sizeBytes / 1024))} KB`;
+  }
+
+  return `${sizeBytes} B`;
+}
+
 export function ConversationThreadPanel({
   conversation,
   config,
   replyText,
   onReplyTextChange,
+  replyAttachment,
+  onReplyAttachmentSelect,
+  onReplyAttachmentRemove,
   noteDraft,
   onNoteDraftChange,
   composerMode,
@@ -119,6 +150,7 @@ export function ConversationThreadPanel({
   onDeleteConversation,
   isSubmitting,
   isReplyTyping,
+  allowMediaAttachments,
   noteSaved,
   showContextPanel,
   onToggleContextPanel,
@@ -128,6 +160,7 @@ export function ConversationThreadPanel({
   const [isGeneratingSuggestion, setIsGeneratingSuggestion] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [templateSearch, setTemplateSearch] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const templates = config.automation.inboxSettings.templates;
 
@@ -408,6 +441,11 @@ export function ConversationThreadPanel({
             const isAi = message.sender === "ai";
             const actorLabel = getMessageActorLabel(message);
             const statusInfo = getMessageStatusMeta(message.status);
+            const shouldShowText =
+              !!message.text &&
+              (!message.media ||
+                message.text !==
+                  (message.media.kind === "image" ? "[Foto]" : "[Video]"));
 
             return (
               <div
@@ -434,7 +472,32 @@ export function ConversationThreadPanel({
                         : "bg-[#00d2ff] text-[#050814] rounded-2xl rounded-br-sm"
                     )}
                   >
-                    <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{message.text}</p>
+                    {message.media?.kind === "image" && message.media.previewUrl ? (
+                      <a
+                        href={message.media.publicUrl ?? message.media.previewUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mb-2 overflow-hidden rounded-xl border border-black/10"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={message.media.publicUrl ?? message.media.previewUrl}
+                          alt={message.media.fileName ?? "Gambar chat"}
+                          className="max-h-72 w-full object-cover"
+                        />
+                      </a>
+                    ) : null}
+                    {message.media?.kind === "video" && message.media.previewUrl ? (
+                      <video
+                        controls
+                        preload="metadata"
+                        className="mb-2 max-h-72 w-full rounded-xl border border-black/10 bg-black/40"
+                        src={message.media.publicUrl ?? message.media.previewUrl}
+                      />
+                    ) : null}
+                    {shouldShowText ? (
+                      <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{message.text}</p>
+                    ) : null}
                     <div
                       className={cn(
                         "flex items-center gap-1 text-[10px] font-medium self-end mt-1.5",
@@ -552,11 +615,61 @@ export function ConversationThreadPanel({
 
           {composerMode === "reply" ? (
             <div className="relative flex flex-col rounded-xl border border-white/[0.08] bg-[#0a0e1c] focus-within:border-white/[0.15] transition-colors">
+              {replyAttachment ? (
+                <div className="border-b border-white/[0.06] px-4 py-3">
+                  <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+                    <div className="overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.04]">
+                      {replyAttachment.kind === "image" ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={replyAttachment.previewUrl}
+                          alt={replyAttachment.fileName}
+                          className="h-16 w-16 object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-16 w-16 items-center justify-center bg-slate-950 text-cyan-300">
+                          <Video className="h-6 w-6" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
+                        {replyAttachment.kind === "image" ? (
+                          <ImageIcon className="h-4 w-4 text-cyan-300" />
+                        ) : (
+                          <Video className="h-4 w-4 text-cyan-300" />
+                        )}
+                        <span className="truncate">{replyAttachment.fileName}</span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        {replyAttachment.mimeType} · {formatMediaFileSize(replyAttachment.sizeBytes)}
+                      </p>
+                      <p className="mt-1 text-[11px] text-slate-400">
+                        {replyAttachment.kind === "image"
+                          ? "Foto akan dikirim ke customer."
+                          : "Video akan dikirim ke customer."}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onReplyAttachmentRemove}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/[0.06] hover:text-white"
+                      aria-label="Hapus lampiran"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               <Textarea
                 value={replyText}
                 onChange={(event) => handleReplyChange(event.target.value)}
                 rows={1}
-                placeholder={`Type "shift + enter" to add a new line. Type "/" to use quick reply`}
+                placeholder={
+                  allowMediaAttachments
+                    ? `Tulis caption opsional. Shift+Enter untuk baris baru, "/" untuk quick reply.`
+                    : `Type "shift + enter" to add a new line. Type "/" to use quick reply`
+                }
                 className="min-h-[44px] max-h-[120px] w-full resize-none border-0 bg-transparent px-4 pt-3 pb-2 text-[13px] leading-relaxed text-slate-200 placeholder:text-slate-500 focus-visible:ring-0 shadow-none"
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
@@ -574,9 +687,27 @@ export function ConversationThreadPanel({
                   >
                     <Smile className="h-4.5 w-4.5" />
                   </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={OUTBOUND_MEDIA_ACCEPT}
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      onReplyAttachmentSelect(file);
+                      event.currentTarget.value = "";
+                    }}
+                  />
                   <button
                     type="button"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/[0.06] hover:text-slate-200"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={!allowMediaAttachments || isSubmitting || isReplyTyping}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/[0.06] hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+                    title={
+                      allowMediaAttachments
+                        ? "Lampirkan foto atau video"
+                        : "Kirim media saat ini hanya didukung untuk WhatsApp"
+                    }
                   >
                     <Paperclip className="h-4.5 w-4.5" />
                   </button>
@@ -584,10 +715,10 @@ export function ConversationThreadPanel({
                 <button
                   type="button"
                   onClick={onSendReply}
-                  disabled={!replyText.trim() || isSubmitting || isReplyTyping}
+                  disabled={(!replyText.trim() && !replyAttachment) || isSubmitting || isReplyTyping}
                   className="inline-flex h-8 items-center justify-center rounded-lg bg-white/[0.06] px-5 text-[12px] font-semibold text-slate-300 transition hover:bg-white/[0.1] disabled:opacity-50 disabled:hover:bg-white/[0.06] disabled:hover:text-slate-500"
                 >
-                  Send
+                  {replyAttachment ? "Send Media" : "Send"}
                 </button>
               </div>
             </div>
@@ -645,7 +776,7 @@ export function ConversationThreadPanel({
           </div>
 
           <div className="flex items-center gap-2 text-[10px] text-slate-500">
-            <span>Ctrl+Enter kirim</span>
+            <span>Enter kirim · Shift+Enter baris baru</span>
             <Link
               href="/tickets"
               className="rounded-md bg-white/[0.04] px-2 py-1 text-slate-400 hover:bg-white/[0.08]"

@@ -3,6 +3,10 @@ import { randomUUID } from "node:crypto";
 import { getDashboardConfigRecord, getDashboardOperationsRecord, saveDashboardOperationsRecord } from "@/server/repositories/dashboard-repository";
 import { sendChannelMessage } from "@/server/services/channel-adapters";
 import {
+  storeOutboundMediaAsset,
+  type PreparedOutboundMediaUpload,
+} from "@/server/services/outbound-media";
+import {
   applyAutomationMetadata,
   appendAutomationLog,
   scheduleAutomationForConversationEvent,
@@ -55,6 +59,26 @@ function buildDeliveryFailureNote(input: {
   }
 
   return `${prefix} Periksa kredensial channel dan koneksi provider.`;
+}
+
+function buildOutgoingMessageBody(input: {
+  text: string;
+  mediaKind?: "image" | "video";
+}) {
+  const trimmedText = input.text.trim();
+  if (trimmedText) {
+    return trimmedText;
+  }
+
+  if (input.mediaKind === "image") {
+    return "[Foto]";
+  }
+
+  if (input.mediaKind === "video") {
+    return "[Video]";
+  }
+
+  return "";
 }
 
 function mapConversationStatusToLeadStatus(status: ConversationStatus): LeadStatus {
@@ -233,6 +257,7 @@ function getConversationOrThrow(current: DashboardOperationsData, id: string) {
 export async function sendInboxReply(input: {
   conversationId: string;
   message: string;
+  mediaAttachment?: PreparedOutboundMediaUpload;
 }) {
   const config = await getDashboardConfigRecord();
   const current = await getDashboardOperationsRecord();
@@ -243,6 +268,13 @@ export async function sendInboxReply(input: {
     conversation.channel === "Instagram DM"
       ? conversation.channelContext?.externalUserId || conversation.channelContext?.instagramUserId || conversation.username || conversation.customerId
       : conversation.phone ?? conversation.username ?? conversation.customerId;
+  const storedMedia = input.mediaAttachment
+    ? await storeOutboundMediaAsset(input.mediaAttachment)
+    : null;
+  const messageBody = buildOutgoingMessageBody({
+    text: input.message,
+    mediaKind: storedMedia?.kind,
+  });
 
   const delivery = await sendChannelMessage({
     channel: conversation.channel,
@@ -250,21 +282,34 @@ export async function sendInboxReply(input: {
     message: input.message,
     phoneNumberIdOverride: conversation.channelContext?.whatsappPhoneNumberId,
     instagramAccountIdOverride: conversation.channelContext?.instagramAccountId,
+    mediaAttachment: input.mediaAttachment,
   });
 
   const outgoingMessage: ConversationMessage = {
     id: randomUUID(),
     sender,
-    text: input.message,
+    text: messageBody,
     timestamp: formatMessageTimestamp(config.workspace.timezone),
     externalId: delivery.messageId,
     status: resolveOutgoingMessageStatus(conversation.channel, delivery.ok),
-    type: "text",
+    type: storedMedia?.kind ?? "text",
+    media: storedMedia
+      ? {
+          kind: storedMedia.kind,
+          assetKey: storedMedia.assetKey,
+          mimeType: storedMedia.mimeType,
+          fileName: storedMedia.fileName,
+          sizeBytes: storedMedia.sizeBytes,
+          previewUrl: storedMedia.previewUrl,
+          publicUrl: storedMedia.publicUrl,
+          caption: input.message.trim() || undefined,
+        }
+      : undefined,
   };
 
   const nextConversation: ConversationRecord = {
     ...conversation,
-    lastMessage: input.message,
+    lastMessage: messageBody,
     timestamp: "Sekarang",
     unreadCount: 0,
     lastSeenAt: new Date().toISOString(),
@@ -274,7 +319,9 @@ export async function sendInboxReply(input: {
     messages: [...conversation.messages, outgoingMessage],
     summary: isAiReply
       ? conversation.summary
-      : "Admin sudah mengambil alih percakapan dan mengirim balasan manual.",
+      : storedMedia
+        ? "Admin sudah mengambil alih percakapan dan mengirim media manual."
+        : "Admin sudah mengambil alih percakapan dan mengirim balasan manual.",
   } satisfies ConversationRecord;
   const sentAtIso = new Date().toISOString();
 
@@ -303,8 +350,12 @@ export async function sendInboxReply(input: {
   nextConversationWithAutomation = appendAutomationLog(nextConversationWithAutomation, {
     event: "manual_reply_sent",
     summary: isAiReply
-      ? "Balasan dikirim dari composer inbox dengan mode AI aktif."
-      : "Admin mengambil alih percakapan dan mengirim balasan manual.",
+      ? storedMedia
+        ? "Media dikirim dari composer inbox dengan mode AI aktif."
+        : "Balasan dikirim dari composer inbox dengan mode AI aktif."
+      : storedMedia
+        ? "Admin mengambil alih percakapan dan mengirim media manual."
+        : "Admin mengambil alih percakapan dan mengirim balasan manual.",
     status: "applied",
     createdAt: sentAtIso,
   });

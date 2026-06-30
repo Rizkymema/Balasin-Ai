@@ -23,7 +23,18 @@ export type RiskLevel = "low" | "medium" | "high";
 
 export type CustomerSentiment = "positive" | "neutral" | "negative";
 
-export type MessageType = "text" | "image" | "comment" | "system";
+export type MessageType = "text" | "image" | "video" | "comment" | "system";
+
+export type ConversationMessageMedia = {
+  kind: "image" | "video";
+  assetKey?: string;
+  mimeType?: string;
+  fileName?: string;
+  sizeBytes?: number;
+  previewUrl?: string;
+  publicUrl?: string;
+  caption?: string;
+};
 
 export type ConversationMessage = {
   id: string;
@@ -33,6 +44,7 @@ export type ConversationMessage = {
   externalId?: string;
   status?: MessageDeliveryStatus;
   type?: MessageType;
+  media?: ConversationMessageMedia;
 };
 
 export type ConversationChannelContext = {

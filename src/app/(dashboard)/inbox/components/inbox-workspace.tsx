@@ -4,7 +4,10 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Bot, Database, MessageSquare, PanelRight, RefreshCcw, Settings2, Sparkles, X } from "lucide-react";
 
-
+import {
+  inferOutboundMediaKind,
+  OUTBOUND_MEDIA_MAX_BYTES,
+} from "@/constants/media";
 import { Toast } from "@/components/ui/toast";
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import { useDashboardOperations } from "@/hooks/use-dashboard-operations";
@@ -31,6 +34,15 @@ type ToastState = {
   type: "info" | "success" | "error";
 } | null;
 
+type PendingReplyAttachment = {
+  file: File;
+  kind: "image" | "video";
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  previewUrl: string;
+};
+
 export function InboxWorkspace() {
   const { config } = useDashboardConfig();
   const { data, isLoading, refreshData, applyLocalPatch } = useDashboardOperations();
@@ -50,6 +62,7 @@ export function InboxWorkspace() {
   const [suggestionVersion, setSuggestionVersion] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReplyTyping, setIsReplyTyping] = useState(false);
+  const [replyAttachment, setReplyAttachment] = useState<PendingReplyAttachment | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showSearchInList, setShowSearchInList] = useState(false);
@@ -131,9 +144,24 @@ export function InboxWorkspace() {
   useEffect(() => {
     setNoteDraft(activeConversation?.notes ?? "");
     setReplyText("");
+    setReplyAttachment((current) => {
+      if (current?.previewUrl) {
+        URL.revokeObjectURL(current.previewUrl);
+      }
+
+      return null;
+    });
     setSuggestionVariant("default");
     setSuggestionVersion(0);
   }, [activeConversation?.id, activeConversation?.notes]);
+
+  useEffect(() => {
+    return () => {
+      if (replyAttachment?.previewUrl) {
+        URL.revokeObjectURL(replyAttachment.previewUrl);
+      }
+    };
+  }, [replyAttachment]);
 
   useEffect(() => {
     if (!activeConversation?.id || activeConversation.unreadCount === 0) {
@@ -180,13 +208,15 @@ export function InboxWorkspace() {
     },
   ) => {
     setIsSubmitting(true);
+    const shouldUseJsonContentType =
+      typeof FormData === "undefined" || !(init.body instanceof FormData);
 
     try {
       const response = await fetch(path, {
         ...init,
         credentials: "include",
         headers: {
-          "Content-Type": "application/json",
+          ...(shouldUseJsonContentType ? { "Content-Type": "application/json" } : {}),
           ...(init.headers ?? {}),
         },
       });
@@ -220,11 +250,12 @@ export function InboxWorkspace() {
   };
 
   const handleSendReply = async () => {
-    if (!activeConversation || !replyText.trim()) {
+    if (!activeConversation || (!replyText.trim() && !replyAttachment)) {
       return;
     }
 
     const nextReply = replyText.trim();
+    const nextAttachment = replyAttachment;
     setReplyText("");
     setIsReplyTyping(true);
 
@@ -234,17 +265,81 @@ export function InboxWorkspace() {
           `/api/inbox/conversations/${activeConversation.id}/reply`,
           {
             method: "POST",
-            body: JSON.stringify({ message: nextReply }),
+            body: nextAttachment
+              ? (() => {
+                  const formData = new FormData();
+                  if (nextReply) {
+                    formData.set("message", nextReply);
+                  }
+                  formData.set("file", nextAttachment.file);
+                  return formData;
+                })()
+              : JSON.stringify({ message: nextReply }),
+            headers: nextAttachment ? undefined : { "Content-Type": "application/json" },
           },
-          { successMessage: "Balasan berhasil dikirim." },
+          {
+            successMessage: nextAttachment
+              ? "Media berhasil dikirim."
+              : "Balasan berhasil dikirim.",
+          },
         ),
         new Promise((resolve) => window.setTimeout(resolve, 650)),
       ]);
+      handleReplyAttachmentSelect(null);
     } catch {
       setReplyText(nextReply);
+      if (nextAttachment) {
+        setReplyAttachment(nextAttachment);
+      }
     } finally {
       setIsReplyTyping(false);
     }
+  };
+
+  const handleReplyAttachmentSelect = (file: File | null) => {
+    if (!file) {
+      setReplyAttachment((current) => {
+        if (current?.previewUrl) {
+          URL.revokeObjectURL(current.previewUrl);
+        }
+
+        return null;
+      });
+      return;
+    }
+
+    const kind = inferOutboundMediaKind(file.type);
+    if (!kind) {
+      setToast({
+        message: "File harus berupa gambar atau video.",
+        type: "error",
+      });
+      return;
+    }
+
+    if (file.size > OUTBOUND_MEDIA_MAX_BYTES) {
+      setToast({
+        message: "Ukuran file media terlalu besar untuk dikirim.",
+        type: "error",
+      });
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setReplyAttachment((current) => {
+      if (current?.previewUrl) {
+        URL.revokeObjectURL(current.previewUrl);
+      }
+
+      return {
+        file,
+        kind,
+        fileName: file.name,
+        mimeType: file.type,
+        sizeBytes: file.size,
+        previewUrl,
+      };
+    });
   };
 
   const handleStatusUpdate = async (
@@ -408,6 +503,9 @@ export function InboxWorkspace() {
                   config={config}
                   replyText={replyText}
                   onReplyTextChange={setReplyText}
+                  replyAttachment={replyAttachment}
+                  onReplyAttachmentSelect={handleReplyAttachmentSelect}
+                  onReplyAttachmentRemove={() => handleReplyAttachmentSelect(null)}
                   noteDraft={noteDraft}
                   onNoteDraftChange={setNoteDraft}
                   composerMode={composerMode}
@@ -446,6 +544,7 @@ export function InboxWorkspace() {
                   onDeleteConversation={() => void handleDeleteConversation()}
                   isSubmitting={isSubmitting}
                   isReplyTyping={isReplyTyping}
+                  allowMediaAttachments={activeConversation?.channel === "WhatsApp"}
                   noteSaved={noteSaved}
                   showContextPanel={showContextPanel}
                   onToggleContextPanel={() => {

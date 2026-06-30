@@ -12,6 +12,7 @@ const DATA_DIR =
   process.env.BALESIN_STORAGE_DIR ??
   (IS_EPHEMERAL_RUNTIME ? join(tmpdir(), "balesin-data") : join(process.cwd(), "data"));
 const UPLOAD_DIR = join(DATA_DIR, "knowledge");
+const OUTBOUND_MEDIA_DIR = join(DATA_DIR, "outbound-media");
 const DB_PATH = join(DATA_DIR, "balesin.sqlite");
 
 type JsonRow = {
@@ -85,6 +86,10 @@ function ensureDataDir() {
 
   if (!existsSync(UPLOAD_DIR)) {
     mkdirSync(UPLOAD_DIR, { recursive: true });
+  }
+
+  if (!existsSync(OUTBOUND_MEDIA_DIR)) {
+    mkdirSync(OUTBOUND_MEDIA_DIR, { recursive: true });
   }
 }
 
@@ -432,6 +437,11 @@ export function deleteJsonRow(tableName: string, id: string) {
 export function getUploadDirectory() {
   ensureDataDir();
   return UPLOAD_DIR;
+}
+
+export function getOutboundMediaDirectory() {
+  ensureDataDir();
+  return OUTBOUND_MEDIA_DIR;
 }
 
 function parseStoredJson<T>(value: unknown) {
