@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   ArrowLeft,
   Bot,
@@ -160,7 +160,7 @@ export function ConversationThreadPanel({
   const [isGeneratingSuggestion, setIsGeneratingSuggestion] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [templateSearch, setTemplateSearch] = useState("");
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputId = useId();
 
   const templates = config.automation.inboxSettings.templates;
 
@@ -688,21 +688,26 @@ export function ConversationThreadPanel({
                     <Smile className="h-4.5 w-4.5" />
                   </button>
                   <input
-                    ref={fileInputRef}
+                    id={fileInputId}
                     type="file"
                     accept={OUTBOUND_MEDIA_ACCEPT}
-                    className="hidden"
+                    className="sr-only"
                     onChange={(event) => {
                       const file = event.target.files?.[0] ?? null;
                       onReplyAttachmentSelect(file);
                       event.currentTarget.value = "";
                     }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
                     disabled={!allowMediaAttachments || isSubmitting || isReplyTyping}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/[0.06] hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+                  />
+                  <label
+                    htmlFor={fileInputId}
+                    aria-disabled={!allowMediaAttachments || isSubmitting || isReplyTyping}
+                    className={cn(
+                      "inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400",
+                      allowMediaAttachments && !isSubmitting && !isReplyTyping
+                        ? "cursor-pointer hover:bg-white/[0.06] hover:text-slate-200"
+                        : "cursor-not-allowed opacity-40",
+                    )}
                     title={
                       allowMediaAttachments
                         ? "Lampirkan foto atau video"
@@ -710,7 +715,7 @@ export function ConversationThreadPanel({
                     }
                   >
                     <Paperclip className="h-4.5 w-4.5" />
-                  </button>
+                  </label>
                 </div>
                 <button
                   type="button"
