@@ -356,9 +356,20 @@ export function ConversationListPanel({
 
                       {/* Brand & Assignment Status */}
                       <div className="mt-3 flex items-center justify-between text-[10px]">
-                        <span className="text-slate-500 font-bold tracking-wide">
-                          Johan Garage
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-slate-500 font-bold tracking-wide">
+                            Johan Garage
+                          </span>
+                          <span className={cn(
+                            "px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-wide uppercase border shrink-0",
+                            conversation.sentiment === "positive" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                            conversation.sentiment === "negative" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
+                            "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                          )}>
+                            {conversation.sentiment === "positive" ? "😊 Positif" :
+                             conversation.sentiment === "negative" ? "😡 Negatif" : "😐 Netral"}
+                          </span>
+                        </div>
                         <span className={cn(
                           "px-2 py-0.5 rounded text-[9px] font-bold tracking-wide uppercase border",
                           isAssigned

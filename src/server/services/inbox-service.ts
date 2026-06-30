@@ -8,7 +8,7 @@ import {
   saveDashboardOperationsRecord,
 } from "@/server/repositories/dashboard-repository";
 import { formatClockTime } from "@/lib/time";
-import { generateReplyDecision, type ReplyDecision } from "@/server/services/reply-engine";
+import { generateReplyDecision, type ReplyDecision, analyzeSentiment } from "@/server/services/reply-engine";
 import {
   sendChannelMessage,
   sendWhatsAppReadTypingIndicator,
@@ -306,7 +306,8 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   const autoReplyEnabled =
     effectiveConfig.aiAgent.autoReplyEnabled &&
     (input.channel !== "WhatsApp" || config.channels.whatsapp.autoReply) &&
-    (input.channel !== "Instagram DM" || config.channels.instagram.autoReplyDm);
+    (input.channel !== "Instagram DM" || config.channels.instagram.autoReplyDm) &&
+    (input.channel !== "Instagram Comment" || config.channels.instagram.commentGuard);
   const aiMessageThreshold = Math.max(
     1,
     effectiveConfig.automation.aiConfig.aiMessageThreshold,
@@ -447,12 +448,15 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       lastInboundAt: receivedAt,
     });
   }
+  const detectedSentiment = await analyzeSentiment(input.messageText, effectiveConfig);
+
   conversation = {
     ...conversation,
     status: finalStatus,
     summary: decision.summary,
     lastIntent: decision.intent,
     aiConfidence: decision.confidence,
+    sentiment: detectedSentiment,
     assignedTo: isTakeoverActive
       ? existingConversation.assignedTo
       : (finalStatus === "assigned_to_admin"
@@ -503,6 +507,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       message: decision.reply,
       phoneNumberIdOverride: input.channelContext?.whatsappPhoneNumberId,
       instagramAccountIdOverride: input.channelContext?.instagramAccountId,
+      externalMessageId: input.externalMessageId,
     });
 
     if (delivery.ok || decision.reply.trim()) {

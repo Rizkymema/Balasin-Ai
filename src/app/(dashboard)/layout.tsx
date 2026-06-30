@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { Dropdown } from "@/components/ui/dropdown";
 import { getTranslation } from "@/lib/translations";
+import { DashboardAIAssistant } from "@/components/dashboard-ai-assistant";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -532,9 +533,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <div className="flex items-center gap-3">
             {/* Notification bell */}
-            <button className="relative p-2 rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition duration-200">
+            <button className="relative p-2 rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition duration-200" title={`Notifikasi (${inboxUnreadCount} belum dibaca)`}>
               <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--color-brand)]" />
+              {inboxUnreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--color-brand)]" />
+              )}
             </button>
 
             {/* Status Indicator */}
@@ -595,6 +598,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {tooltipState.label}
         </div>
       )}
+
+      {/* Floating Dashboard AI Assistant Copilot */}
+      <DashboardAIAssistant />
     </div>
   );
 }

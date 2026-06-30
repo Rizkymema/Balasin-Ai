@@ -295,6 +295,12 @@ export type DashboardConfig = {
     documents: KnowledgeDocument[];
     websiteUrls: string[];
     googleSheetUrls: string[];
+    sentimentCorrections?: Array<{
+      id: string;
+      text: string;
+      sentiment: "positive" | "neutral" | "negative";
+      createdAt: string;
+    }>;
   };
   channels: {
     webchat: {

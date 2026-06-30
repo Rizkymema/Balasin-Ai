@@ -15,14 +15,17 @@ export async function POST(
     const { id } = await context.params;
     const contentType = request.headers.get("content-type") ?? "";
     let message = "";
+    let stickerUrl = "";
     let mediaAttachment: ReturnType<typeof normalizeOutboundMediaUpload> | undefined;
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
       const rawMessage = formData.get("message");
       const rawFile = formData.get("file");
+      const rawSticker = formData.get("stickerUrl");
 
       message = typeof rawMessage === "string" ? rawMessage.trim() : "";
+      stickerUrl = typeof rawSticker === "string" ? rawSticker.trim() : "";
 
       if (rawFile instanceof File && rawFile.size > 0) {
         mediaAttachment = normalizeOutboundMediaUpload({
@@ -32,18 +35,20 @@ export async function POST(
         });
       }
     } else {
-      const body = (await request.json()) as { message?: string };
+      const body = (await request.json()) as { message?: string; stickerUrl?: string };
       message = body.message?.trim() ?? "";
+      stickerUrl = body.stickerUrl?.trim() ?? "";
     }
 
-    if (!message && !mediaAttachment) {
-      return jsonError("Pesan atau file media wajib diisi.", 400);
+    if (!message && !mediaAttachment && !stickerUrl) {
+      return jsonError("Pesan, file media, atau sticker wajib diisi.", 400);
     }
 
     const result = await sendInboxReply({
       conversationId: id,
       message,
       mediaAttachment,
+      stickerUrl,
     });
 
     return jsonOk(result);

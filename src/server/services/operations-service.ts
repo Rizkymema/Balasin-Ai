@@ -258,6 +258,7 @@ export async function sendInboxReply(input: {
   conversationId: string;
   message: string;
   mediaAttachment?: PreparedOutboundMediaUpload;
+  stickerUrl?: string;
 }) {
   const config = await getDashboardConfigRecord();
   const current = await getDashboardOperationsRecord();
@@ -270,7 +271,17 @@ export async function sendInboxReply(input: {
       : conversation.phone ?? conversation.username ?? conversation.customerId;
   const storedMedia = input.mediaAttachment
     ? await storeOutboundMediaAsset(input.mediaAttachment)
-    : null;
+    : input.stickerUrl
+      ? {
+          kind: "image" as const,
+          assetKey: `sticker-${Date.now()}`,
+          mimeType: "image/webp",
+          fileName: "sticker.webp",
+          sizeBytes: 15000,
+          previewUrl: input.stickerUrl,
+          publicUrl: input.stickerUrl,
+        }
+      : null;
   const messageBody = buildOutgoingMessageBody({
     text: input.message,
     mediaKind: storedMedia?.kind,

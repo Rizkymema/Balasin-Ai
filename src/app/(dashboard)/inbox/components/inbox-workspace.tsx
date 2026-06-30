@@ -136,6 +136,7 @@ export function InboxWorkspace() {
         message: `Pesan baru dari ${name}: ${text}`,
         type: "info",
       });
+      playNotificationSound();
     },
   });
 
@@ -257,6 +258,38 @@ export function InboxWorkspace() {
     }
   };
 
+  const handleUpdateSentiment = async (sentiment: "positive" | "neutral" | "negative") => {
+    if (!activeConversation) return;
+
+    await runConversationAction(
+      `/api/inbox/conversations/${activeConversation.id}/sentiment`,
+      {
+        method: "POST",
+        body: JSON.stringify({ sentiment }),
+      },
+      {
+        successMessage: "Sentimen diperbarui & AI dilatih!",
+        errorMessage: "Gagal melatih sentimen AI.",
+      },
+    );
+  };
+
+  const handleSendSticker = async (stickerUrl: string) => {
+    if (!activeConversation) return;
+
+    await runConversationAction(
+      `/api/inbox/conversations/${activeConversation.id}/reply`,
+      {
+        method: "POST",
+        body: JSON.stringify({ stickerUrl }),
+      },
+      {
+        successMessage: "Stiker berhasil dikirim!",
+        errorMessage: "Gagal mengirim stiker.",
+      },
+    );
+  };
+
   const handleSendReply = async () => {
     if (!activeConversation || (!replyText.trim() && !replyAttachment)) {
       return;
@@ -265,42 +298,35 @@ export function InboxWorkspace() {
     const nextReply = replyText.trim();
     const nextAttachment = replyAttachment;
     setReplyText("");
-    setIsReplyTyping(true);
-
     try {
-      await Promise.all([
-        runConversationAction(
-          `/api/inbox/conversations/${activeConversation.id}/reply`,
-          {
-            method: "POST",
-            body: nextAttachment
-              ? (() => {
-                  const formData = new FormData();
-                  if (nextReply) {
-                    formData.set("message", nextReply);
-                  }
-                  formData.set("file", nextAttachment.file);
-                  return formData;
-                })()
-              : JSON.stringify({ message: nextReply }),
-            headers: nextAttachment ? undefined : { "Content-Type": "application/json" },
-          },
-          {
-            successMessage: nextAttachment
-              ? "Media berhasil dikirim."
-              : "Balasan berhasil dikirim.",
-          },
-        ),
-        new Promise((resolve) => window.setTimeout(resolve, 650)),
-      ]);
+      await runConversationAction(
+        `/api/inbox/conversations/${activeConversation.id}/reply`,
+        {
+          method: "POST",
+          body: nextAttachment
+            ? (() => {
+                const formData = new FormData();
+                if (nextReply) {
+                  formData.set("message", nextReply);
+                }
+                formData.set("file", nextAttachment.file);
+                return formData;
+              })()
+            : JSON.stringify({ message: nextReply }),
+          headers: nextAttachment ? undefined : { "Content-Type": "application/json" },
+        },
+        {
+          successMessage: nextAttachment
+            ? "Media berhasil dikirim."
+            : "Balasan berhasil dikirim.",
+        },
+      );
       handleReplyAttachmentSelect(null);
     } catch {
       setReplyText(nextReply);
       if (nextAttachment) {
         setReplyAttachment(nextAttachment);
       }
-    } finally {
-      setIsReplyTyping(false);
     }
   };
 
@@ -528,6 +554,7 @@ export function InboxWorkspace() {
                   onSendReply={() => void handleSendReply()}
                   onSaveNote={() => void handleSaveNote()}
                   onCreateTicket={() => void handleCreateTicket()}
+                  onSendSticker={handleSendSticker}
                   onTakeOver={() =>
                     void handleStatusUpdate(
                       "assigned_to_admin",
@@ -577,6 +604,7 @@ export function InboxWorkspace() {
                     conversation={activeConversation}
                     context={activeContext}
                     onCreateTicket={() => void handleCreateTicket()}
+                    onUpdateSentiment={handleUpdateSentiment}
                     hiddenOnDesktop={!showContextPanel}
                   />
                 </div>
@@ -596,4 +624,28 @@ export function InboxWorkspace() {
       </div>
     </div>
   );
+}
+
+function playNotificationSound() {
+  if (typeof window === "undefined") return;
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(587.33, audioContext.currentTime); // D5 note
+    osc.frequency.setValueAtTime(880, audioContext.currentTime + 0.1); // A5 note
+    
+    gain.gain.setValueAtTime(0.15, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.35);
+    
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    
+    osc.start();
+    osc.stop(audioContext.currentTime + 0.35);
+  } catch (e) {
+    console.error("Gagal memutar bunyi notifikasi:", e);
+  }
 }

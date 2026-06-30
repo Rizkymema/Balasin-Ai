@@ -44,6 +44,8 @@ interface ChatbotSettingsState {
   idleAction: AutomationIdleAction;
   apiIntegrations: ApiIntegration[];
   crmIntegration: AutomationCrmIntegration;
+  spamGuard: boolean;
+  sentimentGuard: boolean;
 }
 
 const DEFAULT_SETTINGS: ChatbotSettingsState = {
@@ -76,6 +78,8 @@ const DEFAULT_SETTINGS: ChatbotSettingsState = {
     ],
     duplicateHandling: "Update existing contact",
   },
+  spamGuard: true,
+  sentimentGuard: true,
 };
 
 const TABS = [
@@ -132,11 +136,19 @@ function limitToSingleApiIntegration(integrations: ApiIntegration[]) {
 function AIConfigPanel({
   config,
   onChange,
+  spamGuard,
+  onChangeSpamGuard,
+  sentimentGuard,
+  onChangeSentimentGuard,
   onSave,
   isSaved,
 }: {
   config: ChatbotSettingsState["aiConfig"];
   onChange: (v: ChatbotSettingsState["aiConfig"]) => void;
+  spamGuard: boolean;
+  onChangeSpamGuard: (v: boolean) => void;
+  sentimentGuard: boolean;
+  onChangeSentimentGuard: (v: boolean) => void;
   onSave: () => void;
   isSaved: boolean;
 }) {
@@ -233,6 +245,27 @@ function AIConfigPanel({
             </div>
           </div>
         )}
+      </Card>
+
+      <Card className="p-6 border-white/10 bg-white/[0.02] space-y-6">
+        <SectionTitle>Guardrails & Pelindung Otomatis</SectionTitle>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <div className="text-sm font-semibold text-white">Spam Guard</div>
+              <div className="text-xs text-slate-500">Secara otomatis menyaring dan mengabaikan pesan masuk yang terdeteksi sebagai spam.</div>
+            </div>
+            <Toggle checked={spamGuard} onChange={onChangeSpamGuard} />
+          </div>
+
+          <div className="flex items-center justify-between py-2 border-t border-[var(--color-border)] pt-4">
+            <div>
+              <div className="text-sm font-semibold text-white">Sentiment Guard (AI Moderation)</div>
+              <div className="text-xs text-slate-500">Secara otomatis mendeteksi dan menghapus komentar negatif (makian, penipuan, hoaks) menggunakan AI.</div>
+            </div>
+            <Toggle checked={sentimentGuard} onChange={onChangeSentimentGuard} />
+          </div>
+        </div>
       </Card>
 
       <div className="flex items-center gap-3">
@@ -805,6 +838,8 @@ export default function ChatbotSettingsPage() {
           ...item,
         })),
       },
+      spamGuard: config.automation.spamGuard !== false,
+      sentimentGuard: config.automation.sentimentGuard !== false,
     });
   }, [config, isLoading]);
 
@@ -817,6 +852,8 @@ export default function ChatbotSettingsPage() {
         idleAction: settings.idleAction,
         apiIntegrations: limitToSingleApiIntegration(settings.apiIntegrations),
         crmIntegration: settings.crmIntegration,
+        spamGuard: settings.spamGuard,
+        sentimentGuard: settings.sentimentGuard,
       },
     }));
     setIsSaved(true);
@@ -870,6 +907,10 @@ export default function ChatbotSettingsPage() {
           <AIConfigPanel
             config={settings.aiConfig}
             onChange={(v) => setSettings({ ...settings, aiConfig: v })}
+            spamGuard={settings.spamGuard}
+            onChangeSpamGuard={(v) => setSettings({ ...settings, spamGuard: v })}
+            sentimentGuard={settings.sentimentGuard}
+            onChangeSentimentGuard={(v) => setSettings({ ...settings, sentimentGuard: v })}
             onSave={handleSave}
             isSaved={isSaved}
           />

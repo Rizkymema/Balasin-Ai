@@ -116,8 +116,8 @@ export default function ChannelsPage() {
   const hasConnectedInstagram = instagramAccounts.length > 0;
 
 
-  // Set default active tab to "mobilechat" as requested
-  const [activeChannel, setActiveChannel] = useState<ActiveChannel>("mobilechat");
+  // Set default active tab to "whatsapp" as requested for better UX
+  const [activeChannel, setActiveChannel] = useState<ActiveChannel>("whatsapp");
   const [origin, setOrigin] = useState("");
   const [copied, setCopied] = useState(false);
   const [webchatSaved, setWebchatSaved] = useState(false);

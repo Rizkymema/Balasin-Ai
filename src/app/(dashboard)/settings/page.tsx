@@ -95,7 +95,6 @@ type ActiveSetting =
   | "ticket"
   | "logs"
   | "security"
-  | "token_omni"
   | "token_bot";
 
 export default function SettingsPage() {
@@ -155,13 +154,7 @@ export default function SettingsPage() {
   const [notifyWeekly, setNotifyWeekly] = useState(config.team.notifications.weeklyReport);
   const [isSavedNotify, setIsSavedNotify] = useState(false);
 
-  // Mock Omnichannel API Token Workspace States
-  const [omniClientId, setOmniClientId] = useState("omni_client_johan_834927");
-  const [omniClientSecret, setOmniClientSecret] = useState("omni_secret_••••••••••••••••••••••••");
-  const [omniAccessToken, setOmniAccessToken] = useState("balesin_omni_tok_8492048f328a1c9e42d");
-  const [omniRefreshToken, setOmniRefreshToken] = useState("balesin_omni_ref_39103c84d7281f9a03c");
-  const [isSavedOmniToken, setIsSavedOmniToken] = useState(false);
-  const [omniCopied, setOmniCopied] = useState(false);
+  // Chatbot token states are self-contained in chatbot-tokens.tsx
 
   // Mock Agent Quota States (legacy)
   const [maxChatsPerAgent, setMaxChatsPerAgent] = useState(10);
@@ -565,44 +558,25 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Group 3: Developer API Tokens Dropdown */}
+          {/* Group 3: Chatbot API Token */}
           <div className="space-y-2">
-            <button
-              onClick={() => setIsApiDropdownOpen(!isApiDropdownOpen)}
-              className="w-full flex items-center justify-between px-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-slate-300 text-left outline-none"
-            >
-              <span>API Token</span>
-              <ChevronDown className={`h-3 w-3 transform transition ${isApiDropdownOpen ? "" : "-rotate-90"}`} />
-            </button>
-            {isApiDropdownOpen && (
-              <div className="space-y-1 bg-white/[0.01] border border-white/6 rounded-xl p-1.5">
-                {/* Omnichannel Token */}
-                <button
-                  onClick={() => setActiveSetting("token_omni")}
-                  className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
-                    activeSetting === "token_omni"
-                      ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
-                      : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
-                  }`}
-                >
-                  <Link2 className="h-4 w-4 text-cyan-400" />
-                  <span>Omnichannel</span>
-                </button>
-
-                {/* Chatbot Token */}
-                <button
-                  onClick={() => setActiveSetting("token_bot")}
-                  className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
-                    activeSetting === "token_bot"
-                      ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
-                      : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
-                  }`}
-                >
-                  <FileCode className="h-4 w-4 text-emerald-400" />
-                  <span>Chatbot</span>
-                </button>
-              </div>
-            )}
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block px-2.5">
+              API Token
+            </span>
+            <div className="space-y-1 bg-white/[0.01] border border-white/6 rounded-xl p-1.5">
+              {/* Chatbot Token */}
+              <button
+                onClick={() => setActiveSetting("token_bot")}
+                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
+                  activeSetting === "token_bot"
+                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
+                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                }`}
+              >
+                <FileCode className="h-4 w-4 text-emerald-400" />
+                <span>Chatbot Token</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1837,76 +1811,7 @@ export default function SettingsPage() {
             </Card>
           )}
 
-          {/* ============================================== */}
-          {/* TAB 11: OMNICHANNEL API TOKEN */}
-          {/* ============================================== */}
-          {activeSetting === "token_omni" && (
-            <Card className="glass-panel p-6 max-w-3xl border-white/8">
-              <div className="flex items-center justify-between border-b border-white/8 pb-4 mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-2xl border border-cyan-500/20 bg-cyan-950/30 p-3 text-cyan-300">
-                    <Link2 className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-white">Omnichannel API Tokens</h2>
-                    <p className="text-xs text-slate-400">Halaman yang digunakan untuk membuat kode akses (Token dan Refresh token) guna mengizinkan aplikasi eksternal terhubung ke akun Omnichannel Anda.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-semibold text-slate-300">Client ID (Public ID)</label>
-                    <Input value={omniClientId} readOnly className="h-10 text-xs font-mono bg-white/2 cursor-default" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-semibold text-slate-300">Client Secret Key</label>
-                    <Input value={omniClientSecret} readOnly className="h-10 text-xs font-mono bg-white/2 cursor-default" />
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-white/8 bg-[#020611] p-4 space-y-3">
-                  <div>
-                    <span className="block text-[9px] font-bold uppercase text-slate-500">Access Token</span>
-                    <div className="flex items-center justify-between mt-1">
-                      <code className="text-xs font-mono text-cyan-300">{omniAccessToken}</code>
-                      <button onClick={async () => {
-                        await navigator.clipboard.writeText(omniAccessToken);
-                        setOmniCopied(true);
-                        setTimeout(() => setOmniCopied(false), 2000);
-                      }} className="text-cyan-400 hover:text-cyan-300 text-xs font-bold transition">
-                        {omniCopied ? "Disalin ✓" : "Salin Token"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className="block text-[9px] font-bold uppercase text-slate-500">Refresh Token</span>
-                    <code className="mt-1 block text-xs font-mono text-slate-400">{omniRefreshToken}</code>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-white/8 pt-4">
-                  {isSavedOmniToken ? (
-                    <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-                      <Check className="h-4 w-4" /> Token baru berhasil digenerasi!
-                    </span>
-                  ) : (
-                    <div />
-                  )}
-                  <Button onClick={() => {
-                    setIsSavedOmniToken(true);
-                    setOmniAccessToken("balesin_omni_tok_" + Math.random().toString(36).substring(2, 18));
-                    setOmniRefreshToken("balesin_omni_ref_" + Math.random().toString(36).substring(2, 18));
-                    setTimeout(() => setIsSavedOmniToken(false), 2500);
-                  }}>
-                    Generasikan Token Baru
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          )}
+          {/* OMNICHANNEL API TOKEN removed as requested */}
 
           {/* ============================================== */}
           {/* TAB 12: CHATBOT API TOKEN */}

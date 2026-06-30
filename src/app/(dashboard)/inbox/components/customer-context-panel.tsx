@@ -34,6 +34,7 @@ type CustomerContextPanelProps = {
   conversation: ConversationRecord | null;
   context: ConversationContext | null;
   onCreateTicket: () => void;
+  onUpdateSentiment?: (sentiment: "positive" | "neutral" | "negative") => Promise<void>;
   hiddenOnDesktop?: boolean;
 };
 
@@ -95,6 +96,7 @@ export function CustomerContextPanel({
   conversation,
   context,
   onCreateTicket,
+  onUpdateSentiment,
   hiddenOnDesktop = false,
 }: CustomerContextPanelProps) {
   if (!conversation || !context) {
@@ -319,14 +321,46 @@ export function CustomerContextPanel({
         </div>
       </SidebarSection>
 
-      <SidebarSection title="Sentiment & Risk">
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
-          <p className="text-sm font-semibold capitalize text-slate-200">
-            {[conversation.sentiment, conversation.riskLevel].join(" | ")}
-          </p>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            {statusMeta.description}
-          </p>
+      <SidebarSection title="Sentiment & AI Training Feedback">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-400">Sentiment Terdeteksi:</span>
+            <span className={cn(
+              "px-2 py-0.5 rounded text-[10px] font-bold uppercase border",
+              conversation.sentiment === "positive" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+              conversation.sentiment === "negative" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
+              "bg-slate-500/10 text-slate-400 border-slate-500/20"
+            )}>
+              {conversation.sentiment === "positive" ? "Positif 😊" :
+               conversation.sentiment === "negative" ? "Negatif 😡" : "Netral 😐"}
+            </span>
+          </div>
+
+          {onUpdateSentiment && (
+            <div className="space-y-1.5 pt-2 border-t border-white/5">
+              <label className="text-[11px] font-semibold text-slate-400 block">Koreksi & Latih AI:</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {(["positive", "neutral", "negative"] as const).map((sent) => (
+                  <button
+                    key={sent}
+                    onClick={() => onUpdateSentiment(sent)}
+                    className={cn(
+                      "px-2 py-1.5 rounded-lg text-[10px] font-bold border transition text-center cursor-pointer",
+                      conversation.sentiment === sent
+                        ? "bg-cyan-500/20 border-cyan-400 text-cyan-300"
+                        : "bg-white/2 border-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                    )}
+                  >
+                    {sent === "positive" ? "Positif 😊" :
+                     sent === "neutral" ? "Netral 😐" : "Negatif 😡"}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[9px] text-slate-500 mt-1 leading-normal">
+                Memilih sentimen di atas akan mengoreksi status percakapan dan secara otomatis melatih AI (*few-shot reinforcement*) untuk mengenali pola pesan serupa di masa depan.
+              </p>
+            </div>
+          )}
         </div>
       </SidebarSection>
 

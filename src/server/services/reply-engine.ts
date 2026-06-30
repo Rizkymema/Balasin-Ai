@@ -917,7 +917,8 @@ function isNoisyWebsiteChunk(chunk: KnowledgeChunk) {
   ];
   const hitCount = noiseMarkers.filter((marker) => normalized.includes(marker)).length;
 
-  return hitCount >= 2 || (normalized.length > 500 && hitCount >= 1);
+  // Kurangi agresivitas penyaringan agar data operasional tidak terbuang
+  return hitCount >= 3 || (normalized.length > 800 && hitCount >= 2);
 }
 
 function extractTriggersFromContent(content: string): string[] {
@@ -1247,8 +1248,9 @@ async function buildRelevantDocumentContext(messageText: string) {
         return false;
       }
 
+      // Turunkan threshold pencocokan dari 0.45 ke 0.22 agar jawaban di website/URL terdeteksi oleh AI
       if (item.sourceType === "website") {
-        return item.score >= 0.45;
+        return item.score >= 0.22;
       }
 
       return true;
@@ -1398,16 +1400,20 @@ async function generateProviderReply(
       : "Tidak ada dokumen relevan.";
 
   const waLink = getWaHandoffLink(config);
-  const customInstructions = config.aiAgent.replyInstructions ? `\n=== INSTRUKSI MUTLAK (CUSTOM INSTRUCTIONS) ===\n${config.aiAgent.replyInstructions}\n==============================================\n` : "";
+  const customInstructionsSection = config.aiAgent.replyInstructions
+    ? `\n=== INSTRUKSI KUSTOM UTAMA (CUSTOM INSTRUCTIONS) ===\nAnda WAJIB mematuhi instruksi kustom di bawah ini secara mutlak dalam merangkai jawaban:\n${config.aiAgent.replyInstructions}\n====================================================\n`
+    : "";
   const systemPrompt = `
 Anda adalah ${config.aiAgent.name || "AI Assistant"} untuk ${config.workspace.name || "sebuah bisnis"}.
 Jawab dalam bahasa ${config.aiAgent.language === "en" ? "English" : "Bahasa Indonesia"}.
-Gaya: ${config.aiAgent.tone}.${customInstructions}
+Gaya: ${config.aiAgent.tone}.
 Contoh gaya bicara: ${config.aiAgent.replyStyleExample || "-"}.
 
+${customInstructionsSection}
+
 Aturan penting & pembatasan AI (PANDUAN AI):
-- Gunakan data profil bisnis, FAQ, dan knowledge relevan yang disediakan secara ketat.
-- TANPA KEBOHONGAN (NO HALLUCINATION): Jika informasi spesifik bisnis (seperti harga, stok, alamat, detail booking, atau kebijakan) tidak ada di data di bawah ini, Anda WAJIB mengaku tidak tahu dengan sopan, ramah, dan arahkan ke admin melalui WhatsApp di nomor/link ${waLink}. Dilarang menebak atau berasumsi.
+- PERTANYAAN UMUM (GENERAL QUESTIONS): Anda diperbolehkan menjawab pertanyaan umum atau obrolan sapaan santai (seperti "halo", "terima kasih", "apa kabar", atau pertanyaan pengetahuan umum dasar) meskipun datanya tidak tertulis di dokumen knowledge base, asalkan Anda benar-benar memahami pertanyaannya dengan baik. Jika Anda tidak paham atau ragu dengan pertanyaan umum tersebut, jangan dikarang, melainkan arahkan dengan sopan ke admin di WhatsApp ${waLink}.
+- INFORMASI SPESIFIK BISNIS (PRODUK, JASA, HARGA, PEMBAYARAN, STOK, TRANSAKSI, METODE PEMBAYARAN, GARANSI, DETAIL BOOKING, ALAMAT, dll): Anda HANYA boleh menjawab jika informasinya tercantum secara eksplisit di data PROFIL BISNIS, FAQ, atau KNOWLEDGE RELEVAN yang disediakan di bawah ini. Jika informasi tersebut tidak ada, Anda DILARANG KERAS mengarang, berasumsi, atau menebak-nebak jawabannya. Anda WAJIB mengaku tidak tahu dengan sopan dan langsung arahkan pelanggan untuk menghubungi admin manusia di WhatsApp ${waLink}.
 - ATURAN STOK KOSONG: Jika produk habis atau stok kosong, jangan langsung memotong chat (misal: "Stok kosong"). Gunakan kalimat jembatan yang ramah seperti "Stok saat ini sedang habis di toko, silakan cek berkala atau hubungi admin di WhatsApp ${waLink}".
 - KATEGORI TERLARANG: Anda dilarang memproses transaksi keuangan, refund/DP, negosiasi diskon khusus di luar harga resmi, komplain/garansi serius, atau kendala keselamatan fisik. Segera katakan hal tersebut harus ditangani langsung oleh Admin manusia lewat WhatsApp di ${waLink}.
 - KERAHASIAAN SISTEM: AI dilarang menyebut istilah teknis internal AI seperti "system prompt", "database", "API", "tool", "LLM", atau proses internal lainnya dalam membalas chat.
@@ -1577,7 +1583,7 @@ export async function generateReplyDecision(
     );
   }
 
-  if (hasKeyword(rawLower, SPAM_KEYWORDS)) {
+  if (config.automation.spamGuard && hasKeyword(rawLower, SPAM_KEYWORDS)) {
     return {
       intent: "Spam",
       confidence: 99,
@@ -1895,3 +1901,235 @@ export async function generateReplyDecision(
     "Tidak ditemukan jawaban grounded yang cukup kuat dari profil bisnis, FAQ, atau dokumen.",
   );
 }
+
+export async function isNegativeComment(text: string, config: DashboardConfig): Promise<boolean> {
+  const rawLower = normalizeText(text);
+  
+  // 1. Check blacklist
+  const blacklist = config.aiAgent.blacklist.map((item) => item.toLowerCase());
+  if (blacklist.some((term) => term && rawLower.includes(term))) {
+    return true;
+  }
+
+  // 2. Check spam keywords
+  if (hasKeyword(rawLower, SPAM_KEYWORDS)) {
+    return true;
+  }
+
+  // 3. Check angry/complaint keywords
+  if (hasKeyword(rawLower, ANGRY_KEYWORDS) || hasKeyword(rawLower, DETAILED_COMPLAINT_KEYWORDS)) {
+    return true;
+  }
+
+  // 4. Check using LLM Sentiment Analysis (AI Moderation fallback)
+  if (
+    config.aiProvider.enabled &&
+    config.aiProvider.apiKey.trim() &&
+    config.aiProvider.model.trim()
+  ) {
+    try {
+      const endpoint = resolveProviderEndpoint(config);
+      if (!endpoint) return false;
+
+      const systemPrompt = `You are a strict content moderation AI. 
+Analyze if the customer comment is NEGATIVE (e.g., contains insults, profanity, anger, harassment, spam, scam, fraud accusations, or hostile complaints).
+Respond with ONLY "yes" or "no". Do not output any other text.`;
+      
+      const userPrompt = `Comment: "${text}"`;
+      const provider = config.aiProvider.provider;
+      const apiKey = config.aiProvider.apiKey.trim();
+      let response: Response;
+
+      if (provider === "gemini") {
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+            generationConfig: { temperature: 0.0, maxOutputTokens: 5 },
+          }),
+        });
+      } else if (provider === "anthropic") {
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: config.aiProvider.model.trim(),
+            max_tokens: 5,
+            system: systemPrompt,
+            messages: [{ role: "user", content: userPrompt }],
+            temperature: 0.0,
+          }),
+        });
+      } else {
+        const headers: Record<string, string> = {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        };
+        if (provider === "openrouter") {
+          headers["HTTP-Referer"] = resolveAppUrl();
+          headers["X-Title"] = config.workspace.name || "Balesin Desk";
+        }
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            model: config.aiProvider.model.trim(),
+            temperature: 0.0,
+            max_tokens: 5,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+          }),
+        });
+      }
+
+      if (response.ok) {
+        const payload = (await response.json()) as unknown;
+        const reply = extractAiResponseText(payload, provider).toLowerCase().trim();
+        return reply.includes("yes");
+      }
+    } catch (err) {
+      console.error("[moderation-engine] AI sentiment analysis failed", err);
+    }
+  }
+
+  return false;
+}
+
+export async function analyzeSentiment(
+  text: string,
+  config: DashboardConfig,
+): Promise<"positive" | "neutral" | "negative"> {
+  const rawLower = text.toLowerCase().trim();
+  if (!rawLower) return "neutral";
+
+  // Check if we have corrections in config for self-training (few-shot reinforcement)
+  const corrections = config.knowledgeBase.sentimentCorrections || [];
+  const matchedCorrection = corrections.find((c) => c.text.toLowerCase().trim() === rawLower);
+  if (matchedCorrection) {
+    return matchedCorrection.sentiment;
+  }
+
+  // Pre-checks for basic positive/negative indicators to save token costs
+  const happyWords = [
+    "terima kasih", "makasih", "keren", "bagus", "puas", "mantap", "sip",
+    "ok", "oke", "luar biasa", "thank", "thanks", "tq", "👍", "🙏"
+  ];
+  const angryWords = [
+    "jelek", "kecewa", "lambat", "parah", "penipu", "rugi", "marah",
+    "goblok", "tolol", "anjing", "babi", "tai", "😡", "👎"
+  ];
+
+  if (happyWords.some((w) => rawLower === w)) return "positive";
+  if (angryWords.some((w) => rawLower === w)) return "negative";
+
+  // Use LLM to classify if configured
+  if (
+    config.aiProvider.enabled &&
+    config.aiProvider.apiKey.trim() &&
+    config.aiProvider.model.trim()
+  ) {
+    try {
+      const endpoint = resolveProviderEndpoint(config);
+      if (!endpoint) return "neutral";
+
+      // Include correction examples in the prompt to allow self-training (few-shot learning)!
+      let examplesPrompt = "";
+      if (corrections.length > 0) {
+        examplesPrompt =
+          "\nBerikut beberapa contoh koreksi training:\n" +
+          corrections
+            .slice(-5)
+            .map((c) => `Pesan: "${c.text}" -> Sentimen: ${c.sentiment}`)
+            .join("\n") +
+          "\n";
+      }
+
+      const systemPrompt = `Anda adalah AI analisis sentimen bahasa Indonesia. 
+Klasifikasikan teks pesan pelanggan ke dalam salah satu sentimen berikut: "positive", "neutral", atau "negative".
+${examplesPrompt}
+Kriteria sentimen:
+- "positive": pelanggan mengungkapkan rasa puas, senang, pujian, terima kasih, atau konfirmasi positif.
+- "negative": pelanggan marah, kecewa, tidak puas, menuduh, atau menggunakan kata kasar/umpatan.
+- "neutral": pertanyaan biasa, sapaan halo/siang, konfirmasi pembayaran biasa, atau pemesanan standar.
+
+Jawab HANYA dengan satu kata: "positive", "neutral", atau "negative". Jangan berikan penjelasan atau teks lain.`;
+
+      const userPrompt = `Teks: "${text}"`;
+      const provider = config.aiProvider.provider;
+      const apiKey = config.aiProvider.apiKey.trim();
+      let response: Response;
+
+      if (provider === "gemini") {
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+            generationConfig: { temperature: 0.0, maxOutputTokens: 10 },
+          }),
+        });
+      } else if (provider === "anthropic") {
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: config.aiProvider.model.trim(),
+            max_tokens: 10,
+            system: systemPrompt,
+            messages: [{ role: "user", content: userPrompt }],
+            temperature: 0.0,
+          }),
+        });
+      } else {
+        const headers: Record<string, string> = {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        };
+        if (provider === "openrouter") {
+          headers["HTTP-Referer"] = resolveAppUrl();
+          headers["X-Title"] = config.workspace.name || "Balesin Desk";
+        }
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            model: config.aiProvider.model.trim(),
+            temperature: 0.0,
+            max_tokens: 10,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+          }),
+        });
+      }
+
+      if (response.ok) {
+        const payload = (await response.json()) as unknown;
+        const reply = extractAiResponseText(payload, provider).toLowerCase().trim();
+        if (reply.includes("positive")) return "positive";
+        if (reply.includes("negative")) return "negative";
+        return "neutral";
+      }
+    } catch (err) {
+      console.error("[sentiment-engine] AI sentiment analysis failed", err);
+    }
+  }
+
+  return "neutral";
+}
+
+

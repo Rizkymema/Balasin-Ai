@@ -78,6 +78,7 @@ type ConversationThreadPanelProps = {
   showContextPanel: boolean;
   onToggleContextPanel: () => void;
   onBackToList: () => void;
+  onSendSticker?: (stickerUrl: string) => void;
 };
 
 function resolveStatusButtonLabel(conversation: ConversationRecord) {
@@ -148,6 +149,7 @@ export function ConversationThreadPanel({
   onActivateAi,
   onResolve,
   onDeleteConversation,
+  onSendSticker,
   isSubmitting,
   isReplyTyping,
   allowMediaAttachments,
@@ -160,6 +162,8 @@ export function ConversationThreadPanel({
   const [isGeneratingSuggestion, setIsGeneratingSuggestion] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [templateSearch, setTemplateSearch] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
   const fileInputId = useId();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -324,11 +328,7 @@ export function ConversationThreadPanel({
     conversation.status === "resolved";
   const canResolve =
     conversation.status !== "resolved" && conversation.status !== "spam";
-  const showExpiredBanner =
-    conversation.channel === "WhatsApp" &&
-    (conversation.status === "waiting_customer" ||
-      conversation.status === "resolved" ||
-      conversation.status === "ai_paused");
+  const showExpiredBanner = false;
 
   return (
     <section className="flex min-h-[42rem] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full lg:min-h-0">
@@ -716,12 +716,75 @@ export function ConversationThreadPanel({
               />
               <div className="flex items-center justify-between px-3 pb-2 pt-1 border-t border-white/[0.04] bg-white/[0.01]">
                 <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/[0.06] hover:text-slate-200"
-                  >
-                    <Smile className="h-4.5 w-4.5" />
-                  </button>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className={cn(
+                        "inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/[0.06] hover:text-slate-200",
+                        showEmojiPicker && "bg-white/[0.06] text-[#00d2ff]"
+                      )}
+                      title="Sisipkan emoji"
+                    >
+                      <Smile className="h-4.5 w-4.5" />
+                    </button>
+                    {showEmojiPicker && (
+                      <div className="absolute bottom-full mb-2 left-0 bg-[#1e253c] border border-white/[0.1] rounded-xl p-2 shadow-2xl z-50 grid grid-cols-5 gap-1.5 w-44 animate-in fade-in slide-in-from-bottom-2">
+                        {["😊", "😂", "👍", "❤️", "🙏", "😉", "😍", "😮", "😢", "😡", "🛠️", "🚗", "🛵", "🔑", "✅"].map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => {
+                              onReplyTextChange(replyText + emoji);
+                              setShowEmojiPicker(false);
+                            }}
+                            className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/[0.06] text-sm transition cursor-pointer"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowStickerPicker(!showStickerPicker)}
+                      className={cn(
+                        "inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/[0.06] hover:text-slate-200",
+                        showStickerPicker && "bg-white/[0.06] text-[#00d2ff]"
+                      )}
+                      title="Kirim stiker"
+                    >
+                      <StickyNote className="h-4.5 w-4.5" />
+                    </button>
+                    {showStickerPicker && onSendSticker && (
+                      <div className="absolute bottom-full mb-2 left-0 bg-[#1e253c] border border-white/[0.1] rounded-xl p-3 shadow-2xl z-50 grid grid-cols-3 gap-2 w-72 animate-in fade-in slide-in-from-bottom-2">
+                        {[
+                          { name: "Servis Motor", url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="20" fill="%230e172c" stroke="%2338bdf8" stroke-width="3"/><path d="M30 70 L70 30 M65 25 L75 35 M35 75 L25 65" stroke="%2338bdf8" stroke-width="8" stroke-linecap="round"/><circle cx="50" cy="50" r="10" fill="none" stroke="%2338bdf8" stroke-width="4"/><text x="50" y="85" font-family="sans-serif" font-size="10" font-weight="bold" fill="%2338bdf8" text-anchor="middle">SERVIS MOTOR</text></svg>' },
+                          { name: "Ganti Oli", url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="20" fill="%230e172c" stroke="%23fbbf24" stroke-width="3"/><path d="M50 25 C50 25 70 50 70 65 C70 76 61 80 50 80 C39 80 30 76 30 65 C30 50 50 25 50 25 Z" fill="%23fbbf24"/><text x="50" y="90" font-family="sans-serif" font-size="10" font-weight="bold" fill="%23fbbf24" text-anchor="middle">GANTI OLI</text></svg>' },
+                          { name: "Oke Siap", url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="20" fill="%230e172c" stroke="%2334d399" stroke-width="3"/><text x="50" y="55" font-family="sans-serif" font-size="40" text-anchor="middle">👍</text><text x="50" y="85" font-family="sans-serif" font-size="10" font-weight="bold" fill="%2334d399" text-anchor="middle">OKE SIAP!</text></svg>' },
+                          { name: "Booking Confirmed", url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="20" fill="%230e172c" stroke="%2322d3ee" stroke-width="3"/><rect x="30" y="35" width="40" height="40" rx="5" fill="none" stroke="%2322d3ee" stroke-width="4"/><path d="M30 45 L70 45 M40 25 L40 35 M60 25 L60 35" stroke="%2322d3ee" stroke-width="4" stroke-linecap="round"/><path d="M45 58 L52 65 L62 53" fill="none" stroke="%2334d399" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><text x="50" y="90" font-family="sans-serif" font-size="9" font-weight="bold" fill="%2322d3ee" text-anchor="middle">BOOKING OK</text></svg>' },
+                          { name: "Terima Kasih", url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="20" fill="%230e172c" stroke="%23f472b6" stroke-width="3"/><path d="M12 21.35 C17.55 13 29 13 35.5 20 C42 13 53.45 13 59 21.35 C66 32 50 56 35.5 68 C21 56 5 32 12 21.35 Z" fill="%23f472b6" transform="translate(15, 5)"/><text x="50" y="85" font-family="sans-serif" font-size="9" font-weight="bold" fill="%23f472b6" text-anchor="middle">TERIMA KASIH</text></svg>' },
+                          { name: "Diskon Promo", url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="20" fill="%230e172c" stroke="%23a78bfa" stroke-width="3"/><path d="M30 30 L60 30 L80 50 L50 80 L30 60 Z" fill="none" stroke="%23a78bfa" stroke-width="4" stroke-linejoin="round"/><circle cx="42" cy="42" r="4" fill="%23a78bfa"/><text x="50" y="90" font-family="sans-serif" font-size="9" font-weight="bold" fill="%23a78bfa" text-anchor="middle">DISKON PROMO</text></svg>' },
+                        ].map((st) => (
+                          <button
+                            key={st.name}
+                            type="button"
+                            onClick={() => {
+                              onSendSticker && onSendSticker(st.url);
+                              setShowStickerPicker(false);
+                            }}
+                            className="flex flex-col items-center gap-1.5 p-1.5 rounded-lg border border-white/5 hover:border-cyan-400/30 hover:bg-white/5 transition cursor-pointer"
+                          >
+                            <img src={st.url} alt={st.name} className="w-12 h-12 object-contain" />
+                            <span className="text-[9px] text-slate-400 truncate max-w-full font-semibold">{st.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <input
                     id={fileInputId}
                     type="file"
