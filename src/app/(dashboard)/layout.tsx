@@ -280,10 +280,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const profileItems = [
     {
-      label: t.accountProfile,
+      label: "Pengaturan Akun",
       onClick: () => {
-        router.push("/settings");
+        setIsAccountModalOpen(true);
       },
+      icon: <Settings className="h-4 w-4 text-slate-400" />,
     },
     {
       label: t.logout,
@@ -517,20 +518,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               trigger={
                 hasMounted && isMainSidebarCollapsed ? (
                   <div
-                    onMouseEnter={(e) => handleMouseEnter(e, `Administrator (${userEmail})`)}
+                    onMouseEnter={(e) => handleMouseEnter(e, `${userName} (${userEmail})`)}
                     onMouseLeave={handleMouseLeave}
                     onClick={handleMouseLeave}
-                    className="h-10 w-10 mx-auto rounded-full bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center text-xs font-bold text-[var(--color-brand)] cursor-pointer hover:border-[var(--color-brand)]/50 transition"
+                    className="h-10 w-10 mx-auto rounded-full bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center text-xs font-bold text-[var(--color-brand)] cursor-pointer hover:border-[var(--color-brand)]/50 transition uppercase"
                   >
-                    AD
+                    {userName.slice(0, 2)}
                   </div>
                 ) : (
                   <div className="flex items-center gap-3 cursor-pointer hover:bg-[var(--color-surface-hover)] p-2 rounded-lg transition duration-200">
-                    <div className="h-9 w-9 rounded-full bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center text-xs font-bold text-[var(--color-brand)]">
-                      AD
+                    <div className="h-9 w-9 rounded-full bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center text-xs font-bold text-[var(--color-brand)] uppercase">
+                      {userName.slice(0, 2)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold text-[var(--color-text)] truncate">Administrator</div>
+                      <div className="text-xs font-bold text-[var(--color-text)] truncate">{userName}</div>
                       <div className="text-[10px] text-[var(--color-muted)] truncate">{userEmail}</div>
                     </div>
                     <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
@@ -541,7 +542,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               header={
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Menu Akun</span>
-                  <span className="text-xs font-bold text-[var(--color-text)] truncate">Administrator</span>
+                  <span className="text-xs font-bold text-[var(--color-text)] truncate">{userName}</span>
                   <span className="text-[10px] text-[var(--color-muted)] truncate">{userEmail}</span>
                 </div>
               }
