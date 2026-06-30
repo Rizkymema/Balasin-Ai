@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   ArrowLeft,
   Bot,
@@ -161,6 +161,38 @@ export function ConversationThreadPanel({
   const [showTemplates, setShowTemplates] = useState(false);
   const [templateSearch, setTemplateSearch] = useState("");
   const fileInputId = useId();
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const prevConversationIdRef = useRef<string | null>(null);
+  const conversationId = conversation?.id ?? null;
+  const messageCount = conversation?.messages?.length ?? 0;
+
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const isSameConversation = prevConversationIdRef.current === conversationId;
+    prevConversationIdRef.current = conversationId;
+
+    const scrollToBottom = () => {
+      if (containerRef.current) {
+        if (isSameConversation) {
+          containerRef.current.scrollTo({
+            top: containerRef.current.scrollHeight,
+            behavior: "smooth",
+          });
+        } else {
+          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        }
+      }
+    };
+
+    // Scroll immediately
+    scrollToBottom();
+
+    // Scroll again after a short delay to account for dynamic contents or images rendering
+    const timer = setTimeout(scrollToBottom, 50);
+    return () => clearTimeout(timer);
+  }, [conversationId, isReplyTyping, messageCount]);
 
   const templates = config.automation.inboxSettings.templates;
 
@@ -418,7 +450,10 @@ export function ConversationThreadPanel({
       </div>
 
       {/* Chat Messages Area */}
-      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#080c18] px-4 py-4 sm:px-6">
+      <div
+        ref={containerRef}
+        className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#080c18] px-4 py-4 sm:px-6"
+      >
         <div className="mb-4 flex items-center justify-center">
           <span className="rounded-full bg-white/[0.06] px-4 py-1 text-[11px] font-medium text-slate-500">
             Conversation timeline

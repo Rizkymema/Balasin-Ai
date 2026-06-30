@@ -160,6 +160,31 @@ function keepExistingString(existing: string, incoming: string) {
   return incoming.trim() ? incoming : existing;
 }
 
+function normalizeSecretLikeValue(value: string) {
+  const trimmed = value.trim();
+
+  if (
+    !trimmed ||
+    trimmed === "undefined" ||
+    trimmed === "null" ||
+    trimmed === '""' ||
+    trimmed === "''"
+  ) {
+    return "";
+  }
+
+  const wrappedInDoubleQuotes =
+    trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2;
+  const wrappedInSingleQuotes =
+    trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length >= 2;
+
+  if (wrappedInDoubleQuotes || wrappedInSingleQuotes) {
+    return trimmed.slice(1, -1).trim();
+  }
+
+  return trimmed;
+}
+
 function mergePersistedDashboardConfig(
   existing: DashboardConfig,
   incoming: DashboardConfig,
@@ -168,14 +193,18 @@ function mergePersistedDashboardConfig(
     ...incoming,
     runtime: {
       ...incoming.runtime,
-      workerSecret: keepExistingString(
-        existing.runtime.workerSecret,
-        incoming.runtime.workerSecret,
+      workerSecret: normalizeSecretLikeValue(
+        keepExistingString(
+          existing.runtime.workerSecret,
+          incoming.runtime.workerSecret,
+        ),
       ),
     },
     aiProvider: {
       ...incoming.aiProvider,
-      apiKey: keepExistingString(existing.aiProvider.apiKey, incoming.aiProvider.apiKey),
+      apiKey: normalizeSecretLikeValue(
+        keepExistingString(existing.aiProvider.apiKey, incoming.aiProvider.apiKey),
+      ),
     },
     channels: {
       ...incoming.channels,
@@ -189,15 +218,26 @@ function mergePersistedDashboardConfig(
           existing.channels.whatsapp.phoneNumberId,
           incoming.channels.whatsapp.phoneNumberId,
         ),
-        accessToken: keepExistingString(
-          existing.channels.whatsapp.accessToken,
-          incoming.channels.whatsapp.accessToken,
+        accessToken: normalizeSecretLikeValue(
+          keepExistingString(
+            existing.channels.whatsapp.accessToken,
+            incoming.channels.whatsapp.accessToken,
+          ),
         ),
-        verifyToken: keepExistingString(
-          existing.channels.whatsapp.verifyToken,
-          incoming.channels.whatsapp.verifyToken,
+        verifyToken: normalizeSecretLikeValue(
+          keepExistingString(
+            existing.channels.whatsapp.verifyToken,
+            incoming.channels.whatsapp.verifyToken,
+          ),
         ),
-        accounts: incoming.channels.whatsapp.accounts ?? existing.channels.whatsapp.accounts ?? [],
+        accounts:
+          (incoming.channels.whatsapp.accounts ??
+            existing.channels.whatsapp.accounts ??
+            []).map((account) => ({
+            ...account,
+            accessToken: normalizeSecretLikeValue(account.accessToken),
+            verifyToken: normalizeSecretLikeValue(account.verifyToken),
+          })),
       },
       instagram: {
         ...incoming.channels.instagram,
@@ -209,15 +249,26 @@ function mergePersistedDashboardConfig(
           existing.channels.instagram.accountId,
           incoming.channels.instagram.accountId,
         ),
-        accessToken: keepExistingString(
-          existing.channels.instagram.accessToken,
-          incoming.channels.instagram.accessToken,
+        accessToken: normalizeSecretLikeValue(
+          keepExistingString(
+            existing.channels.instagram.accessToken,
+            incoming.channels.instagram.accessToken,
+          ),
         ),
-        verifyToken: keepExistingString(
-          existing.channels.instagram.verifyToken,
-          incoming.channels.instagram.verifyToken,
+        verifyToken: normalizeSecretLikeValue(
+          keepExistingString(
+            existing.channels.instagram.verifyToken,
+            incoming.channels.instagram.verifyToken,
+          ),
         ),
-        accounts: incoming.channels.instagram.accounts ?? existing.channels.instagram.accounts ?? [],
+        accounts:
+          (incoming.channels.instagram.accounts ??
+            existing.channels.instagram.accounts ??
+            []).map((account) => ({
+            ...account,
+            accessToken: normalizeSecretLikeValue(account.accessToken),
+            verifyToken: normalizeSecretLikeValue(account.verifyToken),
+          })),
       },
     },
   } satisfies DashboardConfig;

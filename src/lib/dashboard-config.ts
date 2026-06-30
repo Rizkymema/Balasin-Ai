@@ -83,6 +83,33 @@ const defaultInboxSettings = {
   }
 } as const;
 
+function normalizeSecretLikeValue(value?: string | null) {
+  const trimmed = value?.trim() ?? "";
+  if (!trimmed) {
+    return "";
+  }
+
+  if (
+    trimmed === "undefined" ||
+    trimmed === "null" ||
+    trimmed === '""' ||
+    trimmed === "''"
+  ) {
+    return "";
+  }
+
+  const wrappedInDoubleQuotes =
+    trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2;
+  const wrappedInSingleQuotes =
+    trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length >= 2;
+
+  if (wrappedInDoubleQuotes || wrappedInSingleQuotes) {
+    return trimmed.slice(1, -1).trim();
+  }
+
+  return trimmed;
+}
+
 export const defaultDashboardConfig: DashboardConfig = {
   workspace: {
     name: "Workspace Baru",
@@ -237,6 +264,9 @@ export function mergeDashboardConfig(
     runtime: {
       ...base.runtime,
       ...incoming.runtime,
+      workerSecret: normalizeSecretLikeValue(
+        incoming.runtime?.workerSecret ?? base.runtime.workerSecret,
+      ),
     },
     aiProvider: {
       ...base.aiProvider,
@@ -260,12 +290,40 @@ export function mergeDashboardConfig(
       whatsapp: { 
         ...base.channels.whatsapp, 
         ...incoming.channels?.whatsapp,
-        accounts: incoming.channels?.whatsapp?.accounts ?? base.channels.whatsapp.accounts ?? []
+        accessToken: normalizeSecretLikeValue(
+          incoming.channels?.whatsapp?.accessToken ??
+            base.channels.whatsapp.accessToken,
+        ),
+        verifyToken: normalizeSecretLikeValue(
+          incoming.channels?.whatsapp?.verifyToken ??
+            base.channels.whatsapp.verifyToken,
+        ),
+        accounts:
+          (incoming.channels?.whatsapp?.accounts ?? base.channels.whatsapp.accounts ?? [])
+            .map((account) => ({
+              ...account,
+              accessToken: normalizeSecretLikeValue(account.accessToken),
+              verifyToken: normalizeSecretLikeValue(account.verifyToken),
+            })),
       },
       instagram: { 
         ...base.channels.instagram, 
         ...incoming.channels?.instagram,
-        accounts: incoming.channels?.instagram?.accounts ?? base.channels.instagram.accounts ?? []
+        accessToken: normalizeSecretLikeValue(
+          incoming.channels?.instagram?.accessToken ??
+            base.channels.instagram.accessToken,
+        ),
+        verifyToken: normalizeSecretLikeValue(
+          incoming.channels?.instagram?.verifyToken ??
+            base.channels.instagram.verifyToken,
+        ),
+        accounts:
+          (incoming.channels?.instagram?.accounts ?? base.channels.instagram.accounts ?? [])
+            .map((account) => ({
+              ...account,
+              accessToken: normalizeSecretLikeValue(account.accessToken),
+              verifyToken: normalizeSecretLikeValue(account.verifyToken),
+            })),
       },
     },
     automation: {
