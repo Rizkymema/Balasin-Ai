@@ -109,11 +109,11 @@ export async function POST(request: Request) {
     const config = await getDashboardConfigRecord();
     const ops = await getDashboardOperationsRecord();
 
-    if (!config.aiProvider.enabled || !config.aiProvider.apiKey.trim()) {
-      // Fallback response if AI provider is not configured/enabled
+    if (!config.aiProvider.apiKey.trim()) {
+      // Fallback response if AI provider is not configured
       return jsonOk({
         ok: true,
-        reply: "Asisten AI belum siap karena AI Provider belum diaktifkan di menu Chatbot Settings. Mohon hubungkan kunci API Anda terlebih dahulu.",
+        reply: "Asisten AI belum aktif karena API Key belum diisi di menu Chatbot Settings. Silakan hubungkan API Key Anda terlebih dahulu untuk mulai bertanya.",
       });
     }
 
