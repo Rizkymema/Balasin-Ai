@@ -128,6 +128,17 @@ export async function sendChannelMessage(input: SendMessageInput) {
   const config = await getDashboardConfigRecord();
   const trimmedMessage = input.message.trim();
 
+  if (input.channel === "Website Chat") {
+    return {
+      ok: true,
+      provider: "webchat",
+      status: 200,
+      note: input.mediaAttachment
+        ? "Media website chat dicatat dan diteruskan ke channel internal."
+        : "Pesan website chat dicatat dan diteruskan ke channel internal.",
+    };
+  }
+
   if (input.channel === "WhatsApp") {
     const phoneNumberId =
       input.phoneNumberIdOverride?.trim() ||

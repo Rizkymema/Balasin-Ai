@@ -43,6 +43,10 @@ type PendingReplyAttachment = {
   previewUrl: string;
 };
 
+function supportsMediaAttachments(channel?: ConversationRecord["channel"] | null) {
+  return channel === "WhatsApp" || channel === "Website Chat";
+}
+
 export function InboxWorkspace() {
   const { config } = useDashboardConfig();
   const { data, isLoading, refreshData, applyLocalPatch } = useDashboardOperations();
@@ -544,7 +548,7 @@ export function InboxWorkspace() {
                   onDeleteConversation={() => void handleDeleteConversation()}
                   isSubmitting={isSubmitting}
                   isReplyTyping={isReplyTyping}
-                  allowMediaAttachments={activeConversation?.channel === "WhatsApp"}
+                  allowMediaAttachments={supportsMediaAttachments(activeConversation?.channel)}
                   noteSaved={noteSaved}
                   showContextPanel={showContextPanel}
                   onToggleContextPanel={() => {

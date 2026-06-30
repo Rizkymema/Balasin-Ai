@@ -711,7 +711,7 @@ export function ConversationThreadPanel({
                     title={
                       allowMediaAttachments
                         ? "Lampirkan foto atau video"
-                        : "Kirim media saat ini hanya didukung untuk WhatsApp"
+                        : "Kirim media saat ini hanya didukung untuk WhatsApp dan Website Chat"
                     }
                   >
                     <Paperclip className="h-4.5 w-4.5" />
