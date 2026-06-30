@@ -234,7 +234,7 @@ export async function POST(request: Request) {
     // 4. Kembalikan hasil
     // -------------------------------------------------------
     return NextResponse.json({
-      accessToken: longLivedToken,
+      accessToken: foundPage.access_token || longLivedToken,
       accountId: foundIgAccount.id,
       username: foundIgAccount.username ?? foundIgAccount.name ?? "",
       pageId: foundPage.id,

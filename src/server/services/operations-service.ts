@@ -283,6 +283,7 @@ export async function sendInboxReply(input: {
     phoneNumberIdOverride: conversation.channelContext?.whatsappPhoneNumberId,
     instagramAccountIdOverride: conversation.channelContext?.instagramAccountId,
     mediaAttachment: input.mediaAttachment,
+    mediaPublicUrl: storedMedia?.publicUrl,
   });
 
   const outgoingMessage: ConversationMessage = {

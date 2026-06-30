@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHmac, timingSafeEqual, randomUUID } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 
@@ -10,6 +10,7 @@ import {
   OUTBOUND_MEDIA_MAX_BYTES,
 } from "@/constants/media";
 import { getOutboundMediaDirectory } from "@/server/db";
+import { serverEnv } from "@/server/env";
 
 export type PreparedOutboundMediaUpload = {
   buffer: Buffer;
@@ -85,6 +86,39 @@ export function buildOutboundMediaPreviewUrl(assetKey: string) {
   return `/api/inbox/media/${encodeURIComponent(assetKey)}`;
 }
 
+function buildPublicMediaToken(assetKey: string) {
+  return createHmac("sha256", serverEnv.workerSecret)
+    .update(assetKey)
+    .digest("hex");
+}
+
+export function buildOutboundMediaPublicUrl(assetKey: string) {
+  const url = new URL(
+    `/api/inbox/media/public/${encodeURIComponent(assetKey)}`,
+    serverEnv.publicAppUrl,
+  );
+  url.searchParams.set("token", buildPublicMediaToken(assetKey));
+  return url.toString();
+}
+
+export function isValidOutboundMediaPublicToken(assetKey: string, token: string) {
+  const expected = buildPublicMediaToken(assetKey);
+  const normalizedToken = token.trim();
+
+  if (!normalizedToken || normalizedToken.length !== expected.length) {
+    return false;
+  }
+
+  try {
+    return timingSafeEqual(
+      Buffer.from(normalizedToken, "utf-8"),
+      Buffer.from(expected, "utf-8"),
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function normalizeOutboundMediaUpload(input: {
   buffer: Buffer;
   fileName: string;
@@ -120,6 +154,7 @@ export async function storeOutboundMediaAsset(
   const extension = resolveExtension(upload.fileName, upload.mimeType, upload.kind);
   const assetKey = `${Date.now()}-${randomUUID()}${extension}`;
   const previewUrl = buildOutboundMediaPreviewUrl(assetKey);
+  const publicUrl = buildOutboundMediaPublicUrl(assetKey);
 
   if (canStoreMediaInBlob()) {
     const result = await put(`outbound-media/${assetKey}`, upload.buffer, {
@@ -150,6 +185,7 @@ export async function storeOutboundMediaAsset(
     kind: upload.kind,
     sizeBytes: upload.sizeBytes,
     previewUrl,
+    publicUrl,
   };
 }
 

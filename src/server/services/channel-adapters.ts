@@ -1,7 +1,7 @@
 import { getDashboardConfigRecord } from "@/server/repositories/dashboard-repository";
 import { serverEnv } from "@/server/env";
-import type { ChannelKind } from "@/types/operations";
 import type { PreparedOutboundMediaUpload } from "@/server/services/outbound-media";
+import type { ChannelKind } from "@/types/operations";
 
 type SendMessageInput = {
   channel: ChannelKind;
@@ -10,6 +10,12 @@ type SendMessageInput = {
   phoneNumberIdOverride?: string;
   instagramAccountIdOverride?: string;
   mediaAttachment?: PreparedOutboundMediaUpload;
+  mediaPublicUrl?: string;
+};
+
+type InstagramMessagingContext = {
+  accessToken: string;
+  pageId?: string;
 };
 
 type GraphApiError = {
@@ -23,15 +29,16 @@ type GraphApiError = {
   };
 };
 
-type WhatsAppGraphResponse = {
+type GraphApiResponse = {
   messages?: Array<{
     id?: string;
   }>;
+  message_id?: string;
   id?: string;
   error?: GraphApiError;
 };
 
-function formatWhatsAppGraphError(error?: GraphApiError) {
+function formatGraphApiError(error?: GraphApiError) {
   if (!error) {
     return undefined;
   }
@@ -40,25 +47,21 @@ function formatWhatsAppGraphError(error?: GraphApiError) {
     error.message?.trim(),
     error.error_data?.details?.trim(),
     typeof error.code === "number" ? `code ${error.code}` : "",
-    typeof error.error_subcode === "number"
-      ? `subcode ${error.error_subcode}`
-      : "",
+    typeof error.error_subcode === "number" ? `subcode ${error.error_subcode}` : "",
     error.type?.trim() ? `type ${error.type.trim()}` : "",
   ].filter(Boolean);
 
   return parts.join(" | ");
 }
 
-async function parseGraphResponse(
-  response: Response,
-): Promise<WhatsAppGraphResponse | null> {
+async function parseGraphResponse(response: Response): Promise<GraphApiResponse | null> {
   const bodyText = await response.text();
   if (!bodyText) {
     return null;
   }
 
   try {
-    return JSON.parse(bodyText) as WhatsAppGraphResponse;
+    return JSON.parse(bodyText) as GraphApiResponse;
   } catch {
     return null;
   }
@@ -124,6 +127,97 @@ async function uploadWhatsAppMedia(
   };
 }
 
+async function resolveInstagramMessagingContext(input: {
+  accountId: string;
+  accessToken: string;
+  pageId?: string;
+}) {
+  const directContext: InstagramMessagingContext = {
+    accessToken: input.accessToken,
+    pageId: input.pageId?.trim() || undefined,
+  };
+
+  try {
+    const url = new URL(
+      `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/me/accounts`,
+    );
+    url.searchParams.set(
+      "fields",
+      "id,name,access_token,instagram_business_account{id,username,name}",
+    );
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      return directContext;
+    }
+
+    const payload = (await response.json()) as {
+      data?: Array<{
+        id?: string;
+        access_token?: string;
+        instagram_business_account?: {
+          id?: string;
+        };
+      }>;
+    };
+
+    const matchedPage = payload.data?.find(
+      (page) =>
+        page.instagram_business_account?.id === input.accountId ||
+        (input.pageId?.trim() && page.id === input.pageId.trim()),
+    );
+
+    if (!matchedPage?.access_token) {
+      return directContext;
+    }
+
+    return {
+      accessToken: matchedPage.access_token.trim(),
+      pageId: matchedPage.id?.trim() || directContext.pageId,
+    } satisfies InstagramMessagingContext;
+  } catch {
+    return directContext;
+  }
+}
+
+async function sendInstagramRequest(
+  accessToken: string,
+  body: Record<string, unknown>,
+) {
+  const sendUrl = `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/me/messages`;
+  const response = await fetch(sendUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const responseText = await response.text();
+  let parsedBody: Record<string, unknown> | null = null;
+  try {
+    parsedBody = responseText
+      ? (JSON.parse(responseText) as Record<string, unknown>)
+      : null;
+  } catch {
+    parsedBody = null;
+  }
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    body: parsedBody,
+    rawBody: responseText,
+    sendUrl,
+  };
+}
+
 export async function sendChannelMessage(input: SendMessageInput) {
   const config = await getDashboardConfigRecord();
   const trimmedMessage = input.message.trim();
@@ -144,11 +238,12 @@ export async function sendChannelMessage(input: SendMessageInput) {
       input.phoneNumberIdOverride?.trim() ||
       config.channels.whatsapp.phoneNumberId.trim();
 
-    // Cari token di daftar accounts yang cocok dengan phoneNumberId
     const matchingAccount = config.channels.whatsapp.accounts?.find(
-      (acc) => acc.phoneNumberId === phoneNumberId
+      (acc) => acc.phoneNumberId === phoneNumberId,
     );
-    const accessToken = (matchingAccount?.accessToken || config.channels.whatsapp.accessToken).trim();
+    const accessToken = (
+      matchingAccount?.accessToken || config.channels.whatsapp.accessToken
+    ).trim();
 
     if (!phoneNumberId || !accessToken) {
       return {
@@ -183,8 +278,7 @@ export async function sendChannelMessage(input: SendMessageInput) {
           provider: "whatsapp",
           status: upload.status,
           body: upload.body,
-          note: formatWhatsAppGraphError(upload.body?.error) ??
-            "Gagal mengunggah media ke WhatsApp.",
+          note: formatGraphApiError(upload.body?.error) ?? "Gagal mengunggah media ke WhatsApp.",
         };
       }
 
@@ -231,16 +325,7 @@ export async function sendChannelMessage(input: SendMessageInput) {
       status: response.status,
       body: response.body,
       messageId: response.body?.messages?.[0]?.id,
-      note: formatWhatsAppGraphError(response.body?.error),
-    };
-  }
-
-  if (input.mediaAttachment) {
-    return {
-      ok: false,
-      provider: "unsupported_media",
-      status: 422,
-      note: `Channel ${input.channel} belum mendukung kirim foto/video dari dashboard.`,
+      note: formatGraphApiError(response.body?.error),
     };
   }
 
@@ -249,11 +334,16 @@ export async function sendChannelMessage(input: SendMessageInput) {
       input.instagramAccountIdOverride?.trim() ||
       config.channels.instagram.accountId?.trim();
 
-    // Cari token di daftar accounts yang cocok dengan accountId
     const matchingAccount = config.channels.instagram.accounts?.find(
-      (acc) => acc.accountId === accountId
+      (acc) => acc.accountId === accountId,
     );
-    const igAccessToken = (matchingAccount?.accessToken || config.channels.instagram.accessToken || "").trim();
+    const igAccessToken = (
+      matchingAccount?.accessToken || config.channels.instagram.accessToken || ""
+    ).trim();
+    const configuredPageId =
+      matchingAccount?.pageId?.trim() ||
+      config.channels.instagram.pageId?.trim() ||
+      undefined;
 
     if (!accountId || !igAccessToken) {
       return {
@@ -273,44 +363,100 @@ export async function sendChannelMessage(input: SendMessageInput) {
       };
     }
 
-    // Instagram Messaging API menggunakan graph.instagram.com
-    // Endpoint: POST /{ig-user-id}/messages
-    const igBaseUrl = "https://graph.instagram.com";
-    const igApiVersion = serverEnv.whatsappApiVersion;
-    const sendUrl = `${igBaseUrl}/${igApiVersion}/${accountId}/messages`;
+    const messagingContext = await resolveInstagramMessagingContext({
+      accountId,
+      accessToken: igAccessToken,
+      pageId: configuredPageId,
+    });
 
     try {
-      const igResponse = await fetch(sendUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${igAccessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          recipient: { id: input.recipientId },
-          message: { text: input.message },
-        }),
-      });
+      if (input.mediaAttachment) {
+        if (!input.mediaPublicUrl?.trim()) {
+          return {
+            ok: false,
+            provider: "instagram",
+            status: 422,
+            note: "URL media publik Instagram belum tersedia.",
+          };
+        }
 
-      const igBody = await igResponse.text();
-      let parsedBody: Record<string, unknown> | null = null;
-      try {
-        parsedBody = JSON.parse(igBody) as Record<string, unknown>;
-      } catch {
-        // Body bukan JSON
+        const mediaResponse = await sendInstagramRequest(
+          messagingContext.accessToken,
+          {
+            recipient: { id: input.recipientId },
+            message: {
+              attachment: {
+                type: input.mediaAttachment.kind,
+                payload: {
+                  url: input.mediaPublicUrl.trim(),
+                },
+              },
+            },
+          },
+        );
+
+        if (!mediaResponse.ok) {
+          return {
+            ok: false,
+            provider: "instagram",
+            status: mediaResponse.status,
+            body: mediaResponse.body,
+            note: `Instagram API error (${mediaResponse.sendUrl}): ${mediaResponse.rawBody.slice(0, 300)}`,
+          };
+        }
+
+        let captionResponse: Awaited<ReturnType<typeof sendInstagramRequest>> | null = null;
+        if (trimmedMessage) {
+          captionResponse = await sendInstagramRequest(
+            messagingContext.accessToken,
+            {
+              recipient: { id: input.recipientId },
+              message: { text: trimmedMessage },
+            },
+          );
+
+          if (!captionResponse.ok) {
+            return {
+              ok: false,
+              provider: "instagram",
+              status: captionResponse.status,
+              body: captionResponse.body,
+              note: `Instagram caption error (${captionResponse.sendUrl}): ${captionResponse.rawBody.slice(0, 300)}`,
+            };
+          }
+        }
+
+        return {
+          ok: true,
+          provider: "instagram",
+          status: captionResponse?.status ?? mediaResponse.status,
+          body: captionResponse?.body ?? mediaResponse.body,
+          messageId:
+            ((captionResponse?.body as { message_id?: string } | null)?.message_id) ||
+            ((mediaResponse.body as { message_id?: string } | null)?.message_id),
+        };
       }
 
+      const igResponse = await sendInstagramRequest(
+        messagingContext.accessToken,
+        {
+          recipient: { id: input.recipientId },
+          message: { text: trimmedMessage },
+        },
+      );
+
       if (!igResponse.ok) {
-        const tokenHint = igAccessToken.length < 20
-          ? "Token terlalu pendek, pastikan Anda menggunakan Page Access Token yang valid."
-          : "";
+        const tokenHint =
+          igAccessToken.length < 20
+            ? "Token terlalu pendek, pastikan Anda menggunakan Page Access Token yang valid."
+            : "";
 
         return {
           ok: false,
           provider: "instagram",
           status: igResponse.status,
-          body: parsedBody,
-          note: `Instagram API error (${sendUrl}): ${igBody.slice(0, 300)}${tokenHint ? ` — ${tokenHint}` : ""}`,
+          body: igResponse.body,
+          note: `Instagram API error (${igResponse.sendUrl}): ${igResponse.rawBody.slice(0, 300)}${tokenHint ? ` - ${tokenHint}` : ""}`,
         };
       }
 
@@ -318,8 +464,8 @@ export async function sendChannelMessage(input: SendMessageInput) {
         ok: true,
         provider: "instagram",
         status: igResponse.status,
-        body: parsedBody,
-        messageId: (parsedBody as { message_id?: string })?.message_id,
+        body: igResponse.body,
+        messageId: (igResponse.body as { message_id?: string } | null)?.message_id,
       };
     } catch (error) {
       return {
@@ -332,13 +478,20 @@ export async function sendChannelMessage(input: SendMessageInput) {
   }
 
   if (input.channel === "Instagram Comment") {
-    // Komentar tidak bisa dibalas via DM secara otomatis tanpa user consent.
-    // Catat sebagai simulated send.
     return {
       ok: true,
       provider: "instagram-comment",
       status: 200,
       note: "Balasan komentar dicatat di inbox. Balas manual melalui Instagram atau aktifkan Comment-to-DM.",
+    };
+  }
+
+  if (input.mediaAttachment) {
+    return {
+      ok: false,
+      provider: "unsupported_media",
+      status: 422,
+      note: `Channel ${input.channel} belum mendukung kirim foto/video dari dashboard.`,
     };
   }
 
@@ -359,11 +512,12 @@ export async function sendWhatsAppReadTypingIndicator(input: {
     input.phoneNumberIdOverride?.trim() ||
     config.channels.whatsapp.phoneNumberId.trim();
 
-  // Cari token di daftar accounts yang cocok dengan phoneNumberId
   const matchingAccount = config.channels.whatsapp.accounts?.find(
-    (acc) => acc.phoneNumberId === phoneNumberId
+    (acc) => acc.phoneNumberId === phoneNumberId,
   );
-  const accessToken = (matchingAccount?.accessToken || config.channels.whatsapp.accessToken).trim();
+  const accessToken = (
+    matchingAccount?.accessToken || config.channels.whatsapp.accessToken
+  ).trim();
 
   if (!accessToken || !phoneNumberId) {
     return {
@@ -374,24 +528,24 @@ export async function sendWhatsAppReadTypingIndicator(input: {
     };
   }
 
-    const response = await sendWhatsAppGraphRequest(
-      accessToken,
-      phoneNumberId,
-      JSON.stringify({
-        messaging_product: "whatsapp",
-        status: "read",
-        message_id: input.incomingMessageId,
-        typing_indicator: {
-          type: "text",
-        },
-      }),
-    );
+  const response = await sendWhatsAppGraphRequest(
+    accessToken,
+    phoneNumberId,
+    JSON.stringify({
+      messaging_product: "whatsapp",
+      status: "read",
+      message_id: input.incomingMessageId,
+      typing_indicator: {
+        type: "text",
+      },
+    }),
+  );
 
   return {
     ok: response.ok,
     provider: "whatsapp",
     status: response.status,
     body: response.body,
-    note: formatWhatsAppGraphError(response.body?.error),
+    note: formatGraphApiError(response.body?.error),
   };
 }

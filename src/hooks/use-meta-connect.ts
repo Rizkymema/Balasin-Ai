@@ -45,6 +45,7 @@ export interface MetaInstagramResult {
   accessToken: string;
   accountId: string;
   username: string;
+  pageId?: string;
   pageName?: string;
 }
 

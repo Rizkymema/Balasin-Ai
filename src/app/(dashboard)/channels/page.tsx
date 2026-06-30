@@ -503,7 +503,7 @@ struct ChatView: View {
       return;
     }
 
-    const { accountId, accessToken: token, username, pageName } = result;
+    const { accountId, accessToken: token, username, pageId, pageName } = result;
     if (!accountId || !token) return;
 
     patchConfig((current) => {
@@ -515,6 +515,7 @@ struct ChatView: View {
         id: accountId,
         username: username || "instagram_user",
         accountId: accountId,
+        pageId: pageId || "",
         accessToken: token,
         verifyToken: current.channels.instagram.verifyToken || "balesin_verify",
         status: "connected" as const,
@@ -539,6 +540,7 @@ struct ChatView: View {
             status: "connected" as const,
             username: isFirst ? newAccount.username : current.channels.instagram.username,
             accountId: isFirst ? newAccount.accountId : current.channels.instagram.accountId,
+            pageId: isFirst ? newAccount.pageId : current.channels.instagram.pageId,
             accessToken: isFirst ? newAccount.accessToken : current.channels.instagram.accessToken,
             verifyToken: current.channels.instagram.verifyToken || "balesin_verify",
             accounts: updatedAccounts,
@@ -565,6 +567,7 @@ struct ChatView: View {
             status: updatedAccounts.length > 0 ? "connected" as const : "draft" as const,
             username: nextPrimary ? nextPrimary.username : "",
             accountId: nextPrimary ? nextPrimary.accountId : "",
+            pageId: nextPrimary ? (nextPrimary.pageId || "") : "",
             accessToken: nextPrimary ? nextPrimary.accessToken : "",
             accounts: updatedAccounts,
           }

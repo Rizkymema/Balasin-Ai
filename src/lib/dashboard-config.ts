@@ -165,6 +165,7 @@ export const defaultDashboardConfig: DashboardConfig = {
       status: "draft",
       username: "",
       accountId: "",
+      pageId: "",
       accessToken: "",
       verifyToken: "",
       autoReplyDm: true,

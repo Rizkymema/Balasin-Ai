@@ -337,6 +337,7 @@ export type DashboardConfig = {
       status: ChannelStatus;
       username: string;
       accountId: string;
+      pageId?: string;
       accessToken: string;
       verifyToken: string;
       autoReplyDm: boolean;
@@ -346,6 +347,7 @@ export type DashboardConfig = {
         id: string; // account ID
         username: string;
         accountId: string;
+        pageId?: string;
         accessToken: string;
         verifyToken: string;
         status: ChannelStatus;

@@ -44,7 +44,11 @@ type PendingReplyAttachment = {
 };
 
 function supportsMediaAttachments(channel?: ConversationRecord["channel"] | null) {
-  return channel === "WhatsApp" || channel === "Website Chat";
+  return (
+    channel === "WhatsApp" ||
+    channel === "Website Chat" ||
+    channel === "Instagram DM"
+  );
 }
 
 export function InboxWorkspace() {
