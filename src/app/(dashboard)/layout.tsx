@@ -28,6 +28,9 @@ import {
   GitBranch,
   Settings,
 } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Dropdown } from "@/components/ui/dropdown";
 import { getTranslation } from "@/lib/translations";
 import { DashboardAIAssistant } from "@/components/dashboard-ai-assistant";
@@ -82,6 +85,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
   const [language, setLanguage] = useState("id");
   const t = getTranslation(language);
+
+  const [userName, setUserName] = useState("Admin Johan Garage");
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [accountEmail, setAccountEmail] = useState("admin@workspace.local");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSavingAccount, setIsSavingAccount] = useState(false);
+  const [accountSuccessMsg, setAccountSuccessMsg] = useState("");
+  const [accountErrorMsg, setAccountErrorMsg] = useState("");
   // Always initialize to false so server and client render the same HTML.
   // The real persisted value is loaded from localStorage after mount.
   const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
@@ -132,7 +145,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     if (user) {
       try {
-        setUserEmail(JSON.parse(user).email || "admin@workspace.local");
+        const parsed = JSON.parse(user);
+        setUserEmail(parsed.email || "admin@workspace.local");
+        setAccountEmail(parsed.email || "admin@workspace.local");
+        setUserName(parsed.name || "Admin Johan Garage");
       } catch (e) {}
     }
 
@@ -210,6 +226,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       credentials: "include",
     });
     router.push("/login");
+  };
+
+  const handleSaveAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAccountSuccessMsg("");
+    setAccountErrorMsg("");
+    setIsSavingAccount(true);
+
+    if (newPassword && newPassword !== confirmPassword) {
+      setAccountErrorMsg("Konfirmasi password tidak cocok.");
+      setIsSavingAccount(false);
+      return;
+    }
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      const updatedUser = {
+        email: accountEmail,
+        name: userName,
+        role: "Admin",
+      };
+
+      localStorage.setItem("balesin_user", JSON.stringify(updatedUser));
+      setUserEmail(accountEmail);
+      
+      setAccountSuccessMsg("Pengaturan akun berhasil disimpan!");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      setAccountErrorMsg("Gagal menyimpan pengaturan akun.");
+    } finally {
+      setIsSavingAccount(false);
+    }
   };
 
   const workspaceItems = [
@@ -546,15 +596,51 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {t.systemActive}
             </div>
 
-            {/* Logout Button */}
-            <button
-              onClick={handleLogout}
-              title={t.logout}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/15 hover:border-red-500/40 transition-all duration-200 text-xs font-semibold"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{t.logout}</span>
-            </button>
+            {/* Unified User Profile Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                className="flex items-center gap-2 p-1 rounded-full hover:bg-[var(--color-surface-hover)] border border-transparent hover:border-[var(--color-border)] transition duration-200 cursor-pointer"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-brand)]/10 text-[var(--color-brand)] font-bold text-xs border border-[var(--color-brand)]/20 uppercase">
+                  {userEmail.slice(0, 2)}
+                </div>
+                <ChevronDown className="h-3.5 w-3.5 text-[var(--color-muted)] mr-1 hidden sm:inline" />
+              </button>
+              
+              {isProfileDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsProfileDropdownOpen(false)} 
+                  />
+                  <div className="absolute right-0 mt-2 w-56 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-strong)] p-1.5 shadow-xl z-50 animate-in fade-in slide-in-from-top-2">
+                    <div className="px-3 py-2 border-b border-[var(--color-border)]/50 mb-1">
+                      <p className="text-[10px] text-[var(--color-muted)] font-semibold uppercase tracking-wider">Logged in as</p>
+                      <p className="text-xs text-[var(--color-text)] truncate font-bold mt-0.5">{userEmail}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsAccountModalOpen(true);
+                        setIsProfileDropdownOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition cursor-pointer text-left"
+                    >
+                      <Settings className="h-4 w-4 text-[var(--color-muted)]" />
+                      Pengaturan Akun
+                    </button>
+                    <div className="h-px bg-[var(--color-border)]/50 my-1.5" />
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition cursor-pointer text-left"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Keluar / Logout
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
@@ -599,8 +685,112 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       )}
 
-      {/* Floating Dashboard AI Assistant Copilot */}
+      {/* Floating AI Assistant Copilot */}
       <DashboardAIAssistant />
+
+      {/* Global Account Settings Modal */}
+      <Modal
+        isOpen={isAccountModalOpen}
+        onClose={() => {
+          setIsAccountModalOpen(false);
+          setAccountSuccessMsg("");
+          setAccountErrorMsg("");
+        }}
+        title="Pengaturan Akun"
+        className="max-w-md"
+      >
+        <form onSubmit={handleSaveAccount} className="space-y-4 pt-2">
+          {accountSuccessMsg && (
+            <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs text-emerald-400 font-semibold">
+              {accountSuccessMsg}
+            </div>
+          )}
+
+          {accountErrorMsg && (
+            <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-3 text-xs text-rose-400 font-semibold">
+              {accountErrorMsg}
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+              Nama Lengkap
+            </label>
+            <Input
+              type="text"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              placeholder="Admin Johan Garage"
+              required
+              className="bg-white/[0.03] border-white/[0.08] focus:border-cyan-400 text-xs py-2 px-3 text-slate-200"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+              Alamat Email
+            </label>
+            <Input
+              type="email"
+              value={accountEmail}
+              onChange={(e) => setAccountEmail(e.target.value)}
+              placeholder="admin@workspace.local"
+              required
+              className="bg-white/[0.03] border-white/[0.08] focus:border-cyan-400 text-xs py-2 px-3 text-slate-200"
+            />
+          </div>
+
+          <div className="h-px bg-white/5 my-2" />
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+              Password Baru (Opsional)
+            </label>
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="••••••••"
+              className="bg-white/[0.03] border-white/[0.08] focus:border-cyan-400 text-xs py-2 px-3 text-slate-200"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+              Konfirmasi Password Baru
+            </label>
+            <Input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="••••••••"
+              className="bg-white/[0.03] border-white/[0.08] focus:border-cyan-400 text-xs py-2 px-3 text-slate-200"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setIsAccountModalOpen(false);
+                setAccountSuccessMsg("");
+                setAccountErrorMsg("");
+              }}
+              className="h-8 rounded-lg border-white/[0.08] bg-white/[0.04] text-[11px] hover:bg-white/[0.08]"
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSavingAccount}
+              className="h-8 rounded-lg border-transparent bg-[#00d2ff] text-[#050814] text-[11px] font-semibold hover:bg-[#4de0ff]"
+            >
+              {isSavingAccount ? "Menyimpan..." : "Simpan Perubahan"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
