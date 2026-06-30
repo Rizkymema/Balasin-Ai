@@ -72,10 +72,17 @@ export function DashboardAIAssistant() {
         throw new Error("Gagal mendapatkan respons dari asisten AI.");
       }
 
-      const payload = (await response.json()) as { ok: boolean; reply?: string; error?: string };
+      const raw = (await response.json()) as {
+        ok: boolean;
+        data?: { ok: boolean; reply?: string; error?: string };
+        error?: string;
+        reply?: string;
+      };
+
+      const payload = raw.data || raw;
       
       if (!payload.ok || !payload.reply) {
-        throw new Error(payload.error || "Gagal memproses pesan.");
+        throw new Error(payload.error || raw.error || "Gagal memproses pesan.");
       }
 
       const botMsg: Message = {
