@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import {
@@ -778,7 +779,14 @@ export function ConversationThreadPanel({
                             }}
                             className="flex flex-col items-center gap-1.5 p-1.5 rounded-lg border border-white/5 hover:border-cyan-400/30 hover:bg-white/5 transition cursor-pointer"
                           >
-                            <img src={st.url} alt={st.name} className="w-12 h-12 object-contain" />
+                            <Image
+                              src={st.url}
+                              alt={st.name}
+                              width={48}
+                              height={48}
+                              className="h-12 w-12 object-contain"
+                              unoptimized
+                            />
                             <span className="text-[9px] text-slate-400 truncate max-w-full font-semibold">{st.name}</span>
                           </button>
                         ))}

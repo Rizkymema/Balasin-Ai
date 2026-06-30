@@ -9,6 +9,7 @@ import {
   defaultDashboardOperations,
   normalizeDashboardOperations,
 } from "@/lib/dashboard-operations";
+import { normalizeSecretLikeValue } from "@/lib/normalize-secret-like-value";
 import { resolveDashboardPublicAppUrl } from "@/lib/runtime-url";
 import {
   isBlobStateEnabled,
@@ -158,31 +159,6 @@ function finalizeDashboardConfig(
 
 function keepExistingString(existing: string, incoming: string) {
   return incoming.trim() ? incoming : existing;
-}
-
-function normalizeSecretLikeValue(value: string) {
-  const trimmed = value.trim();
-
-  if (
-    !trimmed ||
-    trimmed === "undefined" ||
-    trimmed === "null" ||
-    trimmed === '""' ||
-    trimmed === "''"
-  ) {
-    return "";
-  }
-
-  const wrappedInDoubleQuotes =
-    trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2;
-  const wrappedInSingleQuotes =
-    trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length >= 2;
-
-  if (wrappedInDoubleQuotes || wrappedInSingleQuotes) {
-    return trimmed.slice(1, -1).trim();
-  }
-
-  return trimmed;
 }
 
 function mergePersistedDashboardConfig(

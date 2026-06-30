@@ -1,3 +1,4 @@
+import { normalizeSecretLikeValue } from "@/lib/normalize-secret-like-value";
 import { getDashboardConfigRecord } from "@/server/repositories/dashboard-repository";
 import { serverEnv } from "@/server/env";
 import type { PreparedOutboundMediaUpload } from "@/server/services/outbound-media";
@@ -133,8 +134,9 @@ async function resolveInstagramMessagingContext(input: {
   accessToken: string;
   pageId?: string;
 }) {
+  const normalizedAccessToken = normalizeSecretLikeValue(input.accessToken);
   const directContext: InstagramMessagingContext = {
-    accessToken: input.accessToken,
+    accessToken: normalizedAccessToken,
     pageId: input.pageId?.trim() || undefined,
   };
 
@@ -173,13 +175,15 @@ async function resolveInstagramMessagingContext(input: {
         (input.pageId?.trim() && page.id === input.pageId.trim()),
     );
 
-    if (!matchedPage?.access_token) {
+    const matchedPageToken = normalizeSecretLikeValue(matchedPage?.access_token);
+
+    if (!matchedPageToken) {
       return directContext;
     }
 
     return {
-      accessToken: matchedPage.access_token.trim(),
-      pageId: matchedPage.id?.trim() || directContext.pageId,
+      accessToken: matchedPageToken,
+      pageId: matchedPage?.id?.trim() || directContext.pageId,
     } satisfies InstagramMessagingContext;
   } catch {
     return directContext;
@@ -242,9 +246,9 @@ export async function sendChannelMessage(input: SendMessageInput) {
     const matchingAccount = config.channels.whatsapp.accounts?.find(
       (acc) => acc.phoneNumberId === phoneNumberId,
     );
-    const accessToken = (
-      matchingAccount?.accessToken || config.channels.whatsapp.accessToken
-    ).trim();
+    const accessToken = normalizeSecretLikeValue(
+      matchingAccount?.accessToken || config.channels.whatsapp.accessToken,
+    );
 
     if (!phoneNumberId || !accessToken) {
       return {
@@ -338,9 +342,9 @@ export async function sendChannelMessage(input: SendMessageInput) {
     const matchingAccount = config.channels.instagram.accounts?.find(
       (acc) => acc.accountId === accountId,
     );
-    const igAccessToken = (
-      matchingAccount?.accessToken || config.channels.instagram.accessToken || ""
-    ).trim();
+    const igAccessToken = normalizeSecretLikeValue(
+      matchingAccount?.accessToken || config.channels.instagram.accessToken,
+    );
     const configuredPageId =
       matchingAccount?.pageId?.trim() ||
       config.channels.instagram.pageId?.trim() ||
@@ -486,9 +490,9 @@ export async function sendChannelMessage(input: SendMessageInput) {
     const matchingAccount = config.channels.instagram.accounts?.find(
       (acc) => acc.accountId === accountId,
     );
-    const igAccessToken = (
-      matchingAccount?.accessToken || config.channels.instagram.accessToken || ""
-    ).trim();
+    const igAccessToken = normalizeSecretLikeValue(
+      matchingAccount?.accessToken || config.channels.instagram.accessToken,
+    );
     const configuredPageId =
       matchingAccount?.pageId?.trim() ||
       config.channels.instagram.pageId?.trim() ||
@@ -596,9 +600,9 @@ export async function sendWhatsAppReadTypingIndicator(input: {
   const matchingAccount = config.channels.whatsapp.accounts?.find(
     (acc) => acc.phoneNumberId === phoneNumberId,
   );
-  const accessToken = (
-    matchingAccount?.accessToken || config.channels.whatsapp.accessToken
-  ).trim();
+  const accessToken = normalizeSecretLikeValue(
+    matchingAccount?.accessToken || config.channels.whatsapp.accessToken,
+  );
 
   if (!accessToken || !phoneNumberId) {
     return {
@@ -643,9 +647,9 @@ export async function deleteInstagramComment(input: {
   const matchingAccount = config.channels.instagram.accounts?.find(
     (acc) => acc.accountId === accountId,
   );
-  const igAccessToken = (
-    matchingAccount?.accessToken || config.channels.instagram.accessToken || ""
-  ).trim();
+  const igAccessToken = normalizeSecretLikeValue(
+    matchingAccount?.accessToken || config.channels.instagram.accessToken,
+  );
   const configuredPageId =
     matchingAccount?.pageId?.trim() ||
     config.channels.instagram.pageId?.trim() ||

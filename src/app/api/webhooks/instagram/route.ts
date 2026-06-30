@@ -1,3 +1,4 @@
+import { parseMetaSignedJson } from "@/server/meta-webhook";
 import { getDashboardConfigRecord } from "@/server/repositories/dashboard-repository";
 import { recordWebhookEvent } from "@/server/repositories/webhook-repository";
 import { processIncomingMessage } from "@/server/services/inbox-service";
@@ -79,6 +80,11 @@ function getErrorMessage(error: unknown) {
   return String(error);
 }
 
+const instagramWebhookSecret =
+  process.env.INSTAGRAM_APP_SECRET?.trim() ??
+  process.env.META_APP_SECRET?.trim() ??
+  "";
+
 export async function GET(request: Request) {
   try {
     const config = await getDashboardConfigRecord();
@@ -89,8 +95,13 @@ export async function GET(request: Request) {
 
     const expectedToken =
       config.channels.instagram.verifyToken ||
-      config.channels.whatsapp.verifyToken ||
-      "MANADO123";
+      config.channels.whatsapp.verifyToken;
+
+    if (!expectedToken?.trim()) {
+      return new Response("Webhook verify token belum dikonfigurasi.", {
+        status: 503,
+      });
+    }
 
     if (mode === "subscribe" && token === expectedToken) {
       return new Response(challenge ?? "OK", { status: 200 });
@@ -104,7 +115,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as InstagramWebhookBody;
+    const signedPayload = await parseMetaSignedJson<InstagramWebhookBody>(
+      request,
+      instagramWebhookSecret,
+    );
+    if (!signedPayload.ok) {
+      return jsonError(signedPayload.error, signedPayload.status);
+    }
+
+    const body = signedPayload.body;
     const config = await getDashboardConfigRecord();
     const ownAccountId = config.channels.instagram.accountId?.trim();
 

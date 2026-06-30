@@ -1,3 +1,4 @@
+import { parseMetaSignedJson } from "@/server/meta-webhook";
 import { getDashboardConfigRecord } from "@/server/repositories/dashboard-repository";
 import { recordWebhookEvent } from "@/server/repositories/webhook-repository";
 import {
@@ -43,6 +44,11 @@ function getErrorMessage(error: unknown) {
   return String(error);
 }
 
+const whatsappWebhookSecret =
+  process.env.WHATSAPP_APP_SECRET?.trim() ??
+  process.env.META_APP_SECRET?.trim() ??
+  "";
+
 export async function GET(request: Request) {
   const config = await getDashboardConfigRecord();
   const { searchParams } = new URL(request.url);
@@ -59,7 +65,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as WhatsAppWebhookBody;
+    const signedPayload = await parseMetaSignedJson<WhatsAppWebhookBody>(
+      request,
+      whatsappWebhookSecret,
+    );
+    if (!signedPayload.ok) {
+      return jsonError(signedPayload.error, signedPayload.status);
+    }
+
+    const body = signedPayload.body;
     const changes = body.entry?.flatMap((entry) => entry.changes ?? []) ?? [];
     let receivedCount = 0;
     let statusUpdateCount = 0;

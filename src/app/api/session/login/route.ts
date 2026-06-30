@@ -3,21 +3,35 @@ import { NextResponse } from "next/server";
 import { createSessionToken, getSessionCookieOptions } from "@/server/auth/session";
 import { jsonError, jsonOk } from "@/server/http";
 
+const demoLoginEnabled =
+  process.env.NODE_ENV !== "production" ||
+  process.env.ALLOW_DEMO_LOGIN?.trim() === "true";
+
 export async function POST(request: Request) {
+  if (!demoLoginEnabled) {
+    return jsonError(
+      "Demo login dinonaktifkan di production. Gunakan Google login atau aktifkan ALLOW_DEMO_LOGIN secara eksplisit.",
+      403,
+    );
+  }
+
   try {
     const body = (await request.json()) as {
       email?: string;
       name?: string;
       password?: string;
     };
+    const email = body.email?.trim() ?? "";
+    const password = body.password?.trim() ?? "";
+    const name = body.name?.trim() || email.split("@")[0] || "admin";
 
-    if (!body.email || !body.password) {
+    if (!email || !password) {
       return jsonError("Email dan password harus diisi.", 400);
     }
 
     const token = await createSessionToken({
-      email: body.email,
-      name: body.name || body.email.split("@")[0],
+      email,
+      name,
       role: "admin",
     });
 
@@ -25,8 +39,8 @@ export async function POST(request: Request) {
       {
         ok: true,
         data: {
-          email: body.email,
-          name: body.name || body.email.split("@")[0],
+          email,
+          name,
           role: "admin",
         },
       },
@@ -46,5 +60,5 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
-  return jsonOk({ mode: "demo" });
+  return jsonOk({ mode: demoLoginEnabled ? "demo" : "disabled" });
 }

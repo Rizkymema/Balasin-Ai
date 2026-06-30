@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeSecretLikeValue } from "@/lib/normalize-secret-like-value";
 
 const META_GRAPH = "https://graph.facebook.com";
 const API_VERSION = process.env.WHATSAPP_API_VERSION ?? "v21.0";
@@ -113,7 +114,7 @@ async function fetchIgFromPage(
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as { accessToken?: string };
-    const shortLivedToken = body.accessToken;
+    const shortLivedToken = normalizeSecretLikeValue(body.accessToken);
 
     if (!shortLivedToken) {
       return NextResponse.json({ error: "accessToken diperlukan." }, { status: 400 });
@@ -234,7 +235,9 @@ export async function POST(request: Request) {
     // 4. Kembalikan hasil
     // -------------------------------------------------------
     return NextResponse.json({
-      accessToken: foundPage.access_token || longLivedToken,
+      accessToken: normalizeSecretLikeValue(
+        foundPage.access_token || longLivedToken,
+      ),
       accountId: foundIgAccount.id,
       username: foundIgAccount.username ?? foundIgAccount.name ?? "",
       pageId: foundPage.id,

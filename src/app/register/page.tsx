@@ -9,6 +9,10 @@ import { AuthShell } from "@/components/layout/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+const demoRegisterEnabled =
+  process.env.NODE_ENV !== "production" ||
+  process.env.NEXT_PUBLIC_ALLOW_DEMO_REGISTER?.trim() === "true";
+
 export default function RegisterPage() {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -21,6 +25,10 @@ export default function RegisterPage() {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
+    if (!demoRegisterEnabled) {
+      setError("Register demo dinonaktifkan di production. Gunakan Google login.");
+      return;
+    }
     if (!name || !email || !password || !confirmPassword) {
       setError("Semua bidang harus diisi.");
       return;
@@ -85,6 +93,12 @@ export default function RegisterPage() {
           </div>
         ) : null}
 
+        {!demoRegisterEnabled ? (
+          <div className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-200">
+            Register demo dinonaktifkan di production untuk mencegah akses admin tanpa kontrol identitas.
+          </div>
+        ) : null}
+
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
@@ -96,7 +110,7 @@ export default function RegisterPage() {
               placeholder="Nama Anda"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              disabled={isLoading}
+              disabled={isLoading || !demoRegisterEnabled}
               required
             />
           </div>
@@ -111,7 +125,7 @@ export default function RegisterPage() {
               placeholder="nama@perusahaan.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              disabled={isLoading}
+              disabled={isLoading || !demoRegisterEnabled}
               required
             />
           </div>
@@ -126,7 +140,7 @@ export default function RegisterPage() {
               placeholder="Minimal 8 karakter"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              disabled={isLoading}
+              disabled={isLoading || !demoRegisterEnabled}
               required
             />
           </div>
@@ -141,7 +155,7 @@ export default function RegisterPage() {
               placeholder="Ulangi kata sandi"
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
-              disabled={isLoading}
+              disabled={isLoading || !demoRegisterEnabled}
               required
             />
           </div>
@@ -152,7 +166,7 @@ export default function RegisterPage() {
               type="checkbox"
               checked={acceptTerms}
               onChange={(event) => setAcceptTerms(event.target.checked)}
-              disabled={isLoading}
+              disabled={isLoading || !demoRegisterEnabled}
               className="mt-0.5 h-4 w-4 rounded border-white/12 bg-white/4 text-[var(--color-brand)]"
             />
             <label htmlFor="terms" className="text-[11px] leading-normal text-slate-400">
@@ -160,7 +174,11 @@ export default function RegisterPage() {
             </label>
           </div>
 
-          <Button type="submit" className="mt-2 w-full" disabled={isLoading}>
+          <Button
+            type="submit"
+            className="mt-2 w-full"
+            disabled={isLoading || !demoRegisterEnabled}
+          >
             {isLoading ? (
               <span className="flex items-center gap-2">
                 <svg className="h-4 w-4 animate-spin text-slate-950" fill="none" viewBox="0 0 24 24">
@@ -171,7 +189,7 @@ export default function RegisterPage() {
               </span>
             ) : (
               <span className="flex items-center justify-center gap-1.5">
-                Daftar Sekarang
+                {demoRegisterEnabled ? "Daftar Sekarang" : "Register Demo Dinonaktifkan"}
                 <ArrowRight className="h-4 w-4" />
               </span>
             )}

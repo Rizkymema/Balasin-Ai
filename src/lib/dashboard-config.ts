@@ -1,4 +1,5 @@
 import type { DashboardConfig } from "@/types/dashboard-config";
+import { normalizeSecretLikeValue } from "@/lib/normalize-secret-like-value";
 
 const STORAGE_KEY = "balesin_dashboard_config";
 const STORAGE_EVENT = "balesin-dashboard-config-change";
@@ -82,33 +83,6 @@ const defaultInboxSettings = {
     addTag: "Idle",
   }
 } as const;
-
-function normalizeSecretLikeValue(value?: string | null) {
-  const trimmed = value?.trim() ?? "";
-  if (!trimmed) {
-    return "";
-  }
-
-  if (
-    trimmed === "undefined" ||
-    trimmed === "null" ||
-    trimmed === '""' ||
-    trimmed === "''"
-  ) {
-    return "";
-  }
-
-  const wrappedInDoubleQuotes =
-    trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2;
-  const wrappedInSingleQuotes =
-    trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length >= 2;
-
-  if (wrappedInDoubleQuotes || wrappedInSingleQuotes) {
-    return trimmed.slice(1, -1).trim();
-  }
-
-  return trimmed;
-}
 
 export const defaultDashboardConfig: DashboardConfig = {
   workspace: {
