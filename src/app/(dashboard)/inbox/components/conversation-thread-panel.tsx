@@ -394,14 +394,14 @@ export function ConversationThreadPanel({
           </div>
         </div>
 
-        {/* Human takeover banner */}
+        {/* Agennt takeover banner */}
         {(conversation.status === "assigned_to_admin" ||
           conversation.status === "blocked") && (
           <div className="border-t border-red-500/20 bg-red-500/10 px-4 py-2">
             <div className="flex items-center gap-2">
               <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-red-400" />
               <p className="text-[11px] leading-5 text-red-300">
-                Human takeover aktif. AI tidak akan membalas otomatis sampai diaktifkan kembali.
+                Agennt takeover aktif. AI tidak akan membalas otomatis sampai diaktifkan kembali.
               </p>
             </div>
           </div>

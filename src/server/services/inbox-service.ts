@@ -314,9 +314,27 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   const currentAiReplyCount =
     conversation.automation?.aiReplyCount ??
     conversation.messages.filter((message) => message.sender === "ai").length;
+  
+  const isTakeoverActive =
+    existingConversation &&
+    (existingConversation.status === "assigned_to_admin" ||
+      existingConversation.status === "blocked" ||
+      existingConversation.status === "ai_paused");
+
   let decision: ReplyDecision;
 
-  if (automation.forcedStatus === "assigned_to_admin") {
+  if (isTakeoverActive) {
+    decision = {
+      intent: existingConversation.lastIntent,
+      confidence: existingConversation.aiConfidence,
+      needsHuman: true,
+      status: existingConversation.status,
+      summary: existingConversation.summary,
+      reply: "",
+      grounded: false,
+      source: "fallback",
+    };
+  } else if (automation.forcedStatus === "assigned_to_admin") {
     decision = {
       intent: "Handoff Automation",
       confidence: 96,
@@ -379,13 +397,13 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     }
   }
 
-  if (!decision.reply && automation.immediateReply && decision.status !== "spam") {
+  if (!decision.reply && automation.immediateReply && decision.status !== "spam" && !isTakeoverActive) {
     decision = {
       ...decision,
       reply: automation.immediateReply,
     };
   }
-  const finalStatus = automation.forcedStatus ?? decision.status;
+  const finalStatus = isTakeoverActive ? existingConversation.status : (automation.forcedStatus ?? decision.status);
 
   conversation = appendMessage(
     {
@@ -403,43 +421,54 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     effectiveConfig.workspace.timezone,
   );
 
-  conversation = applyAutomationMetadata(conversation, {
-    event: "message_received",
-    flow: automation.flow,
-    agent: automation.agent,
-    lastInboundAt: receivedAt,
-    handoffReason:
-      decision.status === "assigned_to_admin"
-        ? automation.handoffReason ??
-          "Percakapan diteruskan ke admin oleh automation runtime."
-        : null,
-  });
-  conversation = appendAutomationLog(conversation, {
-    event: "message_received",
-    summary: automation.flow
-      ? `Flow "${automation.flow.name}" aktif untuk pesan masuk ini.`
-      : "Tidak ada flow publish yang cocok; pesan diproses oleh inbox default.",
-    status: automation.flow ? "applied" : "skipped",
-    createdAt: receivedAt,
-  });
+  if (!isTakeoverActive) {
+    conversation = applyAutomationMetadata(conversation, {
+      event: "message_received",
+      flow: automation.flow,
+      agent: automation.agent,
+      lastInboundAt: receivedAt,
+      handoffReason:
+        decision.status === "assigned_to_admin"
+          ? automation.handoffReason ??
+            "Percakapan diteruskan ke admin oleh automation runtime."
+          : null,
+    });
+    conversation = appendAutomationLog(conversation, {
+      event: "message_received",
+      summary: automation.flow
+        ? `Flow "${automation.flow.name}" aktif untuk pesan masuk ini.`
+        : "Tidak ada flow publish yang cocok; pesan diproses oleh inbox default.",
+      status: automation.flow ? "applied" : "skipped",
+      createdAt: receivedAt,
+    });
+  } else {
+    conversation = applyAutomationMetadata(conversation, {
+      event: "message_received",
+      lastInboundAt: receivedAt,
+    });
+  }
   conversation = {
     ...conversation,
     status: finalStatus,
     summary: decision.summary,
     lastIntent: decision.intent,
     aiConfidence: decision.confidence,
-    assignedTo:
-      finalStatus === "assigned_to_admin"
+    assignedTo: isTakeoverActive
+      ? existingConversation.assignedTo
+      : (finalStatus === "assigned_to_admin"
         ? effectiveConfig.automation.aiConfig.handoverTarget || "Admin Desk"
-        : automation.agent?.name ?? effectiveConfig.aiAgent.name,
+        : automation.agent?.name ?? effectiveConfig.aiAgent.name),
     unreadCount: conversation.unreadCount + 1,
-    tags: Array.from(new Set([...conversation.tags, ...automation.tagsToAdd])),
-    riskLevel:
-      finalStatus === "assigned_to_admin" || finalStatus === "spam"
+    tags: isTakeoverActive
+      ? conversation.tags
+      : Array.from(new Set([...conversation.tags, ...automation.tagsToAdd])),
+    riskLevel: isTakeoverActive
+      ? existingConversation.riskLevel
+      : (finalStatus === "assigned_to_admin" || finalStatus === "spam"
         ? "high"
         : finalStatus === "waiting_customer"
           ? "medium"
-          : "low",
+          : "low"),
     channelContext: {
       ...conversation.channelContext,
       ...input.channelContext,
