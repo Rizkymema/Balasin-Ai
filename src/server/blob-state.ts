@@ -1,6 +1,12 @@
 import { get, put } from "@vercel/blob";
 
-const PRIVATE_BLOB_ACCESS = "public" as const;
+const PRIVATE_BLOB_ACCESS = (
+  process.env.BLOB_ACCESS_MODE?.trim().toLowerCase() ||
+  process.env.BLOB_STORE_ACCESS?.trim().toLowerCase() ||
+  "private"
+) === "public"
+  ? "public"
+  : "private";
 
 function getBlobStoreId() {
   return process.env.BLOB_STORE_ID?.trim() ?? "";

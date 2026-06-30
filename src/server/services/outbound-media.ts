@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual, randomUUID } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 
-import { put } from "@vercel/blob";
+import { get, put } from "@vercel/blob";
 
 import {
   inferOutboundMediaKind,
@@ -37,6 +37,15 @@ function getBlobStoreId() {
 function getBlobCommandOptions() {
   const storeId = getBlobStoreId();
   return storeId ? { storeId } : {};
+}
+
+function getBlobAccessMode() {
+  const value =
+    process.env.BLOB_ACCESS_MODE?.trim().toLowerCase() ||
+    process.env.BLOB_STORE_ACCESS?.trim().toLowerCase() ||
+    "private";
+
+  return value === "public" ? "public" : "private";
 }
 
 function canStoreMediaInBlob() {
@@ -157,8 +166,8 @@ export async function storeOutboundMediaAsset(
   const publicUrl = buildOutboundMediaPublicUrl(assetKey);
 
   if (canStoreMediaInBlob()) {
-    const result = await put(`outbound-media/${assetKey}`, upload.buffer, {
-      access: "public",
+    await put(`outbound-media/${assetKey}`, upload.buffer, {
+      access: getBlobAccessMode(),
       addRandomSuffix: false,
       allowOverwrite: true,
       contentType: upload.mimeType,
@@ -171,8 +180,8 @@ export async function storeOutboundMediaAsset(
       mimeType: upload.mimeType,
       kind: upload.kind,
       sizeBytes: upload.sizeBytes,
-      previewUrl: result.url,
-      publicUrl: result.url,
+      previewUrl,
+      publicUrl,
     };
   }
 
@@ -203,6 +212,27 @@ export async function readStoredOutboundMediaAsset(assetKey: string) {
     return {
       buffer,
       filePath,
+    };
+  } catch {
+    if (!canStoreMediaInBlob()) {
+      return null;
+    }
+  }
+
+  try {
+    const result = await get(`outbound-media/${normalized}`, {
+      access: getBlobAccessMode(),
+      ...getBlobCommandOptions(),
+    });
+
+    if (!result || result.statusCode !== 200 || !result.stream) {
+      return null;
+    }
+
+    const buffer = Buffer.from(await new Response(result.stream).arrayBuffer());
+    return {
+      buffer,
+      filePath: `blob:outbound-media/${normalized}`,
     };
   } catch {
     return null;
