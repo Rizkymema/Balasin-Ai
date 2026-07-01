@@ -1,3 +1,4 @@
+import { metaServerEnv } from "@/lib/meta-server-env";
 import { parseMetaSignedJson } from "@/server/meta-webhook";
 import { getDashboardConfigRecord } from "@/server/repositories/dashboard-repository";
 import { recordWebhookEvent } from "@/server/repositories/webhook-repository";
@@ -80,10 +81,7 @@ function getErrorMessage(error: unknown) {
   return String(error);
 }
 
-const instagramWebhookSecret =
-  process.env.INSTAGRAM_APP_SECRET?.trim() ??
-  process.env.META_APP_SECRET?.trim() ??
-  "";
+const instagramWebhookSecret = metaServerEnv.instagramAppSecret;
 
 export async function GET(request: Request) {
   try {

@@ -1,3 +1,4 @@
+import { metaServerEnv } from "@/lib/meta-server-env";
 import { parseMetaSignedJson } from "@/server/meta-webhook";
 import { getDashboardConfigRecord } from "@/server/repositories/dashboard-repository";
 import { recordWebhookEvent } from "@/server/repositories/webhook-repository";
@@ -44,10 +45,7 @@ function getErrorMessage(error: unknown) {
   return String(error);
 }
 
-const whatsappWebhookSecret =
-  process.env.WHATSAPP_APP_SECRET?.trim() ??
-  process.env.META_APP_SECRET?.trim() ??
-  "";
+const whatsappWebhookSecret = metaServerEnv.whatsappAppSecret;
 
 export async function GET(request: Request) {
   const config = await getDashboardConfigRecord();

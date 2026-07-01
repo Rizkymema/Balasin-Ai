@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { metaPublicEnv } from "@/lib/meta-public-env";
 
 declare global {
   interface Window {
@@ -62,11 +63,10 @@ export interface MetaWhatsAppResult {
 type ConnectStatus = "idle" | "loading" | "success" | "error";
 
 // App ID utama Meta (satu App untuk WA + IG)
-const WHATSAPP_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID ?? "";
-// Instagram menggunakan App ID yang sama kecuali ada override
-const INSTAGRAM_APP_ID = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID ?? WHATSAPP_APP_ID;
-const WA_CONFIG_ID = process.env.NEXT_PUBLIC_META_WA_CONFIG_ID ?? "";
-const IG_CONFIG_ID = process.env.NEXT_PUBLIC_META_IG_CONFIG_ID ?? "";
+const WHATSAPP_APP_ID = metaPublicEnv.whatsappAppId;
+const INSTAGRAM_APP_ID = metaPublicEnv.instagramAppId;
+const WA_CONFIG_ID = metaPublicEnv.whatsappConfigId;
+const IG_CONFIG_ID = metaPublicEnv.instagramConfigId;
 const SDK_VERSION = "v21.0";
 
 // ---------------------------------------------------
@@ -172,7 +172,8 @@ export function useMetaConnect() {
   // -----------------------------------------------
   const connectWhatsApp = useCallback(async (): Promise<MetaWhatsAppResult | null> => {
     if (!WHATSAPP_APP_ID) {
-      const msg = "NEXT_PUBLIC_META_APP_ID belum dikonfigurasi di .env";
+      const msg =
+        "NEXT_PUBLIC_META_APP_ID atau NEXT_PUBLIC_WHATSAPP_APP_ID belum dikonfigurasi di .env";
       setWaError(msg);
       return null;
     }
@@ -263,7 +264,8 @@ export function useMetaConnect() {
   // -----------------------------------------------
   const connectInstagram = useCallback(async (): Promise<MetaInstagramResult | null> => {
     if (!INSTAGRAM_APP_ID) {
-      const msg = "NEXT_PUBLIC_INSTAGRAM_APP_ID atau NEXT_PUBLIC_META_APP_ID belum dikonfigurasi di .env";
+      const msg =
+        "NEXT_PUBLIC_INSTAGRAM_APP_ID, NEXT_PUBLIC_WHATSAPP_APP_ID, atau NEXT_PUBLIC_META_APP_ID belum dikonfigurasi di .env";
       setIgError(msg);
       return null;
     }

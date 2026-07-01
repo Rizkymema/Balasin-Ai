@@ -156,24 +156,34 @@ async function resolveInstagramMessagingContext(input: {
     });
 
     if (!response.ok) {
+      const errorText = await response.text().catch(() => "unknown");
+      console.warn(`[Instagram OAuth] Failed to fetch /me/accounts. Status: ${response.status}. Error: ${errorText}`);
       return directContext;
     }
 
     const payload = (await response.json()) as {
       data?: Array<{
         id?: string;
+        name?: string;
         access_token?: string;
         instagram_business_account?: {
           id?: string;
+          username?: string;
         };
       }>;
     };
+
+    console.log(`[Instagram OAuth] /me/accounts returned ${payload.data?.length ?? 0} pages.`);
 
     const matchedPage = payload.data?.find(
       (page) =>
         page.instagram_business_account?.id === input.accountId ||
         (input.pageId?.trim() && page.id === input.pageId.trim()),
     );
+
+    if (!matchedPage) {
+      console.warn(`[Instagram OAuth] No matching Facebook Page found for Account ID: ${input.accountId} or Page ID: ${input.pageId}. Pages returned:`, payload.data?.map(p => ({ id: p.id, name: p.name, hasIg: !!p.instagram_business_account })));
+    }
 
     const matchedPageToken = normalizeSecretLikeValue(matchedPage?.access_token);
 
@@ -185,7 +195,8 @@ async function resolveInstagramMessagingContext(input: {
       accessToken: matchedPageToken,
       pageId: matchedPage?.id?.trim() || directContext.pageId,
     } satisfies InstagramMessagingContext;
-  } catch {
+  } catch (error) {
+    console.error("[Instagram OAuth] Exception resolving messaging context:", error);
     return directContext;
   }
 }
@@ -342,8 +353,11 @@ export async function sendChannelMessage(input: SendMessageInput) {
     const matchingAccount = config.channels.instagram.accounts?.find(
       (acc) => acc.accountId === accountId,
     );
+    const isPrimaryAccount = !config.channels.instagram.accountId || accountId === config.channels.instagram.accountId?.trim();
     const igAccessToken = normalizeSecretLikeValue(
-      matchingAccount?.accessToken || config.channels.instagram.accessToken,
+      (isPrimaryAccount && config.channels.instagram.accessToken) ||
+      matchingAccount?.accessToken ||
+      config.channels.instagram.accessToken
     );
     const configuredPageId =
       matchingAccount?.pageId?.trim() ||
