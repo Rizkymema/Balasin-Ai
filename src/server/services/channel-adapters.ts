@@ -76,6 +76,13 @@ function formatGraphApiError(error?: GraphApiError) {
   return parts.join(" | ");
 }
 
+function getInstagramBaseUrl(token: string): string {
+  const normalized = normalizeSecretLikeValue(token);
+  return normalized.startsWith("IGAA")
+    ? "https://graph.instagram.com"
+    : serverEnv.whatsappBaseUrl;
+}
+
 async function parseGraphResponse(response: Response): Promise<GraphApiResponse | null> {
   const bodyText = await response.text();
   if (!bodyText) {
@@ -159,6 +166,10 @@ async function resolveInstagramMessagingContext(input: {
     accessToken: normalizedAccessToken,
     pageId: input.pageId?.trim() || undefined,
   };
+
+  if (normalizedAccessToken.startsWith("IGAA")) {
+    return directContext;
+  }
 
   try {
     const url = new URL(
@@ -290,7 +301,8 @@ async function sendInstagramRequest(
   body: Record<string, unknown>,
 ) {
   const normalizedAccessToken = normalizeSecretLikeValue(accessToken);
-  const sendUrl = `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/me/messages`;
+  const baseUrl = getInstagramBaseUrl(normalizedAccessToken);
+  const sendUrl = `${baseUrl}/${serverEnv.whatsappApiVersion}/me/messages`;
   const response = await fetch(sendUrl, {
     method: "POST",
     headers: {
@@ -607,7 +619,8 @@ export async function sendChannelMessage(input: SendMessageInput) {
     });
 
     try {
-      const sendUrl = `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/${commentId}/replies`;
+      const baseUrl = getInstagramBaseUrl(messagingContext.accessToken);
+      const sendUrl = `${baseUrl}/${serverEnv.whatsappApiVersion}/${commentId}/replies`;
       const response = await fetch(sendUrl, {
         method: "POST",
         headers: {
@@ -745,7 +758,8 @@ export async function deleteInstagramComment(input: {
   });
 
   try {
-    const deleteUrl = `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/${input.commentId}`;
+    const baseUrl = getInstagramBaseUrl(messagingContext.accessToken);
+    const deleteUrl = `${baseUrl}/${serverEnv.whatsappApiVersion}/${input.commentId}`;
     const response = await fetch(deleteUrl, {
       method: "DELETE",
       headers: {
