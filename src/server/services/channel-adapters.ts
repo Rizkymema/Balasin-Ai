@@ -164,6 +164,44 @@ async function resolveInstagramMessagingContext(input: {
     return directContext;
   }
 
+  async function resolvePageContextFromCurrentToken() {
+    try {
+      const url = new URL(`${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/me`);
+      url.searchParams.set(
+        "fields",
+        "id,name,instagram_business_account{id,username,name}",
+      );
+
+      const response = await fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${normalizedAccessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const payload = (await response.json()) as {
+        id?: string;
+        instagram_business_account?: {
+          id?: string;
+        };
+      };
+
+      if (payload.instagram_business_account?.id !== input.accountId || !payload.id?.trim()) {
+        return null;
+      }
+
+      return {
+        accessToken: normalizedAccessToken,
+        pageId: payload.id.trim(),
+      } satisfies InstagramMessagingContext;
+    } catch {
+      return null;
+    }
+  }
+
   try {
     const url = new URL(
       `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/me/accounts`,
@@ -212,7 +250,7 @@ async function resolveInstagramMessagingContext(input: {
     const matchedPageToken = normalizeSecretLikeValue(matchedPage?.access_token);
 
     if (!matchedPageToken) {
-      return directContext;
+      return (await resolvePageContextFromCurrentToken()) ?? directContext;
     }
 
     return {
@@ -221,7 +259,7 @@ async function resolveInstagramMessagingContext(input: {
     } satisfies InstagramMessagingContext;
   } catch (error) {
     console.error("[Instagram OAuth] Exception resolving messaging context:", error);
-    return directContext;
+    return (await resolvePageContextFromCurrentToken()) ?? directContext;
   }
 }
 

@@ -225,6 +225,10 @@ function mergePersistedDashboardConfig(
           existing.channels.instagram.accountId,
           incoming.channels.instagram.accountId,
         ),
+        pageId: keepExistingString(
+          existing.channels.instagram.pageId ?? "",
+          incoming.channels.instagram.pageId ?? "",
+        ),
         accessToken: normalizeSecretLikeValue(
           keepExistingString(
             existing.channels.instagram.accessToken,

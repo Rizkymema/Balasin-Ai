@@ -103,6 +103,7 @@ export default function ChannelsPage() {
         id: config.channels.instagram.accountId,
         username: config.channels.instagram.username || "instagram_user",
         accountId: config.channels.instagram.accountId,
+        pageId: config.channels.instagram.pageId || "",
         accessToken: config.channels.instagram.accessToken,
         verifyToken: config.channels.instagram.verifyToken,
         status: config.channels.instagram.status,
@@ -145,6 +146,7 @@ export default function ChannelsPage() {
 
   const [igUsername, setIgUsername] = useState(config.channels.instagram.username);
   const [igAccountId, setIgAccountId] = useState(config.channels.instagram.accountId);
+  const [igPageId, setIgPageId] = useState(config.channels.instagram.pageId || "");
   const [igAccessToken, setIgAccessToken] = useState(config.channels.instagram.accessToken);
   const [igVerifyToken, setIgVerifyToken] = useState(config.channels.instagram.verifyToken || "");
   const [igAutoReplyDm, setIgAutoReplyDm] = useState(
@@ -194,6 +196,7 @@ export default function ChannelsPage() {
 
     setIgUsername(config.channels.instagram.username);
     setIgAccountId(config.channels.instagram.accountId);
+    setIgPageId(config.channels.instagram.pageId || "");
     setIgAccessToken(config.channels.instagram.accessToken);
     setIgVerifyToken(config.channels.instagram.verifyToken || "");
     setIgAutoReplyDm(config.channels.instagram.autoReplyDm);
@@ -391,6 +394,7 @@ struct ChatView: View {
   const disconnectInstagram = () => {
     setIgStatus("draft");
     setIgAccountId("");
+    setIgPageId("");
     setIgAccessToken("");
     setIgUsername("");
     patchConfig((current) => ({
@@ -402,6 +406,7 @@ struct ChatView: View {
           enabled: false,
           status: "draft",
           accountId: "",
+          pageId: "",
           accessToken: "",
           username: "",
           accounts: [],
@@ -599,7 +604,7 @@ struct ChatView: View {
           id: igAccountId.trim(),
           username: igUsername.trim() || "instagram_user",
           accountId: igAccountId.trim(),
-          pageId: existingAccount?.pageId || "",
+          pageId: igPageId.trim() || existingAccount?.pageId || "",
           accessToken: igAccessToken.trim(),
           verifyToken: trimmedVerifyToken,
           status: "connected" as const,
@@ -624,6 +629,7 @@ struct ChatView: View {
             status: nextStatus,
             username: igUsername.trim(),
             accountId: igAccountId.trim(),
+            pageId: igPageId.trim(),
             accessToken: igAccessToken.trim(),
             verifyToken: trimmedVerifyToken,
             autoReplyDm: igAutoReplyDm,
@@ -1757,6 +1763,12 @@ struct ChatView: View {
                           <Input type="password" value={igAccessToken} onChange={(e) => setIgAccessToken(e.target.value)} className="h-10 text-xs" />
                         </div>
                         <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">Facebook Page ID</label>
+                          <Input value={igPageId} onChange={(e) => setIgPageId(e.target.value)} className="h-10 text-xs" placeholder="615512345678901" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="space-y-1.5">
                           <label className="text-xs font-semibold text-slate-300">Verify token</label>
                           <Input value={igVerifyToken} onChange={(e) => setIgVerifyToken(e.target.value)} className="h-10 text-xs" placeholder="Contoh: balesin_verify" />
                         </div>
@@ -1879,6 +1891,10 @@ struct ChatView: View {
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-slate-300">Meta access token</label>
                       <Input type="password" value={igAccessToken} onChange={(e) => setIgAccessToken(e.target.value)} className="h-10 text-xs" placeholder="EAABwzLixnjY..." />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-300">Facebook Page ID</label>
+                      <Input value={igPageId} onChange={(e) => setIgPageId(e.target.value)} className="h-10 text-xs" placeholder="615512345678901" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-slate-300">Verify token</label>
