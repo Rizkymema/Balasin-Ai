@@ -212,17 +212,27 @@ function resolveInstagramCredential(
   config: DashboardConfig,
   accountIdOverride?: string,
 ): ResolvedInstagramCredential {
+  const configuredAccounts = config.channels.instagram.accounts ?? [];
   const primaryAccountId = config.channels.instagram.accountId?.trim() || "";
-  const accountId = accountIdOverride?.trim() || primaryAccountId;
-  const matchingAccount = config.channels.instagram.accounts?.find(
-    (acc) => acc.accountId === accountId,
+  const requestedAccountId = accountIdOverride?.trim() || primaryAccountId;
+  const matchingAccount = configuredAccounts.find(
+    (acc) => acc.accountId === requestedAccountId,
   );
-  const primaryAccount = config.channels.instagram.accounts?.find(
+  const primaryAccount = configuredAccounts.find(
     (acc) => acc.accountId === primaryAccountId,
   );
-  const isPrimaryAccount = !primaryAccountId || accountId === primaryAccountId;
+  const firstConnectedAccount = configuredAccounts.find(
+    (acc) => normalizeSecretLikeValue(acc.accessToken).length > 0,
+  );
+  const resolvedAccount =
+    matchingAccount || primaryAccount || firstConnectedAccount || null;
+  const accountId = requestedAccountId || resolvedAccount?.accountId?.trim() || "";
+  const isPrimaryAccount =
+    !primaryAccountId || accountId === primaryAccountId || resolvedAccount === primaryAccount;
 
-  const matchingAccessToken = normalizeSecretLikeValue(matchingAccount?.accessToken);
+  const resolvedAccountToken = normalizeSecretLikeValue(
+    resolvedAccount?.accessToken,
+  );
   const primaryAccessToken = normalizeSecretLikeValue(
     config.channels.instagram.accessToken,
   );
@@ -231,15 +241,29 @@ function resolveInstagramCredential(
   );
 
   const accessToken = isPrimaryAccount
-    ? matchingAccessToken || primaryAccessToken || primaryAccountAccessToken
-    : matchingAccessToken;
+    ? resolvedAccountToken || primaryAccessToken || primaryAccountAccessToken
+    : resolvedAccountToken;
 
   const pageId = isPrimaryAccount
-    ? matchingAccount?.pageId?.trim() ||
+    ? resolvedAccount?.pageId?.trim() ||
       config.channels.instagram.pageId?.trim() ||
       primaryAccount?.pageId?.trim() ||
       undefined
-    : matchingAccount?.pageId?.trim() || undefined;
+    : resolvedAccount?.pageId?.trim() || undefined;
+
+  if (!accountId || !accessToken) {
+    console.warn("[Instagram DM] credential resolution failed", {
+      requestedAccountId,
+      primaryAccountId,
+      configuredAccounts: configuredAccounts.map((account) => ({
+        accountId: account.accountId,
+        hasAccessToken: normalizeSecretLikeValue(account.accessToken).length > 0,
+        hasPageId: Boolean(account.pageId?.trim()),
+      })),
+      hasPrimaryAccessToken: primaryAccessToken.length > 0,
+      hasPrimaryPageId: Boolean(config.channels.instagram.pageId?.trim()),
+    });
+  }
 
   return {
     accountId,
