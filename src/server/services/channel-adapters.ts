@@ -353,11 +353,14 @@ export async function sendChannelMessage(input: SendMessageInput) {
     const matchingAccount = config.channels.instagram.accounts?.find(
       (acc) => acc.accountId === accountId,
     );
-    const isPrimaryAccount = !config.channels.instagram.accountId || accountId === config.channels.instagram.accountId?.trim();
+    const isPrimaryAccount =
+      !config.channels.instagram.accountId ||
+      accountId === config.channels.instagram.accountId?.trim();
+    const matchingAccessToken = matchingAccount?.accessToken ?? "";
     const igAccessToken = normalizeSecretLikeValue(
-      (isPrimaryAccount && config.channels.instagram.accessToken) ||
-      matchingAccount?.accessToken ||
-      config.channels.instagram.accessToken
+      (isPrimaryAccount ? config.channels.instagram.accessToken : "") ||
+        matchingAccessToken ||
+        config.channels.instagram.accessToken,
     );
     const configuredPageId =
       matchingAccount?.pageId?.trim() ||
