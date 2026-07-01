@@ -117,6 +117,16 @@ export async function POST(request: Request) {
       });
     }
 
+    // Find unbooked customers
+    const bookedCustomerIds = new Set(ops.bookings.map(b => b.customerId));
+    const bookedCustomerNames = new Set(ops.bookings.map(b => b.customer.trim().toLowerCase()));
+    
+    const unbookedCustomers = ops.customers.filter(c => {
+      const idMatch = bookedCustomerIds.has(c.id);
+      const nameMatch = bookedCustomerNames.has(c.name.trim().toLowerCase());
+      return !idMatch && !nameMatch;
+    });
+
     // Build workspace context
     const connectedChannels: string[] = [];
     if (config.channels.whatsapp.enabled) connectedChannels.push(`WhatsApp (${config.channels.whatsapp.status})`);
@@ -161,11 +171,92 @@ ${ops.bookings.map((b, idx) => `${idx + 1}. [${b.status}] Tanggal ${b.date} slot
 Produk: ${ops.products.map(p => `${p.name} (Harga: Rp${p.price}, Stok: ${p.stock})`).join(", ") || "Tidak ada produk"}
 Jasa: ${ops.services.map(s => `${s.name} (Harga: Rp${s.priceStart} - Rp${s.priceEnd}, Durasi: ${s.duration})`).join(", ") || "Tidak ada jasa"}
 
+=== DAFTAR PELANGGAN YANG BELUM BOOKING ===
+${unbookedCustomers.map((c, idx) => `${idx + 1}. Nama: ${c.name}, ID: ${c.id}, Channel: ${c.channel}, Kontak: ${c.phone || c.username || "-"}`).join("\n") || "Semua pelanggan sudah memiliki booking"}
+
 Tugas Anda:
 1. Jawab pertanyaan seputar data operasional di atas secara ramah, profesional, dan akurat.
 2. Jika admin menanyakan petunjuk cara kerja sistem (misalnya: cara menyambungkan WhatsApp, cara menambah FAQ, atau cara mengaktifkan filter komentar negatif), berikan instruksi langkah-demi-langkah berdasarkan menu yang ada di sidebar (Dashboard, Unified Inbox, Contacts, Products & Services, Booking, Broadcast, Channels, Reports, Team & Settings, Automation).
 3. Berikan saran analisis atau ringkasan jika diminta (misal: "Berapa banyak tiket yang berstatus Open?", "Buatkan rangkuman booking untuk besok").
 4. Jawablah dengan ringkas, jelas, dan terstruktur (gunakan poin-poin jika perlu). Gunakan bahasa Indonesia secara sopan.
+5. Jika admin meminta Anda untuk mem-follow-up pelanggan yang belum booking, menyusun reservasi/booking, membuat tiket komplain/keluhan, menambah kontak pelanggan baru, atau menambah produk baru, Anda HARUS menyusun proposal aksi.
+Format proposal aksi harus diletakkan di akhir jawaban Anda dengan menggunakan penanda tepat seperti ini:
+
+---AI-ACTION-PROPOSAL---
+{
+  "type": "send_followup",
+  "title": "Follow-up Pelanggan Belum Booking",
+  "targets": [
+    {
+      "id": "customer_id",
+      "name": "customer_name",
+      "recipientId": "phone_or_username",
+      "channel": "WhatsApp_or_Instagram_DM"
+    }
+  ],
+  "messageTemplate": "Halo {name}, kami dari Johan Garage melihat Anda belum melakukan booking servis bulan ini. Ingin kami daftarkan booking?"
+}
+---END-AI-ACTION-PROPOSAL---
+
+ATAU (untuk membuat booking):
+---AI-ACTION-PROPOSAL---
+{
+  "type": "create_booking",
+  "title": "Buat Booking Servis Baru",
+  "data": {
+    "customer": "Nama Pelanggan",
+    "service": "Nama Jasa/Layanan (misal: Ganti Oli Mesin)",
+    "date": "YYYY-MM-DD (format tahun-bulan-hari)",
+    "slot": "Jam slot (misal: 10:00 atau 14:00)",
+    "note": "Catatan opsional dari AI"
+  }
+}
+---END-AI-ACTION-PROPOSAL---
+
+ATAU (untuk membuat tiket keluhan):
+---AI-ACTION-PROPOSAL---
+{
+  "type": "create_ticket",
+  "title": "Buat Tiket Keluhan Baru",
+  "data": {
+    "customerName": "Nama Pelanggan",
+    "issueType": "Tipe masalah/keluhan (misal: Oli Rem Bocor)",
+    "priority": "low" or "medium" or "high",
+    "summary": "Ringkasan penjelasan detail keluhan"
+  }
+}
+---END-AI-ACTION-PROPOSAL---
+
+ATAU (untuk menambah kontak pelanggan baru):
+---AI-ACTION-PROPOSAL---
+{
+  "type": "create_contact",
+  "title": "Tambah Kontak Baru",
+  "data": {
+    "name": "Nama Lengkap Pelanggan",
+    "phone": "Nomor WA (jika ada)",
+    "email": "Email (jika ada)",
+    "username": "Username Instagram (jika ada)",
+    "channel": "WhatsApp" or "Instagram DM" or "Website Chat"
+  }
+}
+---END-AI-ACTION-PROPOSAL---
+
+ATAU (untuk menambah produk baru):
+---AI-ACTION-PROPOSAL---
+{
+  "type": "create_product",
+  "title": "Tambah Produk Baru",
+  "data": {
+    "name": "Nama Produk Baru",
+    "price": "Harga (misal: Rp150.000)",
+    "stock": "Jumlah stok (angka)",
+    "description": "Deskripsi produk singkat"
+  }
+}
+---END-AI-ACTION-PROPOSAL---
+
+Pastikan data yang dimasukkan ke dalam proposal seakurat mungkin berdasarkan keluhan atau obrolan admin. Jangan mengarang data target untuk follow-up jika tidak ada di daftar "DAFTAR PELANGGAN YANG BELUM BOOKING".
 `;
 
     const provider = config.aiProvider.provider;

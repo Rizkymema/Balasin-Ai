@@ -6,10 +6,29 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
+type MessageTarget = {
+  id: string;
+  name: string;
+  recipientId: string;
+  channel: any;
+};
+
+type ActionProposal = {
+  type: string;
+  title: string;
+  targets?: MessageTarget[];
+  messageTemplate?: string;
+  data?: Record<string, any>;
+};
+
 type Message = {
   sender: "user" | "bot";
   text: string;
   timestamp: string;
+  proposal?: ActionProposal | null;
+  proposalExecuted?: boolean;
+  proposalStatus?: "idle" | "loading" | "success" | "error";
+  proposalResultMsg?: string;
 };
 
 const SUGGESTIONS = [
@@ -31,6 +50,10 @@ export function DashboardAIAssistant() {
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // States for the active proposal card
+  const [editingTemplate, setEditingTemplate] = useState("");
+  const [selectedTargetIds, setSelectedTargetIds] = useState<string[]>([]);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +66,96 @@ export function DashboardAIAssistant() {
       setTimeout(scrollToBottom, 100);
     }
   }, [isOpen, messages]);
+
+  const toggleTargetSelection = (id: string) => {
+    setSelectedTargetIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleCancelProposal = (msgIndex: number) => {
+    setMessages((prev) =>
+      prev.map((msg, idx) =>
+        idx === msgIndex
+          ? {
+              ...msg,
+              proposalExecuted: true,
+              proposalStatus: "error",
+              proposalResultMsg: "Tindakan dibatalkan oleh administrator.",
+            }
+          : msg
+      )
+    );
+  };
+
+  const handleExecuteProposal = async (msgIndex: number, proposal: ActionProposal) => {
+    setMessages((prev) =>
+      prev.map((msg, idx) =>
+        idx === msgIndex ? { ...msg, proposalStatus: "loading" } : msg
+      )
+    );
+
+    try {
+      let bodyData: any = {};
+      if (proposal.type === "send_followup") {
+        const targetsToSend = proposal.targets?.filter((t) =>
+          selectedTargetIds.includes(t.id)
+        ) ?? [];
+        bodyData = {
+          action: "send_followup",
+          targets: targetsToSend,
+          messageTemplate: editingTemplate,
+        };
+      } else {
+        bodyData = {
+          action: proposal.type,
+          data: proposal.data,
+        };
+      }
+
+      const response = await fetch("/api/assistant/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bodyData),
+      });
+
+      const payload = (await response.json()) as { ok: boolean; message?: string; error?: string };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || "Gagal mengeksekusi aksi.");
+      }
+
+      setMessages((prev) =>
+        prev.map((msg, idx) =>
+          idx === msgIndex
+            ? {
+                ...msg,
+                proposalExecuted: true,
+                proposalStatus: "success",
+                proposalResultMsg: payload.message || "Aksi berhasil dieksekusi!",
+              }
+            : msg
+        )
+      );
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("balesin_refresh_inbox"));
+        window.dispatchEvent(new Event("balesin-dashboard-operations-change"));
+      }
+    } catch (err) {
+      setMessages((prev) =>
+        prev.map((msg, idx) =>
+          idx === msgIndex
+            ? {
+                ...msg,
+                proposalStatus: "error",
+                proposalResultMsg: err instanceof Error ? err.message : "Terjadi kesalahan saat mengeksekusi.",
+              }
+            : msg
+        )
+      );
+    }
+  };
 
   const handleSendMessage = async (textToSend: string) => {
     if (!textToSend.trim()) return;
@@ -85,11 +198,35 @@ export function DashboardAIAssistant() {
         throw new Error(payload.error || raw.error || "Gagal memproses pesan.");
       }
 
+      const rawText = payload.reply;
+      const proposalRegex = /---AI-ACTION-PROPOSAL---([\s\S]*?)---END-AI-ACTION-PROPOSAL---/;
+      const match = rawText.match(proposalRegex);
+
+      let cleanText = rawText;
+      let proposalObj: ActionProposal | null = null;
+
+      if (match && match[1]) {
+        try {
+          proposalObj = JSON.parse(match[1].trim()) as ActionProposal;
+          cleanText = rawText.replace(proposalRegex, "").trim();
+        } catch (e) {
+          console.error("Failed to parse AI action proposal:", e);
+        }
+      }
+
       const botMsg: Message = {
         sender: "bot",
-        text: payload.reply,
+        text: cleanText,
         timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+        proposal: proposalObj,
+        proposalExecuted: false,
+        proposalStatus: "idle",
       };
+
+      if (proposalObj) {
+        setEditingTemplate(proposalObj.messageTemplate || "");
+        setSelectedTargetIds(proposalObj.targets?.map((t) => t.id) || []);
+      }
 
       setMessages((prev) => [...prev, botMsg]);
     } catch (err) {
@@ -154,6 +291,134 @@ export function DashboardAIAssistant() {
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{msg.text}</p>
+                    
+                    {/* Proposal Action Card */}
+                    {msg.proposal && (
+                      <div className="mt-3 p-3 rounded-xl border border-white/10 bg-black/35 space-y-3 text-left">
+                        <div className="flex items-center gap-2 border-b border-white/5 pb-1.5">
+                          <Sparkles className="h-3.5 w-3.5 text-[var(--color-brand)]" />
+                          <span className="font-bold text-[10px] text-[var(--color-brand)] uppercase tracking-wider">{msg.proposal.title}</span>
+                        </div>
+                        
+                        {!msg.proposalExecuted ? (
+                          <>
+                            {/* RENDER FOLLOW-UP */}
+                            {msg.proposal.type === "send_followup" && msg.proposal.targets && (
+                              <>
+                                <div className="space-y-1">
+                                  <span className="text-[9px] font-bold text-slate-400 block uppercase">Pilih Pelanggan:</span>
+                                  <div className="space-y-1 max-h-24 overflow-y-auto custom-scrollbar pr-1">
+                                    {msg.proposal.targets.map((target) => (
+                                      <label key={target.id} className="flex items-center gap-2 text-[10px] text-slate-300 hover:text-white cursor-pointer select-none">
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedTargetIds.includes(target.id)}
+                                          onChange={() => toggleTargetSelection(target.id)}
+                                          className="rounded border-white/10 bg-white/5 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
+                                        />
+                                        <span>{target.name} ({target.channel})</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                  <span className="text-[9px] font-bold text-slate-400 block uppercase">Edit Pesan (Gunakan {"{name}"}):</span>
+                                  <textarea
+                                    value={editingTemplate}
+                                    onChange={(e) => setEditingTemplate(e.target.value)}
+                                    className="w-full text-[10px] bg-black/40 border border-white/5 focus:border-[var(--color-brand)] rounded-lg p-2 text-slate-200 focus:outline-none focus:ring-1 focus:ring-[var(--color-brand)] resize-none h-14 custom-scrollbar"
+                                    placeholder="Gunakan {name}..."
+                                  />
+                                </div>
+                              </>
+                            )}
+
+                            {/* RENDER CREATE BOOKING */}
+                            {msg.proposal.type === "create_booking" && msg.proposal.data && (
+                              <div className="space-y-1.5 text-[10px] text-slate-300 bg-white/5 rounded-lg p-2.5 border border-white/5">
+                                <div className="flex justify-between"><span className="text-slate-500">Pelanggan:</span> <span className="font-medium text-white">{msg.proposal.data.customer}</span></div>
+                                <div className="flex justify-between"><span className="text-slate-500">Layanan:</span> <span className="font-medium text-white">{msg.proposal.data.service}</span></div>
+                                <div className="flex justify-between"><span className="text-slate-500">Tanggal:</span> <span className="font-medium text-white">{msg.proposal.data.date}</span></div>
+                                <div className="flex justify-between"><span className="text-slate-500">Jam Slot:</span> <span className="font-medium text-white">{msg.proposal.data.slot}</span></div>
+                                {msg.proposal.data.note && (
+                                  <div className="border-t border-white/5 pt-1 mt-1 text-slate-400 italic">&quot;{msg.proposal.data.note}&quot;</div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* RENDER CREATE TICKET */}
+                            {msg.proposal.type === "create_ticket" && msg.proposal.data && (
+                              <div className="space-y-1.5 text-[10px] text-slate-300 bg-white/5 rounded-lg p-2.5 border border-white/5">
+                                <div className="flex justify-between"><span className="text-slate-500">Pelanggan:</span> <span className="font-medium text-white">{msg.proposal.data.customerName}</span></div>
+                                <div className="flex justify-between"><span className="text-slate-500">Masalah:</span> <span className="font-medium text-white">{msg.proposal.data.issueType}</span></div>
+                                <div className="flex justify-between"><span className="text-slate-500">Prioritas:</span> <span className="font-medium text-amber-400 capitalize">{msg.proposal.data.priority}</span></div>
+                                {msg.proposal.data.summary && (
+                                  <div className="border-t border-white/5 pt-1 mt-1 text-slate-400 italic">&quot;{msg.proposal.data.summary}&quot;</div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* RENDER CREATE CONTACT */}
+                            {msg.proposal.type === "create_contact" && msg.proposal.data && (
+                              <div className="space-y-1.5 text-[10px] text-slate-300 bg-white/5 rounded-lg p-2.5 border border-white/5">
+                                <div className="flex justify-between"><span className="text-slate-500">Nama:</span> <span className="font-medium text-white">{msg.proposal.data.name}</span></div>
+                                {msg.proposal.data.phone && <div className="flex justify-between"><span className="text-slate-500">WhatsApp:</span> <span className="font-medium text-white">{msg.proposal.data.phone}</span></div>}
+                                {msg.proposal.data.email && <div className="flex justify-between"><span className="text-slate-500">Email:</span> <span className="font-medium text-white">{msg.proposal.data.email}</span></div>}
+                                {msg.proposal.data.username && <div className="flex justify-between"><span className="text-slate-500">Instagram:</span> <span className="font-medium text-white">{msg.proposal.data.username}</span></div>}
+                                <div className="flex justify-between"><span className="text-slate-500">Channel:</span> <span className="font-medium text-white">{msg.proposal.data.channel || "WhatsApp"}</span></div>
+                              </div>
+                            )}
+
+                            {/* RENDER CREATE PRODUCT */}
+                            {msg.proposal.type === "create_product" && msg.proposal.data && (
+                              <div className="space-y-1.5 text-[10px] text-slate-300 bg-white/5 rounded-lg p-2.5 border border-white/5">
+                                <div className="flex justify-between"><span className="text-slate-500">Produk:</span> <span className="font-medium text-white">{msg.proposal.data.name}</span></div>
+                                <div className="flex justify-between"><span className="text-slate-500">Harga:</span> <span className="font-medium text-cyan-400">{msg.proposal.data.price}</span></div>
+                                <div className="flex justify-between"><span className="text-slate-500">Stok:</span> <span className="font-medium text-white">{msg.proposal.data.stock}</span></div>
+                                {msg.proposal.data.description && (
+                                  <div className="border-t border-white/5 pt-1 mt-1 text-slate-400 italic">&quot;{msg.proposal.data.description}&quot;</div>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="flex justify-end gap-1.5 pt-1.5 border-t border-white/5">
+                              <button
+                                onClick={() => handleCancelProposal(index)}
+                                className="h-6 text-[9px] px-2 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white transition"
+                              >
+                                Batal
+                              </button>
+                              <button
+                                disabled={msg.proposalStatus === "loading" || (msg.proposal.type === "send_followup" && selectedTargetIds.length === 0)}
+                                onClick={() => handleExecuteProposal(index, msg.proposal!)}
+                                className="h-6 text-[9px] px-2.5 rounded-lg bg-[var(--color-brand)] text-slate-950 hover:bg-[var(--color-brand)]/90 flex items-center gap-1 font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {msg.proposalStatus === "loading" ? (
+                                  <>
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    Memproses...
+                                  </>
+                                ) : (
+                                  "Setujui & Jalankan"
+                                )}
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <div className={`p-2 rounded-lg text-[9px] ${
+                              msg.proposalStatus === "success" 
+                                ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-semibold" 
+                                : "bg-rose-500/10 border border-rose-500/20 text-rose-400 font-semibold"
+                            }`}>
+                              {msg.proposalResultMsg}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <span
                       className={`text-[8px] block mt-1 text-right ${
                         isUser ? "text-slate-900/60" : "text-slate-500"
