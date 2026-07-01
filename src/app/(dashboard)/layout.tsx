@@ -278,21 +278,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
   ];
 
-  const profileItems = [
-    {
-      label: "Pengaturan Akun",
-      onClick: () => {
-        setIsAccountModalOpen(true);
-      },
-      icon: <Settings className="h-4 w-4 text-slate-400" />,
-    },
-    {
-      label: t.logout,
-      onClick: handleLogout,
-      icon: <LogOut className="h-4 w-4 text-red-400" />,
-      danger: true,
-    },
-  ];
+
 
   return (
     <div className="relative h-screen bg-[var(--color-bg)] text-[var(--color-text)] flex overflow-hidden">
@@ -514,41 +500,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Sidebar Footer User Info */}
           <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-surface-strong)] flex flex-col gap-2.5">
-            <Dropdown
-              trigger={
-                hasMounted && isMainSidebarCollapsed ? (
-                  <div
-                    onMouseEnter={(e) => handleMouseEnter(e, `${userName} (${userEmail})`)}
-                    onMouseLeave={handleMouseLeave}
-                    onClick={handleMouseLeave}
-                    className="h-10 w-10 mx-auto rounded-full bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center text-xs font-bold text-[var(--color-brand)] cursor-pointer hover:border-[var(--color-brand)]/50 transition uppercase"
-                  >
-                    {userName.slice(0, 2)}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3 cursor-pointer hover:bg-[var(--color-surface-hover)] p-2 rounded-lg transition duration-200">
-                    <div className="h-9 w-9 rounded-full bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center text-xs font-bold text-[var(--color-brand)] uppercase">
-                      {userName.slice(0, 2)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold text-[var(--color-text)] truncate">{userName}</div>
-                      <div className="text-[10px] text-[var(--color-muted)] truncate">{userEmail}</div>
-                    </div>
-                    <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-                  </div>
-                )
-              }
-              items={profileItems}
-              header={
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Menu Akun</span>
-                  <span className="text-xs font-bold text-[var(--color-text)] truncate">{userName}</span>
-                  <span className="text-[10px] text-[var(--color-muted)] truncate">{userEmail}</span>
-                </div>
-              }
-              align={isMainSidebarCollapsed ? "left" : "right"}
-              className="w-full"
-            />
+
 
             {/* Collapse toggle button */}
             <button
