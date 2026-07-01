@@ -99,6 +99,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // The real persisted value is loaded from localStorage after mount.
   const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
+  const [isAiOpen, setIsAiOpen] = useState(false);
 
   useEffect(() => {
     setHasMounted(true);
@@ -106,6 +107,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (stored === "true") {
       setIsMainSidebarCollapsed(true);
     }
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const customEvent = e as CustomEvent<{ isOpen: boolean }>;
+      setIsAiOpen(customEvent.detail?.isOpen ?? false);
+    };
+    window.addEventListener("balesin-ai-assistant-toggle", handler as EventListener);
+    return () => window.removeEventListener("balesin-ai-assistant-toggle", handler as EventListener);
   }, []);
 
   const [tooltipState, setTooltipState] = useState<{
@@ -281,7 +291,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   return (
-    <div className="relative h-screen bg-[var(--color-bg)] text-[var(--color-text)] flex overflow-hidden">
+    <div className={`relative h-screen bg-[var(--color-bg)] text-[var(--color-text)] flex overflow-hidden transition-all duration-300 ${isAiOpen ? "md:pr-96" : ""}`}>
       {/* MOBILE SIDEBAR DRAWEROVERLAY */}
       {isSidebarOpen && (
         <div
