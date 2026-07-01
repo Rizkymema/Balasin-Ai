@@ -76,13 +76,6 @@ function formatGraphApiError(error?: GraphApiError) {
   return parts.join(" | ");
 }
 
-function getInstagramBaseUrl(token: string): string {
-  const normalized = normalizeSecretLikeValue(token);
-  return normalized.startsWith("IGAA")
-    ? "https://graph.instagram.com"
-    : serverEnv.whatsappBaseUrl;
-}
-
 async function parseGraphResponse(response: Response): Promise<GraphApiResponse | null> {
   const bodyText = await response.text();
   if (!bodyText) {
@@ -297,12 +290,12 @@ function resolveInstagramCredential(
 }
 
 async function sendInstagramRequest(
+  pageId: string,
   accessToken: string,
   body: Record<string, unknown>,
 ) {
   const normalizedAccessToken = normalizeSecretLikeValue(accessToken);
-  const baseUrl = getInstagramBaseUrl(normalizedAccessToken);
-  const sendUrl = `${baseUrl}/${serverEnv.whatsappApiVersion}/me/messages`;
+  const sendUrl = `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/${pageId}/messages`;
   const response = await fetch(sendUrl, {
     method: "POST",
     headers: {
@@ -473,6 +466,15 @@ export async function sendChannelMessage(input: SendMessageInput) {
       pageId: configuredPageId,
     });
 
+    if (!messagingContext.pageId?.trim()) {
+      return {
+        ok: false,
+        provider: "instagram",
+        status: 412,
+        note: "Page ID Facebook untuk Instagram belum tersedia di dashboard.",
+      };
+    }
+
     try {
       if (input.mediaAttachment) {
         if (!input.mediaPublicUrl?.trim()) {
@@ -485,6 +487,7 @@ export async function sendChannelMessage(input: SendMessageInput) {
         }
 
         const mediaResponse = await sendInstagramRequest(
+          messagingContext.pageId,
           messagingContext.accessToken,
           {
             recipient: { id: input.recipientId },
@@ -512,6 +515,7 @@ export async function sendChannelMessage(input: SendMessageInput) {
         let captionResponse: Awaited<ReturnType<typeof sendInstagramRequest>> | null = null;
         if (trimmedMessage) {
           captionResponse = await sendInstagramRequest(
+            messagingContext.pageId,
             messagingContext.accessToken,
             {
               recipient: { id: input.recipientId },
@@ -542,6 +546,7 @@ export async function sendChannelMessage(input: SendMessageInput) {
       }
 
       const igResponse = await sendInstagramRequest(
+        messagingContext.pageId,
         messagingContext.accessToken,
         {
           recipient: { id: input.recipientId },
@@ -619,8 +624,7 @@ export async function sendChannelMessage(input: SendMessageInput) {
     });
 
     try {
-      const baseUrl = getInstagramBaseUrl(messagingContext.accessToken);
-      const sendUrl = `${baseUrl}/${serverEnv.whatsappApiVersion}/${commentId}/replies`;
+      const sendUrl = `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/${commentId}/replies`;
       const response = await fetch(sendUrl, {
         method: "POST",
         headers: {
@@ -758,8 +762,7 @@ export async function deleteInstagramComment(input: {
   });
 
   try {
-    const baseUrl = getInstagramBaseUrl(messagingContext.accessToken);
-    const deleteUrl = `${baseUrl}/${serverEnv.whatsappApiVersion}/${input.commentId}`;
+    const deleteUrl = `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/${input.commentId}`;
     const response = await fetch(deleteUrl, {
       method: "DELETE",
       headers: {
