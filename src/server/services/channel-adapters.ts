@@ -2,6 +2,7 @@ import { normalizeSecretLikeValue } from "@/lib/normalize-secret-like-value";
 import { getDashboardConfigRecord } from "@/server/repositories/dashboard-repository";
 import { serverEnv } from "@/server/env";
 import type { PreparedOutboundMediaUpload } from "@/server/services/outbound-media";
+import type { DashboardConfig } from "@/types/dashboard-config";
 import type { ChannelKind } from "@/types/operations";
 
 type SendMessageInput = {
@@ -38,6 +39,12 @@ type GraphApiResponse = {
   message_id?: string;
   id?: string;
   error?: GraphApiError;
+};
+
+type ResolvedInstagramCredential = {
+  accountId: string;
+  accessToken: string;
+  pageId?: string;
 };
 
 function formatGraphApiError(error?: GraphApiError) {
@@ -201,6 +208,46 @@ async function resolveInstagramMessagingContext(input: {
   }
 }
 
+function resolveInstagramCredential(
+  config: DashboardConfig,
+  accountIdOverride?: string,
+): ResolvedInstagramCredential {
+  const primaryAccountId = config.channels.instagram.accountId?.trim() || "";
+  const accountId = accountIdOverride?.trim() || primaryAccountId;
+  const matchingAccount = config.channels.instagram.accounts?.find(
+    (acc) => acc.accountId === accountId,
+  );
+  const primaryAccount = config.channels.instagram.accounts?.find(
+    (acc) => acc.accountId === primaryAccountId,
+  );
+  const isPrimaryAccount = !primaryAccountId || accountId === primaryAccountId;
+
+  const matchingAccessToken = normalizeSecretLikeValue(matchingAccount?.accessToken);
+  const primaryAccessToken = normalizeSecretLikeValue(
+    config.channels.instagram.accessToken,
+  );
+  const primaryAccountAccessToken = normalizeSecretLikeValue(
+    primaryAccount?.accessToken,
+  );
+
+  const accessToken = isPrimaryAccount
+    ? matchingAccessToken || primaryAccessToken || primaryAccountAccessToken
+    : matchingAccessToken;
+
+  const pageId = isPrimaryAccount
+    ? matchingAccount?.pageId?.trim() ||
+      config.channels.instagram.pageId?.trim() ||
+      primaryAccount?.pageId?.trim() ||
+      undefined
+    : matchingAccount?.pageId?.trim() || undefined;
+
+  return {
+    accountId,
+    accessToken,
+    pageId,
+  };
+}
+
 async function sendInstagramRequest(
   accessToken: string,
   body: Record<string, unknown>,
@@ -346,26 +393,11 @@ export async function sendChannelMessage(input: SendMessageInput) {
   }
 
   if (input.channel === "Instagram DM") {
-    const accountId =
-      input.instagramAccountIdOverride?.trim() ||
-      config.channels.instagram.accountId?.trim();
-
-    const matchingAccount = config.channels.instagram.accounts?.find(
-      (acc) => acc.accountId === accountId,
-    );
-    const isPrimaryAccount =
-      !config.channels.instagram.accountId ||
-      accountId === config.channels.instagram.accountId?.trim();
-    const matchingAccessToken = matchingAccount?.accessToken ?? "";
-    const igAccessToken = normalizeSecretLikeValue(
-      (isPrimaryAccount ? config.channels.instagram.accessToken : "") ||
-        matchingAccessToken ||
-        config.channels.instagram.accessToken,
-    );
-    const configuredPageId =
-      matchingAccount?.pageId?.trim() ||
-      config.channels.instagram.pageId?.trim() ||
-      undefined;
+    const {
+      accountId,
+      accessToken: igAccessToken,
+      pageId: configuredPageId,
+    } = resolveInstagramCredential(config, input.instagramAccountIdOverride);
 
     if (!accountId || !igAccessToken) {
       return {
@@ -500,20 +532,11 @@ export async function sendChannelMessage(input: SendMessageInput) {
   }
 
   if (input.channel === "Instagram Comment") {
-    const accountId =
-      input.instagramAccountIdOverride?.trim() ||
-      config.channels.instagram.accountId?.trim();
-
-    const matchingAccount = config.channels.instagram.accounts?.find(
-      (acc) => acc.accountId === accountId,
-    );
-    const igAccessToken = normalizeSecretLikeValue(
-      matchingAccount?.accessToken || config.channels.instagram.accessToken,
-    );
-    const configuredPageId =
-      matchingAccount?.pageId?.trim() ||
-      config.channels.instagram.pageId?.trim() ||
-      undefined;
+    const {
+      accountId,
+      accessToken: igAccessToken,
+      pageId: configuredPageId,
+    } = resolveInstagramCredential(config, input.instagramAccountIdOverride);
 
     if (!accountId || !igAccessToken) {
       return {
@@ -657,20 +680,11 @@ export async function deleteInstagramComment(input: {
   instagramAccountIdOverride?: string;
 }) {
   const config = await getDashboardConfigRecord();
-  const accountId =
-    input.instagramAccountIdOverride?.trim() ||
-    config.channels.instagram.accountId?.trim();
-
-  const matchingAccount = config.channels.instagram.accounts?.find(
-    (acc) => acc.accountId === accountId,
-  );
-  const igAccessToken = normalizeSecretLikeValue(
-    matchingAccount?.accessToken || config.channels.instagram.accessToken,
-  );
-  const configuredPageId =
-    matchingAccount?.pageId?.trim() ||
-    config.channels.instagram.pageId?.trim() ||
-    undefined;
+  const {
+    accountId,
+    accessToken: igAccessToken,
+    pageId: configuredPageId,
+  } = resolveInstagramCredential(config, input.instagramAccountIdOverride);
 
   if (!accountId || !igAccessToken) {
     return {

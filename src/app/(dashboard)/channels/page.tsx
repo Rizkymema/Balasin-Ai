@@ -510,6 +510,9 @@ struct ChatView: View {
       const existingAccounts = current.channels.instagram.accounts ?? [];
       const alreadyExists = existingAccounts.some(acc => acc.accountId === accountId);
       let updatedAccounts = [...existingAccounts];
+      const isCurrentPrimary =
+        !current.channels.instagram.accountId ||
+        current.channels.instagram.accountId === accountId;
 
       const newAccount = {
         id: accountId,
@@ -528,7 +531,7 @@ struct ChatView: View {
         updatedAccounts.push(newAccount);
       }
 
-      const isFirst = existingAccounts.length === 0;
+      const shouldSyncPrimary = existingAccounts.length === 0 || isCurrentPrimary;
 
       return {
         ...current,
@@ -538,10 +541,10 @@ struct ChatView: View {
             ...current.channels.instagram,
             enabled: true,
             status: "connected" as const,
-            username: isFirst ? newAccount.username : current.channels.instagram.username,
-            accountId: isFirst ? newAccount.accountId : current.channels.instagram.accountId,
-            pageId: isFirst ? newAccount.pageId : current.channels.instagram.pageId,
-            accessToken: isFirst ? newAccount.accessToken : current.channels.instagram.accessToken,
+            username: shouldSyncPrimary ? newAccount.username : current.channels.instagram.username,
+            accountId: shouldSyncPrimary ? newAccount.accountId : current.channels.instagram.accountId,
+            pageId: shouldSyncPrimary ? newAccount.pageId : current.channels.instagram.pageId,
+            accessToken: shouldSyncPrimary ? newAccount.accessToken : current.channels.instagram.accessToken,
             verifyToken: current.channels.instagram.verifyToken || "balesin_verify",
             accounts: updatedAccounts,
           }
@@ -589,14 +592,18 @@ struct ChatView: View {
       let updatedAccounts = [...existingAccounts];
 
       if (nextStatus === "connected") {
+        const existingAccount = existingAccounts.find(
+          (acc) => acc.accountId === igAccountId.trim(),
+        );
         const newAccount = {
           id: igAccountId.trim(),
           username: igUsername.trim() || "instagram_user",
           accountId: igAccountId.trim(),
+          pageId: existingAccount?.pageId || "",
           accessToken: igAccessToken.trim(),
           verifyToken: trimmedVerifyToken,
           status: "connected" as const,
-          pageName: "Manual Account",
+          pageName: existingAccount?.pageName || "Manual Account",
         };
 
         const alreadyExists = existingAccounts.some(acc => acc.accountId === igAccountId.trim());
