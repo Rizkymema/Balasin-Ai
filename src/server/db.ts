@@ -5,7 +5,7 @@ import BetterSqlite3 from "better-sqlite3";
 
 import { defaultDashboardConfig } from "@/lib/dashboard-config";
 import { defaultDashboardOperations } from "@/lib/dashboard-operations";
-import { getSupabaseServerClient, isSupabaseEnabled, isSupabaseWriteable } from "@/server/supabase";
+import { getSupabaseServerClient, isSupabaseWriteable } from "@/server/supabase";
 
 const IS_EPHEMERAL_RUNTIME = process.env.VERCEL === "1";
 const DATA_DIR =
@@ -459,7 +459,7 @@ function ensureSupabaseJsonTable(tableName: string) {
 }
 
 export async function readAppConfigRecord<T>() {
-  if (isSupabaseEnabled()) {
+  if (isSupabaseWriteable()) {
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
       .from("app_config")
@@ -507,7 +507,7 @@ export async function writeAppConfigRecord(value: unknown) {
 }
 
 export async function listJsonRowsAsync<T>(tableName: string) {
-  if (isSupabaseEnabled()) {
+  if (isSupabaseWriteable()) {
     ensureSupabaseJsonTable(tableName);
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
@@ -595,7 +595,7 @@ export async function upsertJsonRowAsync<T extends { id: string }>(
 }
 
 export async function getJsonRowAsync<T>(tableName: string, id: string) {
-  if (isSupabaseEnabled()) {
+  if (isSupabaseWriteable()) {
     ensureSupabaseJsonTable(tableName);
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
@@ -632,7 +632,7 @@ export async function deleteJsonRowAsync(tableName: string, id: string) {
 }
 
 export async function listKnowledgeChunkRowsAsync() {
-  if (isSupabaseEnabled()) {
+  if (isSupabaseWriteable()) {
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
       .from("knowledge_chunks")
@@ -679,7 +679,7 @@ export async function replaceKnowledgeChunkRowsAsync(
     created_at: string;
   }>,
 ) {
-  if (isSupabaseEnabled()) {
+  if (isSupabaseWriteable()) {
     const supabase = getSupabaseServerClient();
     const { error: deleteError } = await supabase
       .from("knowledge_chunks")
@@ -744,7 +744,7 @@ export async function replaceKnowledgeChunksForDocumentAsync(
     created_at: string;
   }>,
 ) {
-  if (isSupabaseEnabled()) {
+  if (isSupabaseWriteable()) {
     const supabase = getSupabaseServerClient();
     const { error: deleteError } = await supabase
       .from("knowledge_chunks")
@@ -806,7 +806,7 @@ export async function replaceKnowledgeChunksForDocumentAsync(
 }
 
 export async function deleteKnowledgeChunksForDocumentAsync(documentId: string) {
-  if (isSupabaseEnabled()) {
+  if (isSupabaseWriteable()) {
     const supabase = getSupabaseServerClient();
     const { error } = await supabase
       .from("knowledge_chunks")
