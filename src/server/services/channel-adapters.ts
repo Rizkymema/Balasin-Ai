@@ -47,6 +47,19 @@ type ResolvedInstagramCredential = {
   pageId?: string;
 };
 
+function summarizeSecret(value?: string) {
+  const normalized = normalizeSecretLikeValue(value);
+  if (!normalized) {
+    return "empty";
+  }
+
+  if (normalized.length <= 12) {
+    return `len=${normalized.length}`;
+  }
+
+  return `len=${normalized.length};preview=${normalized.slice(0, 6)}...${normalized.slice(-4)}`;
+}
+
 function formatGraphApiError(error?: GraphApiError) {
   if (!error) {
     return undefined;
@@ -276,21 +289,22 @@ async function sendInstagramRequest(
   accessToken: string,
   body: Record<string, unknown>,
 ) {
+  const normalizedAccessToken = normalizeSecretLikeValue(accessToken);
   const sendUrl = `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/me/messages`;
   const response = await fetch(sendUrl, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${normalizedAccessToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
   });
 
   const responseText = await response.text();
-  let parsedBody: Record<string, unknown> | null = null;
+  let parsedBody: GraphApiResponse | null = null;
   try {
     parsedBody = responseText
-      ? (JSON.parse(responseText) as Record<string, unknown>)
+      ? (JSON.parse(responseText) as GraphApiResponse)
       : null;
   } catch {
     parsedBody = null;
@@ -528,13 +542,18 @@ export async function sendChannelMessage(input: SendMessageInput) {
           igAccessToken.length < 20
             ? "Token terlalu pendek, pastikan Anda menggunakan Page Access Token yang valid."
             : "";
+        const parseHint =
+          igResponse.body?.error?.code === 190 &&
+          igResponse.body?.error?.message?.toLowerCase().includes("cannot parse access token")
+            ? ` | token=${summarizeSecret(messagingContext.accessToken)}`
+            : "";
 
         return {
           ok: false,
           provider: "instagram",
           status: igResponse.status,
           body: igResponse.body,
-          note: `Instagram API error (${igResponse.sendUrl}): ${igResponse.rawBody.slice(0, 300)}${tokenHint ? ` - ${tokenHint}` : ""}`,
+          note: `Instagram API error (${igResponse.sendUrl}): ${igResponse.rawBody.slice(0, 300)}${tokenHint ? ` - ${tokenHint}` : ""}${parseHint}`,
         };
       }
 
