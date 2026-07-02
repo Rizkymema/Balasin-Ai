@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import * as XLSX from "xlsx";
-
+import { parseCsvBuffer } from "@/server/services/csv";
 import type { FAQItem } from "@/types/dashboard-config";
 
 type ParsedFaqDraft = {
@@ -91,21 +90,13 @@ function parseRowBasedFaqs(rows: Array<Record<string, unknown>>) {
 }
 
 function parseSpreadsheetLikeFile(buffer: Buffer) {
-  const workbook = XLSX.read(buffer, { type: "buffer" });
   const drafts: ParsedFaqDraft[] = [];
 
-  for (const sheetName of workbook.SheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-      defval: "",
+  for (const item of parseRowBasedFaqs(parseCsvBuffer(buffer))) {
+    drafts.push({
+      question: item.question,
+      answer: item.answer,
     });
-
-    for (const item of parseRowBasedFaqs(rows)) {
-      drafts.push({
-        question: item.question,
-        answer: item.answer,
-      });
-    }
   }
 
   return finalizeFaqs(drafts);
@@ -250,8 +241,6 @@ export async function parseFaqImportFile(params: {
   const lowerName = params.fileName.toLowerCase();
 
   if (
-    lowerName.endsWith(".xlsx") ||
-    lowerName.endsWith(".xls") ||
     lowerName.endsWith(".csv")
   ) {
     return parseSpreadsheetLikeFile(params.buffer);

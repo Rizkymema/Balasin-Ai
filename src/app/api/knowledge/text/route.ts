@@ -1,3 +1,4 @@
+import { KNOWLEDGE_TEXT_MAX_CHARS } from "@/constants/knowledge-security";
 import { ingestKnowledgeTextSource } from "@/server/repositories/dashboard-repository";
 import { jsonError, jsonOk, requireApiSession } from "@/server/http";
 
@@ -15,6 +16,10 @@ export async function POST(request: Request) {
 
     if (!body.name?.trim() || !body.content?.trim()) {
       return jsonError("Nama pemicu dan konten wajib diisi.", 400);
+    }
+
+    if (body.content.length > KNOWLEDGE_TEXT_MAX_CHARS) {
+      return jsonError("Konten teks terlalu panjang.", 413);
     }
 
     const result = await ingestKnowledgeTextSource({

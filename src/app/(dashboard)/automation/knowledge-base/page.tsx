@@ -436,7 +436,7 @@ export default function KnowledgeBasePage() {
                     </div>
                     <div className="text-left">
                       <p className="text-xs font-bold text-white">File upload</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Unggah berkas PDF / XLSX</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Unggah PDF / DOCX / CSV</p>
                     </div>
                   </div>
                   <span className="rounded-full border border-cyan-400/20 bg-cyan-950 px-2.5 py-0.5 text-[10px] font-bold text-cyan-300">
@@ -447,7 +447,7 @@ export default function KnowledgeBasePage() {
                   type="file"
                   ref={fileInputRef}
                   onChange={handleUploadKbFile}
-                  accept=".pdf,.docx,.xlsx,.xls,.csv,.txt,.md"
+                  accept=".pdf,.docx,.csv,.txt,.md,.json,.html"
                   className="hidden"
                 />
 

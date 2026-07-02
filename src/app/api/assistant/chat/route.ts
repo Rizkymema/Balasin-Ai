@@ -2,6 +2,7 @@ import { getDashboardConfigRecord, getDashboardOperationsRecord } from "@/server
 import { jsonError, jsonOk, requireApiSession } from "@/server/http";
 import type { DashboardConfig } from "@/types/dashboard-config";
 import { resolveAppUrl } from "@/lib/app-url";
+import { assertSafeExternalUrl } from "@/server/security/safe-fetch";
 
 type ChatHistoryItem = {
   role: "user" | "assistant";
@@ -262,6 +263,7 @@ Pastikan data yang dimasukkan ke dalam proposal seakurat mungkin berdasarkan kel
     const provider = config.aiProvider.provider;
     const apiKey = config.aiProvider.apiKey.trim();
     const endpoint = resolveProviderEndpoint(config);
+    assertSafeExternalUrl(endpoint);
     const history = body.history || [];
 
     let response: Response;
@@ -336,8 +338,8 @@ Pastikan data yang dimasukkan ke dalam proposal seakurat mungkin berdasarkan kel
     }
 
     if (!response.ok) {
-      const errText = await response.text().catch(() => "");
-      return jsonError(`Provider API error: ${errText.slice(0, 300)}`, response.status);
+      await response.text().catch(() => "");
+      return jsonError("Provider API gagal memproses request.", response.status);
     }
 
     const payload = (await response.json()) as unknown;

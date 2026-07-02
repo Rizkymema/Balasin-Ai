@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { createSessionToken, getSessionCookieOptions } from "@/server/auth/session";
+import { assertAdminEmailAllowed } from "@/server/auth/google";
+import { serverEnv } from "@/server/env";
 import { jsonError, jsonOk } from "@/server/http";
 
 const demoLoginEnabled =
   process.env.NODE_ENV !== "production" ||
-  process.env.ALLOW_DEMO_LOGIN?.trim() === "true";
+  (process.env.ALLOW_DEMO_LOGIN?.trim() === "true" &&
+    serverEnv.demoLoginPassword.length > 0);
 
 export async function POST(request: Request) {
   if (!demoLoginEnabled) {
@@ -27,6 +30,13 @@ export async function POST(request: Request) {
 
     if (!email || !password) {
       return jsonError("Email dan password harus diisi.", 400);
+    }
+
+    if (process.env.NODE_ENV === "production") {
+      assertAdminEmailAllowed(email);
+      if (password !== serverEnv.demoLoginPassword) {
+        return jsonError("Credential demo login tidak valid.", 401);
+      }
     }
 
     const token = await createSessionToken({

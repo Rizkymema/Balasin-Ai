@@ -1,7 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import * as XLSX from "xlsx";
 
 import { resolveAppUrl } from "@/lib/app-url";
 import { defaultDashboardConfig, mergeDashboardConfig } from "@/lib/dashboard-config";
@@ -30,6 +29,7 @@ import {
   replaceKnowledgeChunksForDocumentAsync,
   deleteKnowledgeChunksForDocumentAsync,
 } from "@/server/db";
+import { parseCsvBuffer } from "@/server/services/csv";
 import type {
   DashboardConfig,
   FAQItem,
@@ -161,6 +161,99 @@ function keepExistingString(existing: string, incoming: string) {
   return incoming.trim() ? incoming : existing;
 }
 
+type WhatsAppAccount = NonNullable<
+  DashboardConfig["channels"]["whatsapp"]["accounts"]
+>[number];
+type InstagramAccount = NonNullable<
+  DashboardConfig["channels"]["instagram"]["accounts"]
+>[number];
+type ApiIntegration = DashboardConfig["automation"]["apiIntegrations"][number];
+
+function findExistingWhatsappAccount(
+  existingAccounts: WhatsAppAccount[],
+  incoming: WhatsAppAccount,
+) {
+  return existingAccounts.find(
+    (account) =>
+      account.id === incoming.id ||
+      account.phoneNumberId === incoming.phoneNumberId ||
+      account.phoneNumber === incoming.phoneNumber,
+  );
+}
+
+function findExistingInstagramAccount(
+  existingAccounts: InstagramAccount[],
+  incoming: InstagramAccount,
+) {
+  return existingAccounts.find(
+    (account) =>
+      account.id === incoming.id ||
+      account.accountId === incoming.accountId ||
+      account.pageId === incoming.pageId,
+  );
+}
+
+function mergeWhatsappAccounts(
+  existingAccounts: WhatsAppAccount[] = [],
+  incomingAccounts?: WhatsAppAccount[],
+) {
+  return (incomingAccounts ?? existingAccounts).map((account) => {
+    const existing = findExistingWhatsappAccount(existingAccounts, account);
+    return {
+      ...account,
+      accessToken: normalizeSecretLikeValue(
+        keepExistingString(existing?.accessToken ?? "", account.accessToken),
+      ),
+      verifyToken: normalizeSecretLikeValue(
+        keepExistingString(existing?.verifyToken ?? "", account.verifyToken),
+      ),
+    };
+  });
+}
+
+function mergeInstagramAccounts(
+  existingAccounts: InstagramAccount[] = [],
+  incomingAccounts?: InstagramAccount[],
+) {
+  return (incomingAccounts ?? existingAccounts).map((account) => {
+    const existing = findExistingInstagramAccount(existingAccounts, account);
+    return {
+      ...account,
+      accessToken: normalizeSecretLikeValue(
+        keepExistingString(existing?.accessToken ?? "", account.accessToken),
+      ),
+      verifyToken: normalizeSecretLikeValue(
+        keepExistingString(existing?.verifyToken ?? "", account.verifyToken),
+      ),
+    };
+  });
+}
+
+function findExistingApiIntegration(
+  existingIntegrations: ApiIntegration[],
+  incoming: ApiIntegration,
+) {
+  return existingIntegrations.find(
+    (integration) =>
+      integration.id === incoming.id ||
+      (integration.name === incoming.name && integration.endpoint === incoming.endpoint),
+  );
+}
+
+function mergeApiIntegrations(
+  existingIntegrations: ApiIntegration[] = [],
+  incomingIntegrations: ApiIntegration[] = [],
+) {
+  return incomingIntegrations.map((integration) => {
+    const existing = findExistingApiIntegration(existingIntegrations, integration);
+    return {
+      ...integration,
+      authToken: keepExistingString(existing?.authToken ?? "", integration.authToken),
+      headers: keepExistingString(existing?.headers ?? "", integration.headers),
+    };
+  });
+}
+
 function mergePersistedDashboardConfig(
   existing: DashboardConfig,
   incoming: DashboardConfig,
@@ -206,14 +299,10 @@ function mergePersistedDashboardConfig(
             incoming.channels.whatsapp.verifyToken,
           ),
         ),
-        accounts:
-          (incoming.channels.whatsapp.accounts ??
-            existing.channels.whatsapp.accounts ??
-            []).map((account) => ({
-            ...account,
-            accessToken: normalizeSecretLikeValue(account.accessToken),
-            verifyToken: normalizeSecretLikeValue(account.verifyToken),
-          })),
+        accounts: mergeWhatsappAccounts(
+          existing.channels.whatsapp.accounts ?? [],
+          incoming.channels.whatsapp.accounts,
+        ),
       },
       instagram: {
         ...incoming.channels.instagram,
@@ -241,17 +330,67 @@ function mergePersistedDashboardConfig(
             incoming.channels.instagram.verifyToken,
           ),
         ),
-        accounts:
-          (incoming.channels.instagram.accounts ??
-            existing.channels.instagram.accounts ??
-            []).map((account) => ({
-            ...account,
-            accessToken: normalizeSecretLikeValue(account.accessToken),
-            verifyToken: normalizeSecretLikeValue(account.verifyToken),
-          })),
+        accounts: mergeInstagramAccounts(
+          existing.channels.instagram.accounts ?? [],
+          incoming.channels.instagram.accounts,
+        ),
       },
     },
+    automation: {
+      ...incoming.automation,
+      apiIntegrations: mergeApiIntegrations(
+        existing.automation.apiIntegrations,
+        incoming.automation.apiIntegrations,
+      ),
+    },
   } satisfies DashboardConfig;
+}
+
+export function redactDashboardConfigSecrets(
+  config: DashboardConfig,
+): DashboardConfig {
+  return {
+    ...config,
+    runtime: {
+      ...config.runtime,
+      workerSecret: "",
+    },
+    aiProvider: {
+      ...config.aiProvider,
+      apiKey: "",
+    },
+    channels: {
+      ...config.channels,
+      whatsapp: {
+        ...config.channels.whatsapp,
+        accessToken: "",
+        verifyToken: "",
+        accounts: config.channels.whatsapp.accounts?.map((account) => ({
+          ...account,
+          accessToken: "",
+          verifyToken: "",
+        })),
+      },
+      instagram: {
+        ...config.channels.instagram,
+        accessToken: "",
+        verifyToken: "",
+        accounts: config.channels.instagram.accounts?.map((account) => ({
+          ...account,
+          accessToken: "",
+          verifyToken: "",
+        })),
+      },
+    },
+    automation: {
+      ...config.automation,
+      apiIntegrations: config.automation.apiIntegrations.map((integration) => ({
+        ...integration,
+        authToken: "",
+        headers: "",
+      })),
+    },
+  };
 }
 
 export async function getDashboardConfigRecord(): Promise<DashboardConfig> {
@@ -284,20 +423,25 @@ export async function getDashboardConfigRecord(): Promise<DashboardConfig> {
   );
 }
 
+export async function getDashboardConfigPublicRecord() {
+  return redactDashboardConfigSecrets(await getDashboardConfigRecord());
+}
+
 export async function saveDashboardConfigRecord(config: DashboardConfig) {
+  const current = await getDashboardConfigRecord();
+  const nextConfig = mergePersistedDashboardConfig(current, config);
+
   if (shouldUseBlobState()) {
-    const current = await getDashboardConfigRecord();
-    const nextConfig = mergePersistedDashboardConfig(current, config);
     await writePrivateJsonBlob(DASHBOARD_CONFIG_BLOB_PATH, nextConfig);
     await writePrivateJsonBlob(DASHBOARD_CONFIG_BACKUP_BLOB_PATH, nextConfig);
     return;
   }
 
-  await writeAppConfigRecord(config);
-  await replaceJsonRowsAsync("knowledge_faqs", config.knowledgeBase.faqs);
+  await writeAppConfigRecord(nextConfig);
+  await replaceJsonRowsAsync("knowledge_faqs", nextConfig.knowledgeBase.faqs);
   await replaceJsonRowsAsync(
     "knowledge_documents",
-    config.knowledgeBase.documents,
+    nextConfig.knowledgeBase.documents,
   );
 }
 
@@ -474,19 +618,7 @@ function buildSpreadsheetChunks(params: {
 }
 
 function parseSpreadsheetBuffer(buffer: Buffer) {
-  const workbook = XLSX.read(buffer, { type: "buffer" });
-  const rows: Array<Record<string, unknown>> = [];
-
-  for (const sheetName of workbook.SheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    const sheetRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-      defval: "",
-      raw: false,
-    });
-    rows.push(...sheetRows);
-  }
-
-  return rows;
+  return parseCsvBuffer(buffer);
 }
 
 async function readAllKnowledgeChunks() {
@@ -648,8 +780,6 @@ async function extractDocumentText(params: {
   }
 
   if (
-    lowerName.endsWith(".xlsx") ||
-    lowerName.endsWith(".xls") ||
     lowerName.endsWith(".csv")
   ) {
     const rows = parseSpreadsheetBuffer(params.buffer);
@@ -711,8 +841,6 @@ async function buildKnowledgeChunksFromBuffer(params: {
   const lowerName = params.fileName.toLowerCase();
 
   if (
-    lowerName.endsWith(".xlsx") ||
-    lowerName.endsWith(".xls") ||
     lowerName.endsWith(".csv")
   ) {
     const rows = parseSpreadsheetBuffer(params.buffer);

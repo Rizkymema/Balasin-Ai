@@ -12,6 +12,7 @@ import {
   getDashboardOperationsRecord,
   saveDashboardOperationsRecord,
 } from "@/server/repositories/dashboard-repository";
+import { fetchExternalWithLimit } from "@/server/security/safe-fetch";
 import { appendAutomationLog } from "@/server/services/automation-orchestrator";
 import { sendChannelMessage } from "@/server/services/channel-adapters";
 import { formatClockTime } from "@/lib/time";
@@ -413,15 +414,19 @@ async function processApiIntegrationCall(payload: Record<string, unknown>) {
   let responseStatus = 0;
   let responseBody = "";
   try {
-    const response = await fetch(integration.endpoint, {
-      method: integration.method,
-      headers,
-      body: requestBody,
-    });
+    const { response, buffer } = await fetchExternalWithLimit(
+      integration.endpoint,
+      {
+        method: integration.method,
+        headers,
+        body: requestBody,
+      },
+      { timeoutMs: 10_000, maxBytes: 512 * 1024 },
+    );
     responseStatus = response.status;
-    responseBody = await response.text();
+    responseBody = buffer.toString("utf8");
   } catch (error) {
-    responseBody = error instanceof Error ? error.message : "Unknown error";
+    responseBody = error instanceof Error ? error.message : "Unknown integration error";
   }
 
   if (conversation) {

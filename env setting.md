@@ -16,4 +16,6 @@ Configuration ID:
 996779333185787
 
 
-SUPABASE_SERVICE_ROLE_KEY :eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5a2drZmxuYWZjc2FlaGlyb2JpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYzNTM2MSwiZXhwIjoyMDk3MjExMzYxfQ.Y2l_0ZMtr-juS9TEzBKa6Cv3pnc36qalGObd8hKfHUs
+SUPABASE_SERVICE_ROLE_KEY : isi-di-environment-vercel-dan-jangan-commit-nilai-asli
+
+

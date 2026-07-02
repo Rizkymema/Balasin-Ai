@@ -1,3 +1,4 @@
+import { KNOWLEDGE_SOURCE_MAX_URLS } from "@/constants/knowledge-security";
 import { saveDashboardConfigRecord } from "@/server/repositories/dashboard-repository";
 import { getDashboardConfigRecord } from "@/server/repositories/dashboard-repository";
 import { jsonError, jsonOk, requireApiSession } from "@/server/http";
@@ -10,7 +11,8 @@ function normalizeUrls(value: unknown) {
 
   return value
     .map((item) => (typeof item === "string" ? item.trim() : ""))
-    .filter(Boolean);
+    .filter(Boolean)
+    .slice(0, KNOWLEDGE_SOURCE_MAX_URLS);
 }
 
 export async function POST(request: Request) {

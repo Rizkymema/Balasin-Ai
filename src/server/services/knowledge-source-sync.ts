@@ -1,10 +1,16 @@
 import { URL } from "node:url";
 
 import {
+  KNOWLEDGE_SHEET_MAX_BYTES,
+  KNOWLEDGE_SOURCE_MAX_URLS,
+  KNOWLEDGE_WEBSITE_MAX_BYTES,
+} from "@/constants/knowledge-security";
+import {
   deleteKnowledgeDocument,
   ingestKnowledgeDocument,
   ingestKnowledgeTextSource,
 } from "@/server/repositories/dashboard-repository";
+import { assertSafeExternalUrl, fetchExternalWithLimit } from "@/server/security/safe-fetch";
 import type { DashboardConfig, KnowledgeDocument } from "@/types/dashboard-config";
 
 type SyncFailure = {
@@ -15,7 +21,7 @@ type SyncFailure = {
 function uniqueUrls(urls: string[]) {
   return Array.from(
     new Set(urls.map((item) => item.trim()).filter(Boolean)),
-  );
+  ).slice(0, KNOWLEDGE_SOURCE_MAX_URLS);
 }
 
 function decodeHtmlEntities(input: string) {
@@ -87,18 +93,22 @@ function buildGoogleSheetExportCandidates(url: string) {
   const gid = extractGoogleSheetGid(url);
 
   return [
-    `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx&gid=${gid}`,
     `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`,
   ];
 }
 
 async function fetchTextOrThrow(url: string) {
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": "BalesinAI/1.0 Knowledge Sync",
+  assertSafeExternalUrl(url);
+  const { response, buffer } = await fetchExternalWithLimit(
+    url,
+    {
+      headers: {
+        "User-Agent": "BalesinAI/1.0 Knowledge Sync",
+      },
+      cache: "no-store",
     },
-    cache: "no-store",
-  });
+    { timeoutMs: 10_000, maxBytes: KNOWLEDGE_WEBSITE_MAX_BYTES },
+  );
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
@@ -106,17 +116,22 @@ async function fetchTextOrThrow(url: string) {
 
   return {
     contentType: response.headers.get("content-type") ?? "",
-    text: await response.text(),
+    text: buffer.toString("utf8"),
   };
 }
 
 async function fetchArrayBufferOrThrow(url: string) {
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": "BalesinAI/1.0 Knowledge Sync",
+  assertSafeExternalUrl(url);
+  const { response, buffer } = await fetchExternalWithLimit(
+    url,
+    {
+      headers: {
+        "User-Agent": "BalesinAI/1.0 Knowledge Sync",
+      },
+      cache: "no-store",
     },
-    cache: "no-store",
-  });
+    { timeoutMs: 10_000, maxBytes: KNOWLEDGE_SHEET_MAX_BYTES },
+  );
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
@@ -124,7 +139,7 @@ async function fetchArrayBufferOrThrow(url: string) {
 
   return {
     contentType: response.headers.get("content-type") ?? "",
-    buffer: Buffer.from(await response.arrayBuffer()),
+    buffer,
   };
 }
 
@@ -152,19 +167,12 @@ async function syncGoogleSheetSource(url: string) {
   for (const candidate of candidates) {
     try {
       const payload = await fetchArrayBufferOrThrow(candidate);
-      const extension = payload.contentType.includes("spreadsheet")
-        ? ".xlsx"
-        : candidate.includes("format=csv")
-          ? ".csv"
-          : ".xlsx";
+      const extension = ".csv";
 
       return ingestKnowledgeDocument({
         id: `google_sheet-${extractGoogleSheetId(url) || "knowledge"}`,
         fileName: `google-sheet${extension}`,
-        mimeType:
-          extension === ".csv"
-            ? "text/csv"
-            : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        mimeType: payload.contentType || "text/csv",
         buffer: payload.buffer,
         sourceType: "google_sheet",
         sourceUrl: url,

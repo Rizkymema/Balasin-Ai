@@ -35,12 +35,17 @@ NEXT_PUBLIC_APP_URL=https://yourdomain.vercel.app
 SESSION_COOKIE_NAME=balesin_session
 SESSION_SECRET=your-very-secure-random-secret-here
 WORKER_SECRET=your-very-secure-random-secret-here
+AUTH_ALLOWED_EMAILS=admin@yourdomain.com
+AUTH_ALLOWED_DOMAINS=
+WEBCHAT_WEBHOOK_SECRET=your-very-secure-webchat-secret-here
 WHATSAPP_BASE_URL=https://graph.facebook.com
 WHATSAPP_API_VERSION=v21.0
 ```
 
 **Catatan Penting:**
 - Jangan gunakan default `balesin-demo-*` di production
+- Isi `AUTH_ALLOWED_EMAILS` atau `AUTH_ALLOWED_DOMAINS` sebelum mengaktifkan Google login production.
+- Isi `WEBCHAT_WEBHOOK_SECRET` dan kirim token tersebut dari widget/webhook webchat.
 - Generate secret yang aman:
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"

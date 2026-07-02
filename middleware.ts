@@ -2,8 +2,10 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? "balesin_session";
+const DEFAULT_SESSION_SECRET = "balesin-demo-session-secret-change-me";
 const SESSION_SECRET =
-  process.env.SESSION_SECRET ?? "balesin-demo-session-secret-change-me";
+  process.env.SESSION_SECRET?.trim() ||
+  (process.env.NODE_ENV === "production" ? "" : DEFAULT_SESSION_SECRET);
 
 const PROTECTED_PREFIXES = [
   "/dashboard",
@@ -32,6 +34,13 @@ function fromBase64Url(value: string) {
 }
 
 async function signValue(value: string) {
+  if (
+    process.env.NODE_ENV === "production" &&
+    (!SESSION_SECRET || SESSION_SECRET === DEFAULT_SESSION_SECRET)
+  ) {
+    throw new Error("SESSION_SECRET belum dikonfigurasi.");
+  }
+
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(SESSION_SECRET),
@@ -91,6 +100,16 @@ export async function middleware(request: NextRequest) {
 
   if (!isProtected) {
     return NextResponse.next();
+  }
+
+  if (
+    process.env.NODE_ENV === "production" &&
+    (!SESSION_SECRET || SESSION_SECRET === DEFAULT_SESSION_SECRET)
+  ) {
+    return NextResponse.json(
+      { ok: false, error: "Server auth misconfigured" },
+      { status: 500 },
+    );
   }
 
   const valid = await hasValidSession(request);

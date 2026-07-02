@@ -4,10 +4,13 @@ import { jsonError, jsonOk, requireApiSession } from "@/server/http";
 import { runDueJobs, scheduleOperationalJobs } from "@/server/services/automation-service";
 
 export async function POST(request: Request) {
-  const secret = request.headers.get("x-worker-secret");
+  const secret = request.headers.get("x-worker-secret")?.trim() ?? "";
   const config = await getDashboardConfigRecord();
   const authorizedBySecret =
-    secret === config.runtime.workerSecret || secret === serverEnv.workerSecret;
+    secret.length > 0 &&
+    [config.runtime.workerSecret, serverEnv.workerSecret].some(
+      (expected) => expected.trim().length > 0 && secret === expected.trim(),
+    );
 
   if (!authorizedBySecret) {
     const { response } = await requireApiSession();

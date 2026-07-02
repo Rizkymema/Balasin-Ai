@@ -76,6 +76,9 @@ SUPABASE_SERVICE_ROLE_KEY=
 SESSION_COOKIE_NAME=balesin_session
 SESSION_SECRET=change-this-demo-session-secret
 WORKER_SECRET=change-this-worker-secret
+AUTH_ALLOWED_EMAILS=admin@example.com
+AUTH_ALLOWED_DOMAINS=
+WEBCHAT_WEBHOOK_SECRET=change-this-webchat-secret
 WHATSAPP_BASE_URL=https://graph.facebook.com
 WHATSAPP_API_VERSION=v21.0
 ```
@@ -83,9 +86,13 @@ WHATSAPP_API_VERSION=v21.0
 Catatan:
 - Kredensial WhatsApp Business, verify token, dan access token channel diisi dari dashboard.
 - `SESSION_SECRET` dan `WORKER_SECRET` wajib diganti saat masuk environment non-local.
+- Untuk production, isi `AUTH_ALLOWED_EMAILS` atau `AUTH_ALLOWED_DOMAINS`; Google login akan menolak akun yang tidak masuk allowlist.
+- `WEBCHAT_WEBHOOK_SECRET` wajib di production untuk `POST /api/webhooks/webchat`; kirim melalui header `x-webchat-secret` atau `Authorization: Bearer ...`.
+- `EXTERNAL_FETCH_ALLOWED_HOSTS` opsional untuk membatasi sinkronisasi URL, custom AI base URL, dan automation webhook ke host tertentu.
 - Jika `NEXT_PUBLIC_SUPABASE_URL` dan `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` diisi, aplikasi akan memakai Supabase sebagai database utama.
 - `SUPABASE_SERVICE_ROLE_KEY` sangat direkomendasikan untuk production agar akses server-side tidak bergantung pada policy publik.
 - Untuk login Google, isi `NEXT_PUBLIC_GOOGLE_CLIENT_ID` atau `GOOGLE_CLIENT_ID`.
+- `ALLOW_DEMO_LOGIN=true` di production hanya aktif jika `DEMO_LOGIN_PASSWORD` diisi, dan tetap dibatasi allowlist admin.
 
 ## Setup Google Login
 

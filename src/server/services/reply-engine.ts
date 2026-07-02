@@ -1,6 +1,7 @@
 import { getKnowledgeChunks, type KnowledgeChunk } from "@/server/repositories/dashboard-repository";
 import { resolveAppUrl } from "@/lib/app-url";
 import { formatCurrentTimeContext, getDefaultTimezone } from "@/lib/time";
+import { assertSafeExternalUrl } from "@/server/security/safe-fetch";
 import type { DashboardConfig, FAQItem } from "@/types/dashboard-config";
 import type { ConversationStatus } from "@/types/operations";
 
@@ -1360,6 +1361,7 @@ async function generateProviderReply(
   if (!endpoint) {
     return null;
   }
+  assertSafeExternalUrl(endpoint);
 
   const faqContext = buildRelevantFaqContext(messageText, config.knowledgeBase.faqs);
   const documentContext = await buildRelevantDocumentContext(messageText);
@@ -1497,8 +1499,8 @@ ${messageText}
     }
 
     if (!response.ok) {
-      const errText = await response.text().catch(() => "");
-      console.error(`[reply-engine] provider=${provider} status=${response.status}`, errText.slice(0, 400));
+      await response.text().catch(() => "");
+      console.error(`[reply-engine] provider=${provider} status=${response.status}`);
       return null;
     }
 
@@ -1930,6 +1932,7 @@ export async function isNegativeComment(text: string, config: DashboardConfig): 
     try {
       const endpoint = resolveProviderEndpoint(config);
       if (!endpoint) return false;
+      assertSafeExternalUrl(endpoint);
 
       const systemPrompt = `You are a strict content moderation AI. 
 Analyze if the customer comment is NEGATIVE (e.g., contains insults, profanity, anger, harassment, spam, scam, fraud accusations, or hostile complaints).
@@ -2039,6 +2042,7 @@ export async function analyzeSentiment(
     try {
       const endpoint = resolveProviderEndpoint(config);
       if (!endpoint) return "neutral";
+      assertSafeExternalUrl(endpoint);
 
       // Include correction examples in the prompt to allow self-training (few-shot learning)!
       let examplesPrompt = "";

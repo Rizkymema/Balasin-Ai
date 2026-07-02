@@ -1,5 +1,10 @@
+import {
+  KNOWLEDGE_FAQ_IMPORT_EXTENSIONS,
+  KNOWLEDGE_FAQ_IMPORT_MAX_BYTES,
+} from "@/constants/knowledge-security";
 import { parseFaqImportFile } from "@/server/services/faq-import-service";
 import { jsonError, jsonOk, requireApiSession } from "@/server/http";
+import { assertFileUpload, assertRequestSize } from "@/server/security/request";
 
 export async function POST(request: Request) {
   const { response } = await requireApiSession();
@@ -8,12 +13,19 @@ export async function POST(request: Request) {
   }
 
   try {
+    assertRequestSize(request, KNOWLEDGE_FAQ_IMPORT_MAX_BYTES);
     const formData = await request.formData();
     const file = formData.get("file");
 
     if (!(file instanceof File)) {
       return jsonError("File FAQ wajib disertakan.", 400);
     }
+
+    assertFileUpload({
+      file,
+      allowedExtensions: KNOWLEDGE_FAQ_IMPORT_EXTENSIONS,
+      maxBytes: KNOWLEDGE_FAQ_IMPORT_MAX_BYTES,
+    });
 
     const items = await parseFaqImportFile({
       fileName: file.name,
@@ -36,7 +48,14 @@ export async function POST(request: Request) {
       },
       { status: 201 },
     );
-  } catch {
-    return jsonError("Gagal membaca file FAQ.", 500);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Gagal membaca file FAQ.";
+    const status = message.includes("terlalu besar")
+      ? 413
+      : message.includes("tidak didukung")
+        ? 415
+        : 500;
+    return jsonError(message, status);
   }
 }

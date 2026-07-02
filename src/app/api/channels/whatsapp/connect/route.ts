@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { metaServerEnv } from "@/lib/meta-server-env";
+import { requireApiSession } from "@/server/http";
 
 const META_GRAPH = "https://graph.facebook.com";
 const API_VERSION = process.env.WHATSAPP_API_VERSION ?? "v21.0";
@@ -33,6 +34,11 @@ interface MetaTokenResponse {
 }
 
 export async function POST(request: Request) {
+  const { response } = await requireApiSession();
+  if (response) {
+    return response;
+  }
+
   try {
     const body = (await request.json()) as { accessToken?: string; code?: string };
 
