@@ -588,7 +588,13 @@ struct ChatView: View {
   const persistInstagram = (event: FormEvent) => {
     event.preventDefault();
     const trimmedVerifyToken = igVerifyToken.trim();
-    const nextStatus = igAccountId && igAccessToken ? "connected" : "draft";
+    const hasExistingInstagramToken =
+      config.channels.instagram.status === "connected" &&
+      Boolean(igAccountId.trim());
+    const nextStatus =
+      igAccountId && (igAccessToken || hasExistingInstagramToken)
+        ? "connected"
+        : "draft";
     setIgStatus(nextStatus);
     setIgVerifyToken(trimmedVerifyToken);
 
@@ -604,7 +610,11 @@ struct ChatView: View {
           id: igAccountId.trim(),
           username: igUsername.trim() || "instagram_user",
           accountId: igAccountId.trim(),
-          pageId: igPageId.trim() || existingAccount?.pageId || "",
+          pageId:
+            igPageId.trim() ||
+            existingAccount?.pageId ||
+            current.channels.instagram.pageId ||
+            "",
           accessToken: igAccessToken.trim(),
           verifyToken: trimmedVerifyToken,
           status: "connected" as const,
@@ -629,7 +639,7 @@ struct ChatView: View {
             status: nextStatus,
             username: igUsername.trim(),
             accountId: igAccountId.trim(),
-            pageId: igPageId.trim(),
+            pageId: igPageId.trim() || current.channels.instagram.pageId || "",
             accessToken: igAccessToken.trim(),
             verifyToken: trimmedVerifyToken,
             autoReplyDm: igAutoReplyDm,
@@ -1763,12 +1773,6 @@ struct ChatView: View {
                           <Input type="password" value={igAccessToken} onChange={(e) => setIgAccessToken(e.target.value)} className="h-10 text-xs" />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-slate-300">Facebook Page ID</label>
-                          <Input value={igPageId} onChange={(e) => setIgPageId(e.target.value)} className="h-10 text-xs" placeholder="615512345678901" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div className="space-y-1.5">
                           <label className="text-xs font-semibold text-slate-300">Verify token</label>
                           <Input value={igVerifyToken} onChange={(e) => setIgVerifyToken(e.target.value)} className="h-10 text-xs" placeholder="Contoh: balesin_verify" />
                         </div>
@@ -1891,10 +1895,6 @@ struct ChatView: View {
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-slate-300">Meta access token</label>
                       <Input type="password" value={igAccessToken} onChange={(e) => setIgAccessToken(e.target.value)} className="h-10 text-xs" placeholder="EAABwzLixnjY..." />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300">Facebook Page ID</label>
-                      <Input value={igPageId} onChange={(e) => setIgPageId(e.target.value)} className="h-10 text-xs" placeholder="615512345678901" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-slate-300">Verify token</label>

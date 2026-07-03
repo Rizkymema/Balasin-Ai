@@ -1,5 +1,8 @@
 import { normalizeSecretLikeValue } from "@/lib/normalize-secret-like-value";
-import { getDashboardConfigRecord } from "@/server/repositories/dashboard-repository";
+import {
+  getDashboardConfigRecord,
+  saveDashboardConfigRecord,
+} from "@/server/repositories/dashboard-repository";
 import { serverEnv } from "@/server/env";
 import type { PreparedOutboundMediaUpload } from "@/server/services/outbound-media";
 import type { DashboardConfig } from "@/types/dashboard-config";
@@ -18,6 +21,9 @@ type SendMessageInput = {
 
 type InstagramMessagingContext = {
   accessToken: string;
+  senderId?: string;
+  senderKind: "facebook-page" | "instagram-account";
+  graphBaseUrl: string;
   pageId?: string;
 };
 
@@ -46,6 +52,20 @@ type ResolvedInstagramCredential = {
   accessToken: string;
   pageId?: string;
 };
+
+const INSTAGRAM_GRAPH_BASE_URL = "https://graph.instagram.com";
+
+function trimTrailingSlash(value: string) {
+  return value.replace(/\/+$/, "");
+}
+
+function buildGraphApiUrl(baseUrl: string, path: string) {
+  return `${trimTrailingSlash(baseUrl)}/${serverEnv.whatsappApiVersion}/${path.replace(/^\/+/, "")}`;
+}
+
+function isInstagramLoginToken(accessToken: string) {
+  return accessToken.startsWith("IG");
+}
 
 function summarizeSecret(value?: string) {
   const normalized = normalizeSecretLikeValue(value);
@@ -155,18 +175,28 @@ async function resolveInstagramMessagingContext(input: {
   pageId?: string;
 }) {
   const normalizedAccessToken = normalizeSecretLikeValue(input.accessToken);
+  const accountId = input.accountId.trim();
+  const configuredPageId = input.pageId?.trim() || undefined;
   const directContext: InstagramMessagingContext = {
     accessToken: normalizedAccessToken,
-    pageId: input.pageId?.trim() || undefined,
+    senderId: configuredPageId,
+    senderKind: "facebook-page",
+    graphBaseUrl: serverEnv.whatsappBaseUrl,
+    pageId: configuredPageId,
   };
 
-  if (normalizedAccessToken.startsWith("IGAA")) {
-    return directContext;
+  if (isInstagramLoginToken(normalizedAccessToken)) {
+    return {
+      accessToken: normalizedAccessToken,
+      senderId: accountId,
+      senderKind: "instagram-account",
+      graphBaseUrl: INSTAGRAM_GRAPH_BASE_URL,
+    } satisfies InstagramMessagingContext;
   }
 
   async function resolvePageContextFromCurrentToken() {
     try {
-      const url = new URL(`${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/me`);
+      const url = new URL(buildGraphApiUrl(serverEnv.whatsappBaseUrl, "me"));
       url.searchParams.set(
         "fields",
         "id,name,instagram_business_account{id,username,name}",
@@ -189,12 +219,15 @@ async function resolveInstagramMessagingContext(input: {
         };
       };
 
-      if (payload.instagram_business_account?.id !== input.accountId || !payload.id?.trim()) {
+      if (payload.instagram_business_account?.id !== accountId || !payload.id?.trim()) {
         return null;
       }
 
       return {
         accessToken: normalizedAccessToken,
+        senderId: payload.id.trim(),
+        senderKind: "facebook-page",
+        graphBaseUrl: serverEnv.whatsappBaseUrl,
         pageId: payload.id.trim(),
       } satisfies InstagramMessagingContext;
     } catch {
@@ -204,7 +237,7 @@ async function resolveInstagramMessagingContext(input: {
 
   try {
     const url = new URL(
-      `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/me/accounts`,
+      buildGraphApiUrl(serverEnv.whatsappBaseUrl, "me/accounts"),
     );
     url.searchParams.set(
       "fields",
@@ -220,7 +253,7 @@ async function resolveInstagramMessagingContext(input: {
     if (!response.ok) {
       const errorText = await response.text().catch(() => "unknown");
       console.warn(`[Instagram OAuth] Failed to fetch /me/accounts. Status: ${response.status}. Error: ${errorText}`);
-      return directContext;
+      return (await resolvePageContextFromCurrentToken()) ?? directContext;
     }
 
     const payload = (await response.json()) as {
@@ -239,23 +272,28 @@ async function resolveInstagramMessagingContext(input: {
 
     const matchedPage = payload.data?.find(
       (page) =>
-        page.instagram_business_account?.id === input.accountId ||
-        (input.pageId?.trim() && page.id === input.pageId.trim()),
+        page.instagram_business_account?.id === accountId ||
+        (configuredPageId && page.id === configuredPageId),
     );
 
     if (!matchedPage) {
-      console.warn(`[Instagram OAuth] No matching Facebook Page found for Account ID: ${input.accountId} or Page ID: ${input.pageId}. Pages returned:`, payload.data?.map(p => ({ id: p.id, name: p.name, hasIg: !!p.instagram_business_account })));
+      console.warn(`[Instagram OAuth] No matching Facebook Page found for Account ID: ${accountId} or Page ID: ${configuredPageId}. Pages returned:`, payload.data?.map(p => ({ id: p.id, name: p.name, hasIg: !!p.instagram_business_account })));
+      return (await resolvePageContextFromCurrentToken()) ?? directContext;
     }
 
     const matchedPageToken = normalizeSecretLikeValue(matchedPage?.access_token);
+    const matchedPageId = matchedPage?.id?.trim();
 
-    if (!matchedPageToken) {
+    if (!matchedPageId) {
       return (await resolvePageContextFromCurrentToken()) ?? directContext;
     }
 
     return {
-      accessToken: matchedPageToken,
-      pageId: matchedPage?.id?.trim() || directContext.pageId,
+      accessToken: matchedPageToken || normalizedAccessToken,
+      senderId: matchedPageId,
+      senderKind: "facebook-page",
+      graphBaseUrl: serverEnv.whatsappBaseUrl,
+      pageId: matchedPageId,
     } satisfies InstagramMessagingContext;
   } catch (error) {
     console.error("[Instagram OAuth] Exception resolving messaging context:", error);
@@ -327,13 +365,77 @@ function resolveInstagramCredential(
   };
 }
 
+async function rememberResolvedInstagramPageId(
+  config: DashboardConfig,
+  accountId: string,
+  pageId?: string,
+) {
+  const normalizedAccountId = accountId.trim();
+  const normalizedPageId = pageId?.trim();
+  if (!normalizedAccountId || !normalizedPageId) {
+    return;
+  }
+
+  const instagram = config.channels.instagram;
+  let changed = false;
+  const isPrimaryAccount = instagram.accountId.trim() === normalizedAccountId;
+  const nextAccounts = (instagram.accounts ?? []).map((account) => {
+    if (account.accountId !== normalizedAccountId) {
+      return account;
+    }
+
+    if (account.pageId?.trim() === normalizedPageId) {
+      return account;
+    }
+
+    changed = true;
+    return {
+      ...account,
+      pageId: normalizedPageId,
+    };
+  });
+
+  const nextPrimaryPageId =
+    isPrimaryAccount && instagram.pageId?.trim() !== normalizedPageId
+      ? normalizedPageId
+      : instagram.pageId;
+
+  if (nextPrimaryPageId !== instagram.pageId) {
+    changed = true;
+  }
+
+  if (!changed) {
+    return;
+  }
+
+  try {
+    await saveDashboardConfigRecord({
+      ...config,
+      channels: {
+        ...config.channels,
+        instagram: {
+          ...instagram,
+          pageId: nextPrimaryPageId,
+          accounts: nextAccounts,
+        },
+      },
+    });
+  } catch (error) {
+    console.warn("[Instagram OAuth] Failed to persist resolved Page ID.", error);
+  }
+}
+
 async function sendInstagramRequest(
-  pageId: string,
-  accessToken: string,
+  context: InstagramMessagingContext,
   body: Record<string, unknown>,
 ) {
-  const normalizedAccessToken = normalizeSecretLikeValue(accessToken);
-  const sendUrl = `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/${pageId}/messages`;
+  const normalizedAccessToken = normalizeSecretLikeValue(context.accessToken);
+  const senderId = context.senderId?.trim();
+  if (!senderId) {
+    throw new Error("Instagram sender ID tidak tersedia.");
+  }
+
+  const sendUrl = buildGraphApiUrl(context.graphBaseUrl, `${senderId}/messages`);
   const response = await fetch(sendUrl, {
     method: "POST",
     headers: {
@@ -503,13 +605,14 @@ export async function sendChannelMessage(input: SendMessageInput) {
       accessToken: igAccessToken,
       pageId: configuredPageId,
     });
+    await rememberResolvedInstagramPageId(config, accountId, messagingContext.pageId);
 
-    if (!messagingContext.pageId?.trim()) {
+    if (!messagingContext.senderId?.trim()) {
       return {
         ok: false,
         provider: "instagram",
         status: 412,
-        note: "Page ID Facebook untuk Instagram belum tersedia di dashboard.",
+        note: "Sender Instagram belum bisa diselesaikan otomatis dari token. Hubungkan ulang Instagram atau gunakan token Meta dengan izin pages_show_list.",
       };
     }
 
@@ -525,8 +628,7 @@ export async function sendChannelMessage(input: SendMessageInput) {
         }
 
         const mediaResponse = await sendInstagramRequest(
-          messagingContext.pageId,
-          messagingContext.accessToken,
+          messagingContext,
           {
             recipient: { id: input.recipientId },
             message: {
@@ -553,8 +655,7 @@ export async function sendChannelMessage(input: SendMessageInput) {
         let captionResponse: Awaited<ReturnType<typeof sendInstagramRequest>> | null = null;
         if (trimmedMessage) {
           captionResponse = await sendInstagramRequest(
-            messagingContext.pageId,
-            messagingContext.accessToken,
+            messagingContext,
             {
               recipient: { id: input.recipientId },
               message: { text: trimmedMessage },
@@ -584,8 +685,7 @@ export async function sendChannelMessage(input: SendMessageInput) {
       }
 
       const igResponse = await sendInstagramRequest(
-        messagingContext.pageId,
-        messagingContext.accessToken,
+        messagingContext,
         {
           recipient: { id: input.recipientId },
           message: { text: trimmedMessage },
@@ -660,9 +760,10 @@ export async function sendChannelMessage(input: SendMessageInput) {
       accessToken: igAccessToken,
       pageId: configuredPageId,
     });
+    await rememberResolvedInstagramPageId(config, accountId, messagingContext.pageId);
 
     try {
-      const sendUrl = `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/${commentId}/replies`;
+      const sendUrl = buildGraphApiUrl(messagingContext.graphBaseUrl, `${commentId}/replies`);
       const response = await fetch(sendUrl, {
         method: "POST",
         headers: {
@@ -798,9 +899,10 @@ export async function deleteInstagramComment(input: {
     accessToken: igAccessToken,
     pageId: configuredPageId,
   });
+  await rememberResolvedInstagramPageId(config, accountId, messagingContext.pageId);
 
   try {
-    const deleteUrl = `${serverEnv.whatsappBaseUrl}/${serverEnv.whatsappApiVersion}/${input.commentId}`;
+    const deleteUrl = buildGraphApiUrl(messagingContext.graphBaseUrl, input.commentId);
     const response = await fetch(deleteUrl, {
       method: "DELETE",
       headers: {

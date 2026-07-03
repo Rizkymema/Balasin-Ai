@@ -185,11 +185,12 @@ function findExistingInstagramAccount(
   existingAccounts: InstagramAccount[],
   incoming: InstagramAccount,
 ) {
+  const incomingPageId = incoming.pageId?.trim();
   return existingAccounts.find(
     (account) =>
       account.id === incoming.id ||
       account.accountId === incoming.accountId ||
-      account.pageId === incoming.pageId,
+      (incomingPageId ? account.pageId?.trim() === incomingPageId : false),
   );
 }
 
@@ -219,6 +220,7 @@ function mergeInstagramAccounts(
     const existing = findExistingInstagramAccount(existingAccounts, account);
     return {
       ...account,
+      pageId: keepExistingString(existing?.pageId ?? "", account.pageId ?? ""),
       accessToken: normalizeSecretLikeValue(
         keepExistingString(existing?.accessToken ?? "", account.accessToken),
       ),
