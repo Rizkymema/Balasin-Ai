@@ -170,6 +170,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem("balesin_user");
+            localStorage.removeItem("balesin_onboarded");
+            window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+            return;
+          }
           throw new Error("Failed to load workspace");
         }
 
@@ -200,7 +206,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           credentials: "include",
           cache: "no-store",
         });
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (res.status === 401) {
+            localStorage.removeItem("balesin_user");
+            localStorage.removeItem("balesin_onboarded");
+            window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+            return;
+          }
+          return;
+        }
         const payload = await res.json() as {
           ok: boolean;
           data?: { conversations?: Array<{ unreadCount?: number }> };

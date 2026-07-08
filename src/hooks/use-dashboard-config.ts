@@ -16,6 +16,8 @@ export function useDashboardConfig() {
   }, [config]);
 
   const refreshConfig = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     try {
       const response = await fetch("/api/dashboard-config", {
         credentials: "include",
@@ -23,6 +25,12 @@ export function useDashboardConfig() {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem("balesin_user");
+          localStorage.removeItem("balesin_onboarded");
+          window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+          return;
+        }
         throw new Error("Failed to fetch dashboard config");
       }
 
@@ -52,6 +60,12 @@ export function useDashboardConfig() {
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem("balesin_user");
+            localStorage.removeItem("balesin_onboarded");
+            window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+            return;
+          }
           throw new Error("Failed to fetch dashboard config");
         }
 
@@ -88,7 +102,13 @@ export function useDashboardConfig() {
           })
             .then(async (res) => {
               if (!res.ok) {
-                return; // Session expired or error - skip silently, don't redirect
+                if (res.status === 401) {
+                  localStorage.removeItem("balesin_user");
+                  localStorage.removeItem("balesin_onboarded");
+                  window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+                  return;
+                }
+                return; // other errors skip silently
               }
               return res.json();
             })
@@ -128,6 +148,8 @@ export function useDashboardConfig() {
       });
       if (!response.ok) {
         if (response.status === 401) {
+          localStorage.removeItem("balesin_user");
+          localStorage.removeItem("balesin_onboarded");
           window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
           return;
         }
@@ -159,6 +181,8 @@ export function useDashboardConfig() {
         });
         if (!response.ok) {
           if (response.status === 401) {
+            localStorage.removeItem("balesin_user");
+            localStorage.removeItem("balesin_onboarded");
             window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
             return;
           }
