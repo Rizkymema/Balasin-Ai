@@ -1757,7 +1757,7 @@ struct ChatView: View {
 
                   {igAdvancedOpen && (
                     <form onSubmit={persistInstagram} className="rounded-xl border border-white/8 bg-white/[0.02] p-5 space-y-4">
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div className="space-y-1.5">
                           <label className="text-xs font-semibold text-slate-300">Username Instagram</label>
                           <Input value={igUsername} onChange={(e) => setIgUsername(e.target.value)} className="h-10 text-xs" />
@@ -1765,6 +1765,10 @@ struct ChatView: View {
                         <div className="space-y-1.5">
                           <label className="text-xs font-semibold text-slate-300">Instagram Account ID</label>
                           <Input value={igAccountId} onChange={(e) => setIgAccountId(e.target.value)} className="h-10 text-xs" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-300">Facebook Page ID</label>
+                          <Input value={igPageId} onChange={(e) => setIgPageId(e.target.value)} className="h-10 text-xs" placeholder="Contoh: 1029384756" />
                         </div>
                       </div>
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1882,7 +1886,7 @@ struct ChatView: View {
                     <p className="text-[11px] text-slate-400 leading-relaxed">
                       Jika login Facebook bermasalah, isi token Instagram secara manual di bawah ini.
                     </p>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-slate-300">Username Instagram</label>
                         <Input value={igUsername} onChange={(e) => setIgUsername(e.target.value)} className="h-10 text-xs" placeholder="namaakun (tanpa @)" />
@@ -1890,6 +1894,10 @@ struct ChatView: View {
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-slate-300">Instagram Account ID</label>
                         <Input value={igAccountId} onChange={(e) => setIgAccountId(e.target.value)} className="h-10 text-xs" placeholder="17841400000000000" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-300">Facebook Page ID</label>
+                        <Input value={igPageId} onChange={(e) => setIgPageId(e.target.value)} className="h-10 text-xs" placeholder="Contoh: 1029384756" />
                       </div>
                     </div>
                     <div className="space-y-1.5">
