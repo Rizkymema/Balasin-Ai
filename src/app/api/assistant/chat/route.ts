@@ -3,11 +3,52 @@ import { jsonError, jsonOk, requireApiSession } from "@/server/http";
 import type { DashboardConfig } from "@/types/dashboard-config";
 import { resolveAppUrl } from "@/lib/app-url";
 import { assertSafeExternalUrl } from "@/server/security/safe-fetch";
+import { listKnowledgeChunkRowsAsync } from "@/server/db";
 
 type ChatHistoryItem = {
   role: "user" | "assistant";
   content: string;
 };
+
+function scoreText(query: string, text: string): number {
+  const q = query.toLowerCase().trim();
+  const t = text.toLowerCase().trim();
+  if (!q || !t) return 0;
+  if (t.includes(q) || q.includes(t)) return 0.95;
+
+  const qTokens = q.split(/\s+/).filter(Boolean);
+  const tTokens = t.split(/\s+/).filter(Boolean);
+  if (qTokens.length === 0 || tTokens.length === 0) return 0;
+
+  const matches = qTokens.filter(tok => tTokens.some(ct => ct === tok || ct.includes(tok) || tok.includes(ct)));
+  return matches.length / qTokens.length;
+}
+
+function searchFaqs(query: string, faqs: any[]): any[] {
+  return faqs
+    .map(faq => {
+      const qScore = scoreText(query, faq.question || "");
+      const aScore = scoreText(query, faq.answer || "");
+      const score = Math.max(qScore * 1.15, (qScore + aScore) / 2);
+      return { faq, score };
+    })
+    .filter(item => item.score >= 0.2)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .map(item => item.faq);
+}
+
+function searchChunks(query: string, chunks: any[]): any[] {
+  return chunks
+    .map(chunk => {
+      const score = scoreText(query, chunk.content || "");
+      return { chunk, score };
+    })
+    .filter(item => item.score >= 0.2)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .map(item => item.chunk);
+}
 
 function resolveProviderEndpoint(config: DashboardConfig) {
   const customBaseUrl = config.aiProvider.baseUrl.trim();
@@ -134,6 +175,21 @@ export async function POST(request: Request) {
     if (config.channels.instagram.enabled) connectedChannels.push(`Instagram DM (${config.channels.instagram.status})`);
     if (config.channels.webchat.enabled) connectedChannels.push("Webchat");
 
+    // Search FAQs and document chunks based on user query
+    const queryMessage = body.message || "";
+    const matchedFaqs = searchFaqs(queryMessage, config.knowledgeBase.faqs || []);
+    let matchedChunks: any[] = [];
+    try {
+      const rawChunks = await listKnowledgeChunkRowsAsync();
+      const parsedChunks = rawChunks.map((row: any) => ({
+        content: row.content || "",
+        metadata: typeof row.metadata_json === 'string' ? JSON.parse(row.metadata_json) : row.metadata_json
+      }));
+      matchedChunks = searchChunks(queryMessage, parsedChunks);
+    } catch (e) {
+      console.error("Failed to search knowledge chunks:", e);
+    }
+
     const systemPrompt = `
 Anda adalah Balesin Desk AI Copilot, asisten cerdas internal untuk admin dan staf ${config.workspace.name}.
 Tugas Anda adalah membantu admin dalam menjawab pertanyaan, menganalisis data, memberikan petunjuk cara kerja sistem, atau merangkum data operasional Johan Garage secara akurat.
@@ -153,6 +209,14 @@ Jumlah FAQ: ${config.knowledgeBase.faqs.length} FAQ aktif.
 Jumlah Dokumen Synced: ${config.knowledgeBase.documents.length} dokumen.
 Website Synced: ${config.knowledgeBase.websiteUrls.join(", ") || "Tidak ada"}
 Google Sheets Synced: ${config.knowledgeBase.googleSheetUrls.join(", ") || "Tidak ada"}
+
+=== DOKUMEN & FAQ RELEVAN (KNOWLEDGE RETRIEVAL) ===
+Ditemukan beberapa data Q&A atau kutipan dokumen yang relevan dengan pertanyaan Anda:
+--- FAQ RELEVAN ---
+${matchedFaqs.map((f, idx) => `Q${idx+1}: ${f.question}\nA${idx+1}: ${f.answer}`).join("\n\n") || "Tidak ada FAQ yang langsung cocok."}
+
+--- KUTIPAN DOKUMEN RELEVAN ---
+${matchedChunks.map((c, idx) => `Kutipan ${idx+1}: "${c.content}"`).join("\n\n") || "Tidak ada kutipan dokumen yang langsung cocok."}
 
 === DATA OPERASIONAL LAINNYA ===
 Jumlah Kontak Pelanggan: ${ops.customers.length} kontak.
