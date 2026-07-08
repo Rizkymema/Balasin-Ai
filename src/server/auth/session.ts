@@ -51,22 +51,26 @@ export async function createSessionToken(input: Omit<SessionPayload, "exp">) {
 
 export async function verifySessionToken(token?: string | null) {
   if (!token) {
+    console.log("[VERIFY_SESSION] No token provided");
     return null;
   }
 
   const [encodedPayload, encodedSignature] = token.split(".");
   if (!encodedPayload || !encodedSignature) {
+    console.log("[VERIFY_SESSION] Invalid token format (missing payload or signature)");
     return null;
   }
 
   const expectedSignature = signValue(encodedPayload);
   if (expectedSignature.length !== encodedSignature.length) {
+    console.log("[VERIFY_SESSION] Signature length mismatch:", expectedSignature.length, "vs", encodedSignature.length);
     return null;
   }
 
   if (
     !timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(encodedSignature))
   ) {
+    console.log("[VERIFY_SESSION] Signature mismatch (timingSafeEqual failed)");
     return null;
   }
 
@@ -76,19 +80,25 @@ export async function verifySessionToken(token?: string | null) {
     ) as SessionPayload;
 
     if (payload.exp < Date.now()) {
+      console.log("[VERIFY_SESSION] Token expired at:", new Date(payload.exp));
       return null;
     }
 
     return payload;
-  } catch {
+  } catch (err) {
+    console.error("[VERIFY_SESSION] Failed to parse payload JSON:", err);
     return null;
   }
 }
 
 export async function getServerSession() {
   const cookieStore = await cookies();
-  const token = cookieStore.get(serverEnv.sessionCookieName)?.value ?? null;
-  return verifySessionToken(token);
+  const cookieName = serverEnv.sessionCookieName;
+  const token = cookieStore.get(cookieName)?.value ?? null;
+  console.log(`[GET_SERVER_SESSION] Cookie name: ${cookieName}, Token present: ${!!token}`);
+  const session = await verifySessionToken(token);
+  console.log(`[GET_SERVER_SESSION] Verification result: ${session ? "SUCCESS (" + session.email + ")" : "FAILED"}`);
+  return session;
 }
 
 export function getSessionCookieOptions() {
