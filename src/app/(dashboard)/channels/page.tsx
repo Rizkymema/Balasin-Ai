@@ -336,8 +336,12 @@ struct ChatView: View {
     const trimmedAccessToken = accessToken.trim();
     const trimmedVerifyToken = verifyToken.trim();
 
+    const hasExistingToken =
+      config.channels.whatsapp.status === "connected" ||
+      config.channels.whatsapp.status === "testing";
+
     const nextStatus =
-      trimmedPhoneId && trimmedAccessToken && trimmedVerifyToken
+      trimmedPhoneId && (trimmedAccessToken || hasExistingToken) && trimmedVerifyToken
         ? ("connected" as const)
         : ("draft" as const);
 
@@ -347,23 +351,51 @@ struct ChatView: View {
     setVerifyToken(trimmedVerifyToken);
     setWaStatus(nextStatus);
 
-    patchConfig((current) => ({
-      ...current,
-      channels: {
-        ...current.channels,
-        whatsapp: {
-          ...current.channels.whatsapp,
-          enabled: nextStatus === "connected",
-          status: nextStatus,
-          businessLabel: trimmedLabel,
+    patchConfig((current) => {
+      const existingAccounts = current.channels.whatsapp.accounts ?? [];
+      let updatedAccounts = [...existingAccounts];
+
+      if (nextStatus === "connected") {
+        const existingAccount = existingAccounts.find(
+          (acc) => acc.phoneNumberId === trimmedPhoneId,
+        );
+        const newAccount = {
+          id: trimmedPhoneId,
+          businessLabel: trimmedLabel || "WhatsApp Business Account",
           phoneNumberId: trimmedPhoneId,
           accessToken: trimmedAccessToken,
           verifyToken: trimmedVerifyToken,
-          webhookUrl: whatsappWebhookUrl,
-          autoReply: waAutoReply,
+          status: "connected" as const,
+          phoneNumber: existingAccount?.phoneNumber || "Primary Number",
+        };
+
+        const alreadyExists = existingAccounts.some(acc => acc.phoneNumberId === trimmedPhoneId);
+        if (alreadyExists) {
+          updatedAccounts = updatedAccounts.map(acc => acc.phoneNumberId === trimmedPhoneId ? newAccount : acc);
+        } else {
+          updatedAccounts.push(newAccount);
+        }
+      }
+
+      return {
+        ...current,
+        channels: {
+          ...current.channels,
+          whatsapp: {
+            ...current.channels.whatsapp,
+            enabled: nextStatus === "connected",
+            status: nextStatus,
+            businessLabel: trimmedLabel,
+            phoneNumberId: trimmedPhoneId,
+            accessToken: trimmedAccessToken,
+            verifyToken: trimmedVerifyToken,
+            webhookUrl: whatsappWebhookUrl,
+            autoReply: waAutoReply,
+            accounts: updatedAccounts,
+          },
         },
-      },
-    }));
+      };
+    });
 
     setWaSaved(true);
     setTimeout(() => setWaSaved(false), 2500);
@@ -589,7 +621,8 @@ struct ChatView: View {
     event.preventDefault();
     const trimmedVerifyToken = igVerifyToken.trim();
     const hasExistingInstagramToken =
-      config.channels.instagram.status === "connected" &&
+      (config.channels.instagram.status === "connected" ||
+       config.channels.instagram.status === "testing") &&
       Boolean(igAccountId.trim());
     const nextStatus =
       igAccountId && (igAccessToken || hasExistingInstagramToken)
@@ -1495,7 +1528,7 @@ struct ChatView: View {
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-slate-300">Permanent access token</label>
-                        <Input type="password" value={accessToken} onChange={(e) => setAccessToken(e.target.value)} className="h-10 text-xs" />
+                        <Input type="password" value={accessToken} onChange={(e) => setAccessToken(e.target.value)} className="h-10 text-xs" placeholder={config.channels.whatsapp.status === "connected" ? "•••••••• (Tersimpan)" : "EAABwzLixnjY..."} />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-slate-300">Verify token</label>
@@ -1619,7 +1652,7 @@ struct ChatView: View {
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-slate-300">Permanent access token</label>
-                      <Input type="password" value={accessToken} onChange={(e) => setAccessToken(e.target.value)} className="h-10 text-xs" placeholder="EAABwzLixnjY..." />
+                      <Input type="password" value={accessToken} onChange={(e) => setAccessToken(e.target.value)} className="h-10 text-xs" placeholder={config.channels.whatsapp.status === "connected" ? "•••••••• (Tersimpan)" : "EAABwzLixnjY..."} />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-slate-300">Verify token</label>
@@ -1774,7 +1807,7 @@ struct ChatView: View {
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="space-y-1.5">
                           <label className="text-xs font-semibold text-slate-300">Meta access token</label>
-                          <Input type="password" value={igAccessToken} onChange={(e) => setIgAccessToken(e.target.value)} className="h-10 text-xs" />
+                          <Input type="password" value={igAccessToken} onChange={(e) => setIgAccessToken(e.target.value)} className="h-10 text-xs" placeholder={config.channels.instagram.status === "connected" ? "•••••••• (Tersimpan)" : "EAABwzLixnjY..."} />
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-xs font-semibold text-slate-300">Verify token</label>
@@ -1902,7 +1935,7 @@ struct ChatView: View {
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-slate-300">Meta access token</label>
-                      <Input type="password" value={igAccessToken} onChange={(e) => setIgAccessToken(e.target.value)} className="h-10 text-xs" placeholder="EAABwzLixnjY..." />
+                      <Input type="password" value={igAccessToken} onChange={(e) => setIgAccessToken(e.target.value)} className="h-10 text-xs" placeholder={config.channels.instagram.status === "connected" ? "•••••••• (Tersimpan)" : "EAABwzLixnjY..."} />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-slate-300">Verify token</label>

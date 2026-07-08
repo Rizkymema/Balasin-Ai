@@ -94,7 +94,9 @@ export function useDashboardConfig() {
             })
             .then((payload) => {
               if (mounted && payload?.data) {
-                if (JSON.stringify(payload.data) !== JSON.stringify(configRef.current)) {
+                const redactedPayload = redactSecretsForComparison(payload.data);
+                const redactedCurrent = redactSecretsForComparison(configRef.current);
+                if (JSON.stringify(redactedPayload) !== JSON.stringify(redactedCurrent)) {
                   setConfig(payload.data);
                   configRef.current = payload.data;
                 }
@@ -182,3 +184,49 @@ export function useDashboardConfig() {
     patchConfig,
   };
 }
+
+function redactSecretsForComparison(config: DashboardConfig): DashboardConfig {
+  return {
+    ...config,
+    runtime: {
+      ...config.runtime,
+      workerSecret: "",
+    },
+    aiProvider: {
+      ...config.aiProvider,
+      apiKey: "",
+    },
+    channels: {
+      ...config.channels,
+      whatsapp: {
+        ...config.channels.whatsapp,
+        accessToken: "",
+        verifyToken: "",
+        accounts: config.channels.whatsapp.accounts?.map((account) => ({
+          ...account,
+          accessToken: "",
+          verifyToken: "",
+        })),
+      },
+      instagram: {
+        ...config.channels.instagram,
+        accessToken: "",
+        verifyToken: "",
+        accounts: config.channels.instagram.accounts?.map((account) => ({
+          ...account,
+          accessToken: "",
+          verifyToken: "",
+        })),
+      },
+    },
+    automation: {
+      ...config.automation,
+      apiIntegrations: config.automation.apiIntegrations?.map((integration) => ({
+        ...integration,
+        authToken: "",
+        headers: "",
+      })) ?? [],
+    },
+  };
+}
+
