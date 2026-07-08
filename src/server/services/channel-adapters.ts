@@ -14,6 +14,7 @@ type SendMessageInput = {
   message: string;
   phoneNumberIdOverride?: string;
   instagramAccountIdOverride?: string;
+  accessTokenOverride?: string;
   mediaAttachment?: PreparedOutboundMediaUpload;
   mediaPublicUrl?: string;
   externalMessageId?: string;
@@ -488,7 +489,7 @@ export async function sendChannelMessage(input: SendMessageInput) {
       (acc) => acc.phoneNumberId === phoneNumberId,
     );
     const accessToken = normalizeSecretLikeValue(
-      matchingAccount?.accessToken || config.channels.whatsapp.accessToken,
+      input.accessTokenOverride || matchingAccount?.accessToken || config.channels.whatsapp.accessToken,
     );
 
     if (!phoneNumberId || !accessToken) {
@@ -576,11 +577,10 @@ export async function sendChannelMessage(input: SendMessageInput) {
   }
 
   if (input.channel === "Instagram DM") {
-    const {
-      accountId,
-      accessToken: igAccessToken,
-      pageId: configuredPageId,
-    } = resolveInstagramCredential(config, input.instagramAccountIdOverride);
+    const resolvedCreds = resolveInstagramCredential(config, input.instagramAccountIdOverride);
+    const accountId = resolvedCreds.accountId;
+    const igAccessToken = input.accessTokenOverride || resolvedCreds.accessToken;
+    const configuredPageId = resolvedCreds.pageId;
 
     if (!accountId || !igAccessToken) {
       return {
@@ -943,3 +943,80 @@ export async function deleteInstagramComment(input: {
     };
   }
 }
+
+export async function replyInstagramComment(input: {
+  commentId: string;
+  message: string;
+  instagramAccountIdOverride?: string;
+  accessTokenOverride?: string;
+}) {
+  const config = await getDashboardConfigRecord();
+  const resolvedCreds = resolveInstagramCredential(config, input.instagramAccountIdOverride);
+  const accountId = resolvedCreds.accountId;
+  const igAccessToken = input.accessTokenOverride || resolvedCreds.accessToken;
+  const configuredPageId = resolvedCreds.pageId;
+
+  if (!accountId || !igAccessToken) {
+    return {
+      ok: false,
+      provider: "instagram",
+      status: 412,
+      note: "Account ID atau access token Instagram belum tersedia di dashboard.",
+    };
+  }
+
+  const messagingContext = await resolveInstagramMessagingContext({
+    accountId,
+    accessToken: igAccessToken,
+    pageId: configuredPageId,
+  });
+  await rememberResolvedInstagramPageId(config, accountId, messagingContext.pageId);
+
+  try {
+    const replyUrl = buildGraphApiUrl(messagingContext.graphBaseUrl, `${input.commentId}/replies`);
+    const response = await fetch(replyUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${messagingContext.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: input.message,
+      }),
+    });
+
+    const responseText = await response.text();
+    let parsedBody: Record<string, unknown> | null = null;
+    try {
+      parsedBody = responseText ? JSON.parse(responseText) : null;
+    } catch {
+      parsedBody = null;
+    }
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        provider: "instagram",
+        status: response.status,
+        body: parsedBody,
+        note: `Gagal membalas komentar Instagram (${replyUrl}): ${responseText.slice(0, 300)}`,
+      };
+    }
+
+    return {
+      ok: true,
+      provider: "instagram",
+      status: response.status,
+      body: parsedBody,
+      messageId: parsedBody?.id as string | undefined,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      provider: "instagram",
+      status: 500,
+      note: `Gagal membalas komentar Instagram: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
+}
+
