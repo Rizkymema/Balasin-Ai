@@ -167,6 +167,20 @@ async function syncGoogleSheetSource(url: string) {
   for (const candidate of candidates) {
     try {
       const payload = await fetchArrayBufferOrThrow(candidate);
+      const textContent = payload.buffer.toString("utf8");
+
+      // Check if we fetched a Google login or HTML redirect page, which means the sheet is private
+      if (
+        textContent.includes("<!DOCTYPE html>") ||
+        textContent.includes("<html") ||
+        textContent.includes("Sign in - Google Accounts") ||
+        textContent.includes("google-signin")
+      ) {
+        throw new Error(
+          "Google Sheet Anda bersifat Privat. Silakan ubah pengaturan akses Google Sheet menjadi 'Siapa saja yang memiliki link dapat melihat' (Anyone with the link can view) agar dapat dibaca oleh sistem."
+        );
+      }
+
       const extension = ".csv";
 
       return ingestKnowledgeDocument({
@@ -225,11 +239,14 @@ export async function syncKnowledgeSources(config: DashboardConfig) {
 
   for (const url of websiteUrls) {
     try {
-      const result = await syncWebsiteSource(url);
+      const isGoogleSheet = /docs\.google\.com\/spreadsheets/i.test(url);
+      const result = isGoogleSheet
+        ? await syncGoogleSheetSource(url)
+        : await syncWebsiteSource(url);
       syncedDocuments.push({
         id: result.document.id,
         name: result.document.name,
-        sourceType: "website",
+        sourceType: isGoogleSheet ? "google_sheet" : "website",
       });
     } catch (error) {
       failures.push({

@@ -737,21 +737,87 @@ function chunkText(
     return [] as KnowledgeChunk[];
   }
 
+  // Split into lines/paragraphs
   const paragraphs = normalized
-    .split(/\n{2,}/)
+    .split(/\n+/)
     .map((item) => item.trim())
     .filter(Boolean);
 
-  return paragraphs.map((paragraph, index) =>
-    createTextChunk({
-      documentId,
-      chunkIndex: index,
-      content: paragraph,
-      sourceName,
-      sourceType: options?.sourceType,
-      sourceUrl: options?.sourceUrl,
-    }),
-  );
+  const chunks: KnowledgeChunk[] = [];
+  let currentChunkText = "";
+  let chunkIndex = 0;
+
+  for (const p of paragraphs) {
+    // If a paragraph is extremely long, split it into overlapping pieces
+    if (p.length > 800) {
+      if (currentChunkText) {
+        chunks.push(
+          createTextChunk({
+            documentId,
+            chunkIndex: chunkIndex++,
+            content: currentChunkText,
+            sourceName,
+            sourceType: options?.sourceType,
+            sourceUrl: options?.sourceUrl,
+          }),
+        );
+        currentChunkText = "";
+      }
+
+      let start = 0;
+      while (start < p.length) {
+        const end = Math.min(start + 600, p.length);
+        const subText = p.slice(start, end).trim();
+        if (subText) {
+          chunks.push(
+            createTextChunk({
+              documentId,
+              chunkIndex: chunkIndex++,
+              content: subText,
+              sourceName,
+              sourceType: options?.sourceType,
+              sourceUrl: options?.sourceUrl,
+            }),
+          );
+        }
+        start += 500; // 100 character overlap
+      }
+    } else {
+      // Accumulate text up to ~600 characters before pushing a chunk
+      if ((currentChunkText + "\n" + p).length > 600) {
+        if (currentChunkText) {
+          chunks.push(
+            createTextChunk({
+              documentId,
+              chunkIndex: chunkIndex++,
+              content: currentChunkText,
+              sourceName,
+              sourceType: options?.sourceType,
+              sourceUrl: options?.sourceUrl,
+            }),
+          );
+        }
+        currentChunkText = p;
+      } else {
+        currentChunkText = currentChunkText ? currentChunkText + "\n" + p : p;
+      }
+    }
+  }
+
+  if (currentChunkText) {
+    chunks.push(
+      createTextChunk({
+        documentId,
+        chunkIndex: chunkIndex++,
+        content: currentChunkText,
+        sourceName,
+        sourceType: options?.sourceType,
+        sourceUrl: options?.sourceUrl,
+      }),
+    );
+  }
+
+  return chunks;
 }
 
 export async function getKnowledgeChunks(searchQuery?: string) {

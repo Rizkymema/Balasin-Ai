@@ -1245,13 +1245,13 @@ async function buildRelevantDocumentContext(messageText: string) {
       };
     })
     .filter((item) => {
-      if (!item.content || item.score < 0.18) {
-        return false;
-      }
+      const minScore =
+        item.sourceType === "website" || item.sourceType === "google_sheet"
+          ? 0.15
+          : 0.15; // Unified lenient threshold for better match recall
 
-      // Turunkan threshold pencocokan dari 0.45 ke 0.22 agar jawaban di website/URL terdeteksi oleh AI
-      if (item.sourceType === "website") {
-        return item.score >= 0.22;
+      if (!item.content || item.score < minScore) {
+        return false;
       }
 
       return true;
