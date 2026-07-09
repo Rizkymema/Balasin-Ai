@@ -13,6 +13,63 @@ type ChatHistoryItem = {
   content: string;
 };
 
+const SEARCH_STOP_WORDS = new Set([
+  "yang",
+  "dan",
+  "atau",
+  "untuk",
+  "dengan",
+  "saya",
+  "kami",
+  "anda",
+  "kak",
+  "min",
+  "di",
+  "ke",
+  "dari",
+  "ada",
+  "apa",
+  "itu",
+  "ini",
+  "the",
+  "is",
+  "are",
+  "of",
+  "a",
+  "an",
+]);
+
+const SEARCH_TOKEN_ALIAS_MAP: Record<string, string> = {
+  brp: "berapa",
+  brapa: "berapa",
+  hrg: "harga",
+  biaya: "harga",
+  tarif: "harga",
+  ongkos: "harga",
+  price: "harga",
+  pricelist: "harga",
+  pricing: "harga",
+  svc: "servis",
+  srvis: "servis",
+  service: "servis",
+  services: "servis",
+  servicing: "servis",
+  perawatan: "servis",
+  repair: "servis",
+  lokasi: "alamat",
+  maps: "alamat",
+  map: "alamat",
+  gmaps: "alamat",
+  operasional: "jam",
+  jadwal: "jam",
+  jm: "jam",
+  open: "buka",
+  close: "tutup",
+  closed: "tutup",
+  reservasi: "booking",
+  pemesanan: "booking",
+};
+
 function normalizeSearchText(text: string) {
   return text
     .toLowerCase()
@@ -20,13 +77,16 @@ function normalizeSearchText(text: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^\p{L}\p{N}\s]+/gu, " ")
     .replace(/\s+/g, " ")
-    .trim();
+    .trim()
+    .split(" ")
+    .map((token) => SEARCH_TOKEN_ALIAS_MAP[token] ?? token)
+    .join(" ");
 }
 
 function tokenizeSearchText(text: string) {
   return normalizeSearchText(text)
     .split(/\s+/)
-    .filter((token) => token.length >= 2);
+    .filter((token) => token.length >= 2 && !SEARCH_STOP_WORDS.has(token));
 }
 
 function scoreText(query: string, text: string): number {
@@ -79,12 +139,89 @@ function isInactiveKnowledgeChunk(chunk: KnowledgeChunk) {
   );
 }
 
+function parseStructuredKnowledgeChunk(content: string) {
+  const result = {
+    category: "",
+    triggers: [] as string[],
+    guidance: "",
+  };
+
+  for (const part of content.split("|").map((item) => item.trim()).filter(Boolean)) {
+    const colonIndex = part.indexOf(":");
+    if (colonIndex === -1) {
+      continue;
+    }
+
+    const key = normalizeSearchText(part.slice(0, colonIndex));
+    const value = part.slice(colonIndex + 1).trim();
+    if (!value) {
+      continue;
+    }
+
+    if (key === "kategori") {
+      result.category = value;
+      continue;
+    }
+
+    if (key === "kata kunci" || key === "trigger" || key === "kata kunci trigger") {
+      result.triggers = value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+      continue;
+    }
+
+    if (key === "panduan jawaban ai" || key === "jawaban ai" || key === "panduan") {
+      result.guidance = value;
+    }
+  }
+
+  return result;
+}
+
+function extractTriggersFromContent(content: string) {
+  const match = content.match(/(?:Kata Kunci \/ Trigger|Kata Kunci|Trigger)\s*:\s*([^|]+)/i);
+  return match
+    ? match[1]
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+}
+
+function scoreTriggers(query: string, triggers: string[]) {
+  const normalizedQuery = normalizeSearchText(query);
+  return triggers.reduce((bestScore, trigger) => {
+    const normalizedTrigger = normalizeSearchText(trigger);
+    if (!normalizedTrigger) {
+      return bestScore;
+    }
+
+    if (
+      normalizedQuery === normalizedTrigger ||
+      normalizedQuery.includes(normalizedTrigger)
+    ) {
+      return Math.max(bestScore, 1);
+    }
+
+    return Math.max(bestScore, scoreText(query, trigger));
+  }, 0);
+}
+
 function searchChunks(query: string, chunks: KnowledgeChunk[]) {
   return chunks
     .map(chunk => {
       const metadata = chunk.metadata ?? {};
+      const structured = parseStructuredKnowledgeChunk(chunk.content);
+      const triggers =
+        structured.triggers.length > 0
+          ? structured.triggers
+          : extractTriggersFromContent(chunk.content);
       const score = Math.max(
         scoreText(query, chunk.content || ""),
+        scoreText(query, structured.category),
+        scoreText(query, structured.guidance),
+        scoreTriggers(query, triggers),
         scoreText(query, metadata.question || ""),
         scoreText(query, metadata.answer || ""),
         scoreText(query, metadata.sourceName || ""),
@@ -99,18 +236,24 @@ function searchChunks(query: string, chunks: KnowledgeChunk[]) {
 
 function formatChunkForPrompt(chunk: KnowledgeChunk, index: number) {
   const metadata = chunk.metadata ?? {};
+  const structured = parseStructuredKnowledgeChunk(chunk.content);
   const sourceParts = [
     metadata.sourceName,
+    structured.category ? `kategori=${structured.category}` : "",
     metadata.sourceType ? `tipe=${metadata.sourceType}` : "",
     metadata.sourceUrl ? `url=${metadata.sourceUrl}` : "",
   ].filter(Boolean);
+  const rawContent = structured.guidance || metadata.answer || chunk.content;
   const content =
-    chunk.content.length > 1200
-      ? `${chunk.content.slice(0, 1197).trim()}...`
-      : chunk.content.trim();
+    rawContent.length > 1200
+      ? `${rawContent.slice(0, 1197).trim()}...`
+      : rawContent.trim();
 
   return [
     `Kutipan ${index + 1}: ${sourceParts.join(" | ") || "Knowledge Base"}`,
+    structured.triggers.length > 0
+      ? `Kata kunci: ${structured.triggers.join(", ")}`
+      : "",
     metadata.question ? `Pertanyaan terkait: ${metadata.question}` : "",
     metadata.answer ? `Jawaban terkait: ${metadata.answer}` : "",
     `Konten: ${content}`,
@@ -255,14 +398,16 @@ export async function POST(request: Request) {
       console.error("Failed to search knowledge chunks:", e);
     }
 
+    const workspaceName = config.workspace.name || "bisnis ini";
+    const hasKnowledgeMatches = matchedFaqs.length > 0 || matchedChunks.length > 0;
     const customInstructions = config.aiAgent.replyInstructions.trim();
     const customInstructionsSection = customInstructions
       ? `\n=== CUSTOM INSTRUCTIONS CHATBOT ===\nInstruksi berikut wajib dipatuhi selama tidak bertentangan dengan data sistem dan keamanan:\n${customInstructions}\n`
       : "";
 
     const systemPrompt = `
-Anda adalah Balesin Desk AI Copilot, asisten cerdas internal untuk admin dan staf ${config.workspace.name}.
-Tugas Anda adalah membantu admin dalam menjawab pertanyaan, menganalisis data, memberikan petunjuk cara kerja sistem, atau merangkum data operasional Johan Garage secara akurat.
+Anda adalah Balesin Desk AI Copilot, asisten cerdas internal untuk admin dan staf ${workspaceName}.
+Tugas Anda adalah membantu admin dalam menjawab pertanyaan, menganalisis data, memberikan petunjuk cara kerja sistem, atau merangkum data operasional ${workspaceName} secara akurat.
 ${customInstructionsSection}
 
 Berikut adalah DATA SISTEM TERBARU:
@@ -289,6 +434,11 @@ ${matchedFaqs.map((f, idx) => `Q${idx+1}: ${f.question}\nA${idx+1}: ${f.answer}`
 --- KUTIPAN DOKUMEN RELEVAN ---
 ${matchedChunks.map((chunk, idx) => formatChunkForPrompt(chunk, idx)).join("\n\n") || "Tidak ada kutipan dokumen yang langsung cocok."}
 
+PRIORITAS JAWABAN KNOWLEDGE BASE:
+${hasKnowledgeMatches
+  ? "Ada data Knowledge Base yang cocok. Anda WAJIB menjadikan FAQ/Kutipan relevan di atas sebagai sumber utama jawaban. Jangan mengganti jawabannya dengan asumsi umum, data produk, data layanan, atau data operasional lain jika bertentangan dengan Knowledge Base."
+  : "Tidak ada data Knowledge Base yang cocok langsung. Jika pertanyaan membutuhkan data bisnis spesifik, akui bahwa datanya belum tersedia dan arahkan admin untuk menambahkannya ke Knowledge Base."}
+
 === DATA OPERASIONAL LAINNYA ===
 Jumlah Kontak Pelanggan: ${ops.customers.length} kontak.
 Jumlah Tiket Support: ${ops.tickets.length} tiket.
@@ -311,7 +461,7 @@ Jasa: ${ops.services.map(s => `${s.name} (Harga: Rp${s.priceStart} - Rp${s.price
 ${unbookedCustomers.map((c, idx) => `${idx + 1}. Nama: ${c.name}, ID: ${c.id}, Channel: ${c.channel}, Kontak: ${c.phone || c.username || "-"}`).join("\n") || "Semua pelanggan sudah memiliki booking"}
 
 Tugas Anda:
-1. Jawab pertanyaan seputar data operasional di atas secara ramah, profesional, dan akurat.
+1. Jika ada FAQ/Kutipan Knowledge Base relevan, jawab langsung berdasarkan data tersebut dan sebutkan sumber ringkasnya bila membantu admin.
 2. Jika admin menanyakan petunjuk cara kerja sistem (misalnya: cara menyambungkan WhatsApp, cara menambah FAQ, atau cara mengaktifkan filter komentar negatif), berikan instruksi langkah-demi-langkah berdasarkan menu yang ada di sidebar (Dashboard, Unified Inbox, Contacts, Products & Services, Booking, Broadcast, Channels, Reports, Team & Settings, Automation).
 3. Berikan saran analisis atau ringkasan jika diminta (misal: "Berapa banyak tiket yang berstatus Open?", "Buatkan rangkuman booking untuk besok").
 4. Jawablah dengan ringkas, jelas, dan terstruktur (gunakan poin-poin jika perlu). Gunakan bahasa Indonesia secara sopan.
@@ -330,7 +480,7 @@ Format proposal aksi harus diletakkan di akhir jawaban Anda dengan menggunakan p
       "channel": "WhatsApp_or_Instagram_DM"
     }
   ],
-  "messageTemplate": "Halo {name}, kami dari Johan Garage melihat Anda belum melakukan booking servis bulan ini. Ingin kami daftarkan booking?"
+  "messageTemplate": "Halo {name}, kami dari ${workspaceName} melihat Anda belum melakukan booking servis bulan ini. Ingin kami daftarkan booking?"
 }
 ---END-AI-ACTION-PROPOSAL---
 

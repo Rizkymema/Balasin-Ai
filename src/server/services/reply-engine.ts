@@ -258,6 +258,36 @@ const COLLOQUIAL_TOKEN_MAP: Record<string, string> = {
   lgkp: "lengkap",
 };
 
+const KNOWLEDGE_TOKEN_ALIAS_MAP: Record<string, string> = {
+  biaya: "harga",
+  tarif: "harga",
+  ongkos: "harga",
+  price: "harga",
+  pricelist: "harga",
+  pricing: "harga",
+  service: "servis",
+  services: "servis",
+  servicing: "servis",
+  perawatan: "servis",
+  repair: "servis",
+  lokasi: "alamat",
+  maps: "alamat",
+  map: "alamat",
+  gmaps: "alamat",
+  operasional: "jam",
+  jadwal: "jam",
+  open: "buka",
+  close: "tutup",
+  closed: "tutup",
+  reservasi: "booking",
+  pemesanan: "booking",
+};
+
+function normalizeToken(token: string) {
+  const colloquial = COLLOQUIAL_TOKEN_MAP[token] ?? token;
+  return KNOWLEDGE_TOKEN_ALIAS_MAP[colloquial] ?? colloquial;
+}
+
 function normalizeText(input: string) {
   const normalized = input
     .toLowerCase()
@@ -271,7 +301,7 @@ function normalizeText(input: string) {
 
   return normalized
     .split(" ")
-    .map((token) => COLLOQUIAL_TOKEN_MAP[token] ?? token)
+    .map((token) => normalizeToken(token))
     .join(" ");
 }
 
@@ -942,6 +972,30 @@ function extractTriggersFromContent(content: string): string[] {
     .filter(Boolean);
 }
 
+function scoreTriggers(messageText: string, triggers: string[]) {
+  const normalizedMessage = normalizeText(messageText);
+  let bestScore = 0;
+
+  for (const trigger of triggers) {
+    const normalizedTrigger = normalizeText(trigger);
+    if (!normalizedTrigger || normalizedTrigger.length < 2) {
+      continue;
+    }
+
+    if (
+      normalizedMessage === normalizedTrigger ||
+      normalizedMessage.includes(normalizedTrigger)
+    ) {
+      bestScore = Math.max(bestScore, 1);
+      continue;
+    }
+
+    bestScore = Math.max(bestScore, scoreCandidate(messageText, normalizedTrigger));
+  }
+
+  return bestScore;
+}
+
 function escapeRegExp(str: string) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -1157,22 +1211,41 @@ async function findBestDocumentMatch(messageText: string) {
     | null = null;
 
   for (const chunk of nonSheetChunks) {
+    const structured = parseStructuredKnowledgeChunk(chunk.content);
+    const triggers =
+      structured.triggers.length > 0
+        ? structured.triggers
+        : extractTriggersFromContent(chunk.content);
     const questionScore = chunk.metadata.question
       ? scoreCandidate(messageText, chunk.metadata.question)
       : 0;
     const answerScore = chunk.metadata.answer
       ? scoreCandidate(messageText, chunk.metadata.answer)
       : 0;
+    const sourceNameScore = chunk.metadata.sourceName
+      ? scoreCandidate(messageText, chunk.metadata.sourceName)
+      : 0;
+    const categoryScore = structured.category
+      ? scoreCandidate(messageText, structured.category)
+      : 0;
+    const triggerScore = scoreTriggers(messageText, triggers);
+    const guidanceScore = structured.guidance
+      ? scoreCandidate(messageText, structured.guidance)
+      : 0;
     const contentScore = scoreCandidate(messageText, chunk.content);
     const score = Math.max(
       contentScore,
+      sourceNameScore * 1.1,
+      categoryScore,
+      triggerScore,
+      guidanceScore * 0.9,
       questionScore * 1.2,
       (questionScore + answerScore) / 2,
     );
 
     if (!bestMatch || score > bestMatch.score) {
       bestMatch = {
-        content: chunk.content,
+        content: structured.guidance || chunk.metadata.answer || chunk.content,
         sourceName: chunk.metadata.sourceName,
         score,
         answer: chunk.metadata.answer,
@@ -1181,7 +1254,7 @@ async function findBestDocumentMatch(messageText: string) {
     }
   }
 
-  if (!bestMatch || bestMatch.score < 0.48) {
+  if (!bestMatch || bestMatch.score < 0.4) {
     return null;
   }
 
@@ -1219,6 +1292,10 @@ async function buildRelevantDocumentContext(messageText: string) {
   return activeChunks
     .map((chunk) => {
       const structured = parseStructuredKnowledgeChunk(chunk.content);
+      const triggers =
+        structured.triggers.length > 0
+          ? structured.triggers
+          : extractTriggersFromContent(chunk.content);
       const questionScore = chunk.metadata.question
         ? scoreCandidate(messageText, chunk.metadata.question)
         : 0;
@@ -1230,9 +1307,15 @@ async function buildRelevantDocumentContext(messageText: string) {
       const categoryScore = structured.category
         ? scoreCandidate(messageText, structured.category)
         : 0;
+      const sourceNameScore = chunk.metadata.sourceName
+        ? scoreCandidate(messageText, chunk.metadata.sourceName)
+        : 0;
+      const triggerScore = scoreTriggers(messageText, triggers);
       const contentScore = scoreCandidate(messageText, contentCandidate);
       const score = Math.max(
         contentScore,
+        sourceNameScore * 1.1,
+        triggerScore,
         categoryScore * 0.95,
         questionScore * 1.2,
         (questionScore + answerScore) / 2,
@@ -1268,7 +1351,7 @@ async function buildRelevantDocumentContext(messageText: string) {
 }
 
 function getStaticKnowledgeThreshold(config: DashboardConfig) {
-  return Math.min(config.aiAgent.confidenceThreshold || 80, 60);
+  return Math.min(config.aiAgent.confidenceThreshold || 80, 45);
 }
 
 function resolveProviderEndpoint(config: DashboardConfig) {
@@ -1445,6 +1528,11 @@ ${faqSection}
 
 KNOWLEDGE RELEVAN
 ${documentSection}
+
+PRIORITAS KNOWLEDGE BASE
+${faqContext.length > 0 || documentContext.length > 0
+  ? "Ada FAQ/Knowledge relevan. Anda WAJIB menjawab berdasarkan data relevan di atas dan tidak boleh mengganti jawabannya dengan asumsi umum atau data lain yang bertentangan."
+  : "Tidak ada FAQ/Knowledge yang cocok langsung. Untuk pertanyaan bisnis spesifik, jangan mengarang dan arahkan ke admin."}
 
 PERTANYAAN CUSTOMER
 ${messageText}
