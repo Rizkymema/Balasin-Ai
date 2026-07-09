@@ -1026,8 +1026,9 @@ export async function ingestKnowledgeDocument(params: {
 }
 
 export async function deleteKnowledgeDocument(documentId: string) {
+  const config = await getDashboardConfigRecord();
   const documents = shouldUseBlobState()
-    ? (await getDashboardConfigRecord()).knowledgeBase.documents
+    ? config.knowledgeBase.documents
     : await listJsonRowsAsync<KnowledgeDocument>("knowledge_documents");
   const target = documents.find((item) => item.id === documentId);
   if (target) {
@@ -1037,21 +1038,25 @@ export async function deleteKnowledgeDocument(documentId: string) {
     }
   }
 
+  // Remove the sourceUrl from websiteUrls and googleSheetUrls lists in configuration
+  if (target && target.sourceUrl) {
+    config.knowledgeBase.websiteUrls = config.knowledgeBase.websiteUrls.filter(
+      (url) => url !== target.sourceUrl,
+    );
+    config.knowledgeBase.googleSheetUrls = config.knowledgeBase.googleSheetUrls.filter(
+      (url) => url !== target.sourceUrl,
+    );
+  }
+
   if (shouldUseBlobState()) {
-    const currentConfig = await getDashboardConfigRecord();
-    await saveDashboardConfigRecord({
-      ...currentConfig,
-      knowledgeBase: {
-        ...currentConfig.knowledgeBase,
-        documents: currentConfig.knowledgeBase.documents.filter(
-          (item) => item.id !== documentId,
-        ),
-      },
-    });
+    config.knowledgeBase.documents = config.knowledgeBase.documents.filter(
+      (item) => item.id !== documentId,
+    );
   } else {
     await deleteJsonRowAsync("knowledge_documents", documentId);
   }
 
+  await saveDashboardConfigRecord(config);
   await deleteKnowledgeChunksForDocument(documentId);
 }
 
