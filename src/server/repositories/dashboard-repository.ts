@@ -1048,11 +1048,12 @@ export async function deleteKnowledgeDocument(documentId: string) {
     );
   }
 
-  if (shouldUseBlobState()) {
-    config.knowledgeBase.documents = config.knowledgeBase.documents.filter(
-      (item) => item.id !== documentId,
-    );
-  } else {
+  // Always filter the documents list in config to prevent saveDashboardConfigRecord from re-inserting it
+  config.knowledgeBase.documents = config.knowledgeBase.documents.filter(
+    (item) => item.id !== documentId,
+  );
+
+  if (!shouldUseBlobState()) {
     await deleteJsonRowAsync("knowledge_documents", documentId);
   }
 
