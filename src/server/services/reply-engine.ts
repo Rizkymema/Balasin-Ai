@@ -1600,11 +1600,48 @@ export async function generateReplyDecision(
   
   // A. Google Sheet Match
   const googleSheetMatch = await findBestGoogleSheetMatch(routedMessage);
-  if (
+  const isSheetMatch =
     googleSheetMatch &&
     googleSheetMatch.confidence >= config.aiAgent.confidenceThreshold &&
-    !isInstructionOnly(googleSheetMatch.reply)
-  ) {
+    !isInstructionOnly(googleSheetMatch.reply);
+
+  // B. FAQ Match
+  const faqMatch = findBestFaqMatch(routedMessage, config.knowledgeBase.faqs);
+  const isFaqMatch =
+    faqMatch && faqMatch.confidence >= config.aiAgent.confidenceThreshold;
+
+  // C. Document Match
+  const documentMatch = await findBestDocumentMatch(routedMessage);
+  const isDocMatch =
+    documentMatch && documentMatch.confidence >= config.aiAgent.confidenceThreshold;
+
+  const hasStaticMatch = isSheetMatch || isFaqMatch || isDocMatch;
+
+  // D. Generate AI Provider Reply
+  const providerReply = await generateProviderReply(routedMessage, config, context);
+
+  // If AI Provider is active, use it to phrase the response according to Custom Instructions!
+  if (providerReply && (hasStaticMatch || providerReply.grounded)) {
+    return {
+      intent: hasKeyword(lower, PRICE_KEYWORDS)
+        ? "Tanya harga"
+        : hasKeyword(lower, HOURS_KEYWORDS)
+          ? "Tanya operasional"
+          : "Jawaban AI",
+      confidence: 84,
+      needsHuman: false,
+      status: "ai_active",
+      summary: "Jawaban dibuat oleh model AI dengan grounding profil bisnis dan knowledge yang relevan.",
+      reply: applyStyleInstructions(providerReply.reply, config, {
+        preserveLength: true,
+      }),
+      grounded: true,
+      source: "document",
+    };
+  }
+
+  // Fallback: If AI Provider is disabled or failed, return static matches directly
+  if (isSheetMatch) {
     return {
       intent: hasKeyword(lower, PRICE_KEYWORDS) ? "Tanya harga" : "Jawaban Google Sheet",
       confidence: googleSheetMatch.confidence,
@@ -1619,9 +1656,7 @@ export async function generateReplyDecision(
     };
   }
 
-  // B. FAQ Match
-  const faqMatch = findBestFaqMatch(routedMessage, config.knowledgeBase.faqs);
-  if (faqMatch && faqMatch.confidence >= config.aiAgent.confidenceThreshold) {
+  if (isFaqMatch) {
     return {
       intent: hasKeyword(lower, PRICE_KEYWORDS) ? "Tanya harga" : "FAQ umum",
       confidence: faqMatch.confidence,
@@ -1636,9 +1671,7 @@ export async function generateReplyDecision(
     };
   }
 
-  // C. Document Match
-  const documentMatch = await findBestDocumentMatch(routedMessage);
-  if (documentMatch && documentMatch.confidence >= config.aiAgent.confidenceThreshold) {
+  if (isDocMatch) {
     return {
       intent: hasKeyword(lower, PRICE_KEYWORDS) ? "Tanya harga" : "FAQ umum",
       confidence: documentMatch.confidence,
@@ -1646,27 +1679,6 @@ export async function generateReplyDecision(
       status: "ai_active",
       summary: documentMatch.summary,
       reply: applyStyleInstructions(documentMatch.reply, config, {
-        preserveLength: true,
-      }),
-      grounded: true,
-      source: "document",
-    };
-  }
-
-  // D. Grounded AI Provider Match (cached context to avoid double calls)
-  const providerReply = await generateProviderReply(routedMessage, config, context);
-  if (providerReply && providerReply.grounded) {
-    return {
-      intent: hasKeyword(lower, PRICE_KEYWORDS)
-        ? "Tanya harga"
-        : hasKeyword(lower, HOURS_KEYWORDS)
-          ? "Tanya operasional"
-          : "Jawaban AI",
-      confidence: 84,
-      needsHuman: false,
-      status: "ai_active",
-      summary: "Jawaban dibuat oleh model AI dengan grounding profil bisnis dan knowledge yang relevan.",
-      reply: applyStyleInstructions(providerReply.reply, config, {
         preserveLength: true,
       }),
       grounded: true,
