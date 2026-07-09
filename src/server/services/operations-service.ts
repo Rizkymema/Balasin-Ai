@@ -357,6 +357,7 @@ export async function sendInboxReply(input: {
     lastOutboundAt: sentAtIso,
     lastHumanReplyAt: isAiReply ? null : sentAtIso,
     incrementAiReplyCount: isAiReply,
+    resetAiReplyCount: !isAiReply,
     handoffReason: isAiReply ? undefined : "Admin mengirim balasan manual dari inbox.",
   });
   nextConversationWithAutomation = appendAutomationLog(nextConversationWithAutomation, {
@@ -431,6 +432,8 @@ export async function updateInboxConversationStatus(input: {
       input.status === "assigned_to_admin" || input.status === "ai_paused"
         ? updatedAtIso
         : undefined,
+    resetAiReplyCount:
+      input.status === "resolved" || input.status === "ai_active",
     handoffReason:
       input.status === "assigned_to_admin"
         ? "Status diubah ke butuh admin dari dashboard inbox."
