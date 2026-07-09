@@ -3,28 +3,59 @@ import { jsonError, jsonOk, requireApiSession } from "@/server/http";
 import type { DashboardConfig } from "@/types/dashboard-config";
 import { resolveAppUrl } from "@/lib/app-url";
 import { assertSafeExternalUrl } from "@/server/security/safe-fetch";
-import { listKnowledgeChunkRowsAsync } from "@/server/db";
+import {
+  getKnowledgeChunks,
+  type KnowledgeChunk,
+} from "@/server/repositories/dashboard-repository";
 
 type ChatHistoryItem = {
   role: "user" | "assistant";
   content: string;
 };
 
+function normalizeSearchText(text: string) {
+  return text
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}\s]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenizeSearchText(text: string) {
+  return normalizeSearchText(text)
+    .split(/\s+/)
+    .filter((token) => token.length >= 2);
+}
+
 function scoreText(query: string, text: string): number {
-  const q = query.toLowerCase().trim();
-  const t = text.toLowerCase().trim();
+  const q = normalizeSearchText(query);
+  const t = normalizeSearchText(text);
   if (!q || !t) return 0;
   if (t.includes(q) || q.includes(t)) return 0.95;
 
-  const qTokens = q.split(/\s+/).filter(Boolean);
-  const tTokens = t.split(/\s+/).filter(Boolean);
+  const qTokens = Array.from(new Set(tokenizeSearchText(q)));
+  const tTokens = Array.from(new Set(tokenizeSearchText(t)));
   if (qTokens.length === 0 || tTokens.length === 0) return 0;
 
-  const matches = qTokens.filter(tok => tTokens.some(ct => ct === tok || ct.includes(tok) || tok.includes(ct)));
-  return matches.length / qTokens.length;
+  const matches = qTokens.filter((token) =>
+    tTokens.some(
+      (candidateToken) =>
+        candidateToken === token ||
+        (token.length >= 4 &&
+          candidateToken.length >= 4 &&
+          (candidateToken.includes(token) || token.includes(candidateToken))),
+    ),
+  );
+  const overlap = matches.length / qTokens.length;
+  const phraseBonus =
+    matches.length >= 2 && t.includes(qTokens.slice(0, 3).join(" ")) ? 0.15 : 0;
+
+  return Math.min(1, overlap + phraseBonus);
 }
 
-function searchFaqs(query: string, faqs: any[]): any[] {
+function searchFaqs(query: string, faqs: DashboardConfig["knowledgeBase"]["faqs"]) {
   return faqs
     .map(faq => {
       const qScore = scoreText(query, faq.question || "");
@@ -38,16 +69,54 @@ function searchFaqs(query: string, faqs: any[]): any[] {
     .map(item => item.faq);
 }
 
-function searchChunks(query: string, chunks: any[]): any[] {
+function isInactiveKnowledgeChunk(chunk: KnowledgeChunk) {
+  const content = normalizeSearchText(chunk.content);
+  return (
+    content.includes("status nonaktif") ||
+    content.includes("status non active") ||
+    content.includes("status inactive") ||
+    content.includes("status non aktif")
+  );
+}
+
+function searchChunks(query: string, chunks: KnowledgeChunk[]) {
   return chunks
     .map(chunk => {
-      const score = scoreText(query, chunk.content || "");
+      const metadata = chunk.metadata ?? {};
+      const score = Math.max(
+        scoreText(query, chunk.content || ""),
+        scoreText(query, metadata.question || ""),
+        scoreText(query, metadata.answer || ""),
+        scoreText(query, metadata.sourceName || ""),
+      );
       return { chunk, score };
     })
-    .filter(item => item.score >= 0.2)
+    .filter(item => item.score >= 0.15 && !isInactiveKnowledgeChunk(item.chunk))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5)
+    .slice(0, 8)
     .map(item => item.chunk);
+}
+
+function formatChunkForPrompt(chunk: KnowledgeChunk, index: number) {
+  const metadata = chunk.metadata ?? {};
+  const sourceParts = [
+    metadata.sourceName,
+    metadata.sourceType ? `tipe=${metadata.sourceType}` : "",
+    metadata.sourceUrl ? `url=${metadata.sourceUrl}` : "",
+  ].filter(Boolean);
+  const content =
+    chunk.content.length > 1200
+      ? `${chunk.content.slice(0, 1197).trim()}...`
+      : chunk.content.trim();
+
+  return [
+    `Kutipan ${index + 1}: ${sourceParts.join(" | ") || "Knowledge Base"}`,
+    metadata.question ? `Pertanyaan terkait: ${metadata.question}` : "",
+    metadata.answer ? `Jawaban terkait: ${metadata.answer}` : "",
+    `Konten: ${content}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function resolveProviderEndpoint(config: DashboardConfig) {
@@ -178,21 +247,23 @@ export async function POST(request: Request) {
     // Search FAQs and document chunks based on user query
     const queryMessage = body.message || "";
     const matchedFaqs = searchFaqs(queryMessage, config.knowledgeBase.faqs || []);
-    let matchedChunks: any[] = [];
+    let matchedChunks: KnowledgeChunk[] = [];
     try {
-      const rawChunks = await listKnowledgeChunkRowsAsync();
-      const parsedChunks = rawChunks.map((row: any) => ({
-        content: row.content || "",
-        metadata: typeof row.metadata_json === 'string' ? JSON.parse(row.metadata_json) : row.metadata_json
-      }));
-      matchedChunks = searchChunks(queryMessage, parsedChunks);
+      const chunks = await getKnowledgeChunks();
+      matchedChunks = searchChunks(queryMessage, chunks);
     } catch (e) {
       console.error("Failed to search knowledge chunks:", e);
     }
 
+    const customInstructions = config.aiAgent.replyInstructions.trim();
+    const customInstructionsSection = customInstructions
+      ? `\n=== CUSTOM INSTRUCTIONS CHATBOT ===\nInstruksi berikut wajib dipatuhi selama tidak bertentangan dengan data sistem dan keamanan:\n${customInstructions}\n`
+      : "";
+
     const systemPrompt = `
 Anda adalah Balesin Desk AI Copilot, asisten cerdas internal untuk admin dan staf ${config.workspace.name}.
 Tugas Anda adalah membantu admin dalam menjawab pertanyaan, menganalisis data, memberikan petunjuk cara kerja sistem, atau merangkum data operasional Johan Garage secara akurat.
+${customInstructionsSection}
 
 Berikut adalah DATA SISTEM TERBARU:
 === INFORMASI WORKSPACE & CHANNEL ===
@@ -216,7 +287,7 @@ Ditemukan beberapa data Q&A atau kutipan dokumen yang relevan dengan pertanyaan 
 ${matchedFaqs.map((f, idx) => `Q${idx+1}: ${f.question}\nA${idx+1}: ${f.answer}`).join("\n\n") || "Tidak ada FAQ yang langsung cocok."}
 
 --- KUTIPAN DOKUMEN RELEVAN ---
-${matchedChunks.map((c, idx) => `Kutipan ${idx+1}: "${c.content}"`).join("\n\n") || "Tidak ada kutipan dokumen yang langsung cocok."}
+${matchedChunks.map((chunk, idx) => formatChunkForPrompt(chunk, idx)).join("\n\n") || "Tidak ada kutipan dokumen yang langsung cocok."}
 
 === DATA OPERASIONAL LAINNYA ===
 Jumlah Kontak Pelanggan: ${ops.customers.length} kontak.

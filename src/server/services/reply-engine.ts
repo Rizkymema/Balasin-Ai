@@ -922,6 +922,16 @@ function isNoisyWebsiteChunk(chunk: KnowledgeChunk) {
   return hitCount >= 3 || (normalized.length > 800 && hitCount >= 2);
 }
 
+function isInactiveKnowledgeChunk(chunk: KnowledgeChunk) {
+  const contentLower = chunk.content.toLowerCase();
+  return (
+    contentLower.includes("status: nonaktif") ||
+    contentLower.includes("status: non-active") ||
+    contentLower.includes("status: inactive") ||
+    contentLower.includes("status: non aktif")
+  );
+}
+
 function extractTriggersFromContent(content: string): string[] {
   const match = content.match(/(?:Kata Kunci \/ Trigger|Kata Kunci|Trigger)\s*:\s*([^|]+)/i);
   if (!match) return [];
@@ -1014,15 +1024,11 @@ async function findBestGoogleSheetMatch(
   let bestMatch: { chunk: KnowledgeChunk; score: number; isTriggerMatch: boolean } | null = null;
 
   for (const chunk of sheetChunks) {
-    const contentLower = chunk.content.toLowerCase();
-    if (
-      contentLower.includes("status: nonaktif") ||
-      contentLower.includes("status: non-active") ||
-      contentLower.includes("status: inactive") ||
-      contentLower.includes("status: non aktif")
-    ) {
+    if (isInactiveKnowledgeChunk(chunk)) {
       continue;
     }
+
+    const contentLower = chunk.content.toLowerCase();
 
     const structured = parseStructuredKnowledgeChunk(chunk.content);
     const triggers =
@@ -1137,7 +1143,8 @@ async function findBestDocumentMatch(messageText: string) {
   const nonSheetChunks = chunks.filter(
     (c) =>
       c.metadata?.sourceType !== "google_sheet" &&
-      c.metadata?.sourceType !== "website",
+      !isNoisyWebsiteChunk(c) &&
+      !isInactiveKnowledgeChunk(c),
   );
   let bestMatch:
     | {
@@ -1258,6 +1265,10 @@ async function buildRelevantDocumentContext(messageText: string) {
     })
     .sort((left, right) => right.score - left.score)
     .slice(0, 6);
+}
+
+function getStaticKnowledgeThreshold(config: DashboardConfig) {
+  return Math.min(config.aiAgent.confidenceThreshold || 80, 60);
 }
 
 function resolveProviderEndpoint(config: DashboardConfig) {
@@ -1597,23 +1608,24 @@ export async function generateReplyDecision(
   }
 
   // --- 1. PRIORITAS UTAMA: GROUNDED KNOWLEDGE BASE MATCHES ---
+  const staticKnowledgeThreshold = getStaticKnowledgeThreshold(config);
   
   // A. Google Sheet Match
   const googleSheetMatch = await findBestGoogleSheetMatch(routedMessage);
   const isSheetMatch =
     googleSheetMatch &&
-    googleSheetMatch.confidence >= config.aiAgent.confidenceThreshold &&
+    googleSheetMatch.confidence >= staticKnowledgeThreshold &&
     !isInstructionOnly(googleSheetMatch.reply);
 
   // B. FAQ Match
   const faqMatch = findBestFaqMatch(routedMessage, config.knowledgeBase.faqs);
   const isFaqMatch =
-    faqMatch && faqMatch.confidence >= config.aiAgent.confidenceThreshold;
+    faqMatch && faqMatch.confidence >= staticKnowledgeThreshold;
 
   // C. Document Match
   const documentMatch = await findBestDocumentMatch(routedMessage);
   const isDocMatch =
-    documentMatch && documentMatch.confidence >= config.aiAgent.confidenceThreshold;
+    documentMatch && documentMatch.confidence >= staticKnowledgeThreshold;
 
   const hasStaticMatch = isSheetMatch || isFaqMatch || isDocMatch;
 
