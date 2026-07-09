@@ -23,6 +23,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/empty-state";
 
+function isGoogleSheetUrl(url: string) {
+  return /docs\.google\.com\/spreadsheets/i.test(url);
+}
+
 export default function KnowledgeBasePage() {
   const { config, patchConfig, refreshConfig, isLoading } = useDashboardConfig();
   const [isSaved, setIsSaved] = useState(false);
@@ -34,10 +38,12 @@ export default function KnowledgeBasePage() {
     "Apakah Johan Garage buka saat libur Idul Fitri?",
   ]);
 
-  const [inputMethodActive, setInputMethodActive] = useState<"none" | "url" | "text">("none");
+  const [inputMethodActive, setInputMethodActive] = useState<"none" | "url" | "sheet" | "text">("none");
   const [kbUrlInput, setKbUrlInput] = useState("");
+  const [kbSheetInput, setKbSheetInput] = useState("");
   const [kbTextTitle, setKbTextTitle] = useState("");
   const [kbTextContent, setKbTextContent] = useState("");
+  const [syncError, setSyncError] = useState("");
   const [isSyncingKbSources, setIsSyncingKbSources] = useState(false);
   const [isIngestingText, setIsIngestingText] = useState(false);
   const [isUploadingKbFile, setIsUploadingKbFile] = useState(false);
@@ -70,7 +76,22 @@ export default function KnowledgeBasePage() {
     }
   }, [config, isLoading]);
 
-  const urlCount = useMemo(() => config?.knowledgeBase.websiteUrls.length || 0, [config]);
+  const websiteUrls = useMemo(
+    () => config?.knowledgeBase.websiteUrls.filter((url) => !isGoogleSheetUrl(url)) || [],
+    [config],
+  );
+  const googleSheetUrls = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...(config?.knowledgeBase.googleSheetUrls || []),
+          ...(config?.knowledgeBase.websiteUrls.filter(isGoogleSheetUrl) || []),
+        ]),
+      ),
+    [config],
+  );
+  const urlCount = websiteUrls.length;
+  const sheetCount = googleSheetUrls.length;
   const docCount = useMemo(
     () => config?.knowledgeBase.documents.filter((d) => d.sourceType === "upload" && !d.name.endsWith(".txt")).length || 0,
     [config]
@@ -86,31 +107,110 @@ export default function KnowledgeBasePage() {
     return docs.filter((doc) => doc.name.toLowerCase().includes(kbSearchQuery.toLowerCase()));
   }, [config, kbSearchQuery]);
 
+  type SyncResponse = {
+    ok: boolean;
+    data?: {
+      failures?: Array<{ url: string; reason: string }>;
+      syncedCount?: number;
+    };
+    error?: string;
+    details?: Array<{ url: string; reason: string }>;
+  };
+
+  const formatSyncFailureMessage = (payload: SyncResponse) => {
+    const failures = payload.data?.failures ?? payload.details ?? [];
+    if (failures.length === 0) {
+      return payload.error || "Sinkronisasi knowledge source gagal.";
+    }
+
+    return failures
+      .map((failure) => `${failure.url}: ${failure.reason}`)
+      .join("\n");
+  };
+
+  const parseSourceUrls = (value: string) =>
+    value
+      .split("\n")
+      .map((u) => u.trim())
+      .filter(Boolean);
+
+  const syncKnowledgeSourceUrls = async (params: {
+    incomingWebsiteUrls?: string[];
+    incomingGoogleSheetUrls?: string[];
+  }) => {
+    setSyncError("");
+    const combinedWebsiteUrls = Array.from(
+      new Set([...(websiteUrls || []), ...(params.incomingWebsiteUrls || [])]),
+    );
+    const combinedGoogleSheetUrls = Array.from(
+      new Set([...(googleSheetUrls || []), ...(params.incomingGoogleSheetUrls || [])]),
+    );
+
+    const response = await fetch("/api/knowledge/sources/sync", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        websiteUrls: combinedWebsiteUrls,
+        googleSheetUrls: combinedGoogleSheetUrls,
+      }),
+    });
+    const payload = (await response.json().catch(() => null)) as SyncResponse | null;
+
+    if (!response.ok || !payload?.ok) {
+      throw new Error(
+        payload ? formatSyncFailureMessage(payload) : "Sinkronisasi knowledge source gagal.",
+      );
+    }
+
+    if (payload.data?.failures?.length) {
+      setSyncError(formatSyncFailureMessage(payload));
+    }
+  };
+
   const handleSyncKbUrl = async (event: FormEvent) => {
     event.preventDefault();
     if (!kbUrlInput.trim()) return;
     setIsSyncingKbSources(true);
-    const incomingUrls = kbUrlInput
-      .split("\n")
-      .map((u) => u.trim())
-      .filter(Boolean);
+    const incomingUrls = parseSourceUrls(kbUrlInput);
+    const incomingSheetUrls = incomingUrls.filter(isGoogleSheetUrl);
+    const incomingWebsiteUrls = incomingUrls.filter((url) => !isGoogleSheetUrl(url));
     try {
-      const existingUrls = config.knowledgeBase.websiteUrls;
-      const combinedUrls = Array.from(new Set([...existingUrls, ...incomingUrls]));
-      const response = await fetch("/api/knowledge/sources/sync", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ websiteUrls: combinedUrls, googleSheetUrls: config.knowledgeBase.googleSheetUrls }),
+      await syncKnowledgeSourceUrls({
+        incomingWebsiteUrls,
+        incomingGoogleSheetUrls: incomingSheetUrls,
       });
-      if (!response.ok) throw new Error("Gagal menyelaraskan URL.");
       await refreshConfig();
       setKbUrlInput("");
       setInputMethodActive("none");
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2500);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Sinkronisasi URL gagal.");
+      const message = e instanceof Error ? e.message : "Sinkronisasi URL gagal.";
+      setSyncError(message);
+      alert(message);
+    } finally {
+      setIsSyncingKbSources(false);
+    }
+  };
+
+  const handleSyncKbSheet = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!kbSheetInput.trim()) return;
+    setIsSyncingKbSources(true);
+    try {
+      await syncKnowledgeSourceUrls({
+        incomingGoogleSheetUrls: parseSourceUrls(kbSheetInput),
+      });
+      await refreshConfig();
+      setKbSheetInput("");
+      setInputMethodActive("none");
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2500);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Sinkronisasi Google Sheet gagal.";
+      setSyncError(message);
+      alert(message);
     } finally {
       setIsSyncingKbSources(false);
     }
@@ -247,11 +347,12 @@ export default function KnowledgeBasePage() {
       </div>
 
       {/* KB Stats Banner */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
           { label: "URL Tersinkron", count: urlCount, icon: Link2, color: "cyan" },
+          { label: "Google Sheet", count: sheetCount, icon: Database, color: "emerald" },
           { label: "File Upload", count: docCount, icon: Upload, color: "purple" },
-          { label: "Teks Fakta", count: textCount, icon: FileText, color: "emerald" },
+          { label: "Teks Fakta", count: textCount, icon: FileText, color: "cyan" },
         ].map(({ label, count, icon: Icon, color }) => (
           <div
             key={label}
@@ -263,6 +364,18 @@ export default function KnowledgeBasePage() {
           </div>
         ))}
       </div>
+
+      {syncError && (
+        <div className="rounded-xl border border-red-500/25 bg-red-950/20 p-4 text-xs text-red-200">
+          <div className="mb-1 flex items-center gap-2 font-bold text-red-300">
+            <AlertTriangle className="h-4 w-4" />
+            Sinkronisasi knowledge gagal sebagian
+          </div>
+          <pre className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-red-100/90">
+            {syncError}
+          </pre>
+        </div>
+      )}
 
       {/* Sub Tabs */}
       <div className="flex border-b border-white/8 space-x-6">
@@ -324,6 +437,8 @@ export default function KnowledgeBasePage() {
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cyan-400/10 bg-cyan-950/20 text-cyan-400">
                           {doc.name.endsWith(".txt") ? (
                             <FileText className="h-4.5 w-4.5" />
+                          ) : doc.sourceType === "google_sheet" ? (
+                            <Database className="h-4.5 w-4.5" />
                           ) : doc.sourceType === "website" ? (
                             <Link2 className="h-4.5 w-4.5" />
                           ) : (
@@ -335,7 +450,13 @@ export default function KnowledgeBasePage() {
                           <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-slate-500">
                             <span>{doc.size}</span>
                             <span className="rounded-full border border-white/8 px-2 py-0.5 text-[9px] uppercase tracking-wider text-slate-400">
-                              {doc.name.endsWith(".txt") ? "Text Content" : doc.sourceType === "website" ? "External URL" : "File Upload"}
+                              {doc.name.endsWith(".txt")
+                                ? "Text Content"
+                                : doc.sourceType === "google_sheet"
+                                  ? "Google Sheet"
+                                  : doc.sourceType === "website"
+                                    ? "External URL"
+                                    : "File Upload"}
                             </span>
                           </div>
                         </div>
@@ -425,6 +546,29 @@ export default function KnowledgeBasePage() {
                   </span>
                 </div>
 
+                {/* Google Sheet Card */}
+                <div
+                  onClick={() => setInputMethodActive("sheet")}
+                  className={`flex items-center justify-between p-4 rounded-xl border transition cursor-pointer ${
+                    inputMethodActive === "sheet"
+                      ? "border-cyan-400 bg-cyan-950/20"
+                      : "border-white/8 bg-white/[0.02] hover:border-cyan-400/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-950/50 text-cyan-400 border border-cyan-400/20">
+                      <Database className="h-4 w-4" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-white">Google Sheet</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Tautkan katalog / FAQ sheet</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full border border-cyan-400/20 bg-cyan-950 px-2.5 py-0.5 text-[10px] font-bold text-cyan-300">
+                    {sheetCount}
+                  </span>
+                </div>
+
                 {/* File Upload Card */}
                 <div
                   onClick={() => fileInputRef.current?.click()}
@@ -505,6 +649,44 @@ export default function KnowledgeBasePage() {
                       </>
                     ) : (
                       "Tambahkan Tautan"
+                    )}
+                  </Button>
+                </form>
+              </Card>
+            )}
+
+            {/* Form Google Sheet */}
+            {inputMethodActive === "sheet" && (
+              <Card className="glass-panel p-5 space-y-3.5">
+                <div className="flex items-center justify-between border-b border-white/8 pb-2">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">Input Google Sheet</span>
+                  <button onClick={() => setInputMethodActive("none")} className="text-[10px] text-slate-500 hover:text-white">
+                    Batal
+                  </button>
+                </div>
+                <form onSubmit={handleSyncKbSheet} className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-slate-300">Link Google Sheet (Satu per baris)</label>
+                    <Textarea
+                      placeholder="https://docs.google.com/spreadsheets/d/..."
+                      value={kbSheetInput}
+                      onChange={(e) => setKbSheetInput(e.target.value)}
+                      rows={3}
+                      className="text-xs"
+                      required
+                    />
+                    <p className="text-[10px] leading-relaxed text-slate-500">
+                      Sheet harus bisa dibuka dengan akses anyone with the link can view agar server dapat membaca CSV.
+                    </p>
+                  </div>
+                  <Button type="submit" disabled={isSyncingKbSources} className="w-full text-xs h-9">
+                    {isSyncingKbSources ? (
+                      <>
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        Sinkronisasi...
+                      </>
+                    ) : (
+                      "Tambahkan Google Sheet"
                     )}
                   </Button>
                 </form>
