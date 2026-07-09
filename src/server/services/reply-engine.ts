@@ -1596,6 +1596,86 @@ export async function generateReplyDecision(
     };
   }
 
+  // --- 1. PRIORITAS UTAMA: GROUNDED KNOWLEDGE BASE MATCHES ---
+  
+  // A. Google Sheet Match
+  const googleSheetMatch = await findBestGoogleSheetMatch(routedMessage);
+  if (
+    googleSheetMatch &&
+    googleSheetMatch.confidence >= config.aiAgent.confidenceThreshold &&
+    !isInstructionOnly(googleSheetMatch.reply)
+  ) {
+    return {
+      intent: hasKeyword(lower, PRICE_KEYWORDS) ? "Tanya harga" : "Jawaban Google Sheet",
+      confidence: googleSheetMatch.confidence,
+      needsHuman: false,
+      status: "ai_active",
+      summary: googleSheetMatch.summary,
+      reply: applyStyleInstructions(googleSheetMatch.reply, config, {
+        preserveLength: true,
+      }),
+      grounded: true,
+      source: "document",
+    };
+  }
+
+  // B. FAQ Match
+  const faqMatch = findBestFaqMatch(routedMessage, config.knowledgeBase.faqs);
+  if (faqMatch && faqMatch.confidence >= config.aiAgent.confidenceThreshold) {
+    return {
+      intent: hasKeyword(lower, PRICE_KEYWORDS) ? "Tanya harga" : "FAQ umum",
+      confidence: faqMatch.confidence,
+      needsHuman: false,
+      status: "ai_active",
+      summary: faqMatch.summary,
+      reply: applyStyleInstructions(faqMatch.reply, config, {
+        preserveLength: true,
+      }),
+      grounded: true,
+      source: "faq",
+    };
+  }
+
+  // C. Document Match
+  const documentMatch = await findBestDocumentMatch(routedMessage);
+  if (documentMatch && documentMatch.confidence >= config.aiAgent.confidenceThreshold) {
+    return {
+      intent: hasKeyword(lower, PRICE_KEYWORDS) ? "Tanya harga" : "FAQ umum",
+      confidence: documentMatch.confidence,
+      needsHuman: false,
+      status: "ai_active",
+      summary: documentMatch.summary,
+      reply: applyStyleInstructions(documentMatch.reply, config, {
+        preserveLength: true,
+      }),
+      grounded: true,
+      source: "document",
+    };
+  }
+
+  // D. Grounded AI Provider Match (cached context to avoid double calls)
+  const providerReply = await generateProviderReply(routedMessage, config, context);
+  if (providerReply && providerReply.grounded) {
+    return {
+      intent: hasKeyword(lower, PRICE_KEYWORDS)
+        ? "Tanya harga"
+        : hasKeyword(lower, HOURS_KEYWORDS)
+          ? "Tanya operasional"
+          : "Jawaban AI",
+      confidence: 84,
+      needsHuman: false,
+      status: "ai_active",
+      summary: "Jawaban dibuat oleh model AI dengan grounding profil bisnis dan knowledge yang relevan.",
+      reply: applyStyleInstructions(providerReply.reply, config, {
+        preserveLength: true,
+      }),
+      grounded: true,
+      source: "document",
+    };
+  }
+
+  // --- 2. FALLBACK KEYWORD INTERCEPTIONS ---
+
   // 1. Keuangan / Financial
   if (hasKeyword(rawLower, FINANCE_KEYWORDS)) {
     const waLink = getWaHandoffLink(config);
@@ -1808,59 +1888,6 @@ export async function generateReplyDecision(
     };
   }
 
-  const googleSheetMatch = await findBestGoogleSheetMatch(routedMessage);
-  if (
-    googleSheetMatch &&
-    googleSheetMatch.confidence >= config.aiAgent.confidenceThreshold &&
-    !isInstructionOnly(googleSheetMatch.reply)
-  ) {
-    return {
-      intent: hasKeyword(lower, PRICE_KEYWORDS) ? "Tanya harga" : "Jawaban Google Sheet",
-      confidence: googleSheetMatch.confidence,
-      needsHuman: false,
-      status: "ai_active",
-      summary: googleSheetMatch.summary,
-      reply: applyStyleInstructions(googleSheetMatch.reply, config, {
-        preserveLength: true,
-      }),
-      grounded: true,
-      source: "document",
-    };
-  }
-
-  const faqMatch = findBestFaqMatch(routedMessage, config.knowledgeBase.faqs);
-  if (faqMatch && faqMatch.confidence >= config.aiAgent.confidenceThreshold) {
-    return {
-      intent: hasKeyword(lower, PRICE_KEYWORDS) ? "Tanya harga" : "FAQ umum",
-      confidence: faqMatch.confidence,
-      needsHuman: false,
-      status: "ai_active",
-      summary: faqMatch.summary,
-      reply: applyStyleInstructions(faqMatch.reply, config, {
-        preserveLength: true,
-      }),
-      grounded: true,
-      source: "faq",
-    };
-  }
-
-  const documentMatch = await findBestDocumentMatch(routedMessage);
-  if (documentMatch && documentMatch.confidence >= config.aiAgent.confidenceThreshold) {
-    return {
-      intent: hasKeyword(lower, PRICE_KEYWORDS) ? "Tanya harga" : "FAQ umum",
-      confidence: documentMatch.confidence,
-      needsHuman: false,
-      status: "ai_active",
-      summary: documentMatch.summary,
-      reply: applyStyleInstructions(documentMatch.reply, config, {
-        preserveLength: true,
-      }),
-      grounded: true,
-      source: "document",
-    };
-  }
-
-  const providerReply = await generateProviderReply(routedMessage, config, context);
   if (providerReply) {
     return {
       intent: hasKeyword(lower, PRICE_KEYWORDS)
