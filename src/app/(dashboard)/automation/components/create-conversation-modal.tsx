@@ -325,9 +325,8 @@ export function CreateConversationModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm overflow-y-auto">
       <div
-        className={`relative w-full rounded-2xl border border-white/10 bg-[var(--color-surface)] shadow-2xl transition-all duration-300 my-4 flex flex-col ${
-          activeTab === "visual" ? "max-w-6xl h-[88vh]" : "max-w-3xl"
-        }`}
+        className={`relative w-full rounded-2xl border border-white/10 bg-[var(--color-surface)] shadow-2xl transition-all duration-300 my-4 flex flex-col ${activeTab === "visual" ? "max-w-6xl h-[88vh]" : "max-w-3xl"
+          }`}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/5 px-6 py-4 rounded-t-2xl bg-[var(--color-surface)]">
@@ -354,21 +353,19 @@ export function CreateConversationModal({
         <div className="flex border-b border-white/5 px-6 bg-[var(--color-surface)]">
           <button
             onClick={() => setActiveTab("visual")}
-            className={`py-3 px-4 text-xs font-bold uppercase tracking-wider border-b-2 transition ${
-              activeTab === "visual"
-                ? "border-cyan-400 text-cyan-400"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
+            className={`py-3 px-4 text-xs font-bold uppercase tracking-wider border-b-2 transition ${activeTab === "visual"
+              ? "border-cyan-400 text-cyan-400"
+              : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
           >
             Visual Puzzle Flow
           </button>
           <button
             onClick={() => setActiveTab("form")}
-            className={`py-3 px-4 text-xs font-bold uppercase tracking-wider border-b-2 transition ${
-              activeTab === "form"
-                ? "border-cyan-400 text-cyan-400"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
+            className={`py-3 px-4 text-xs font-bold uppercase tracking-wider border-b-2 transition ${activeTab === "form"
+              ? "border-cyan-400 text-cyan-400"
+              : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
           >
             Standard Form
           </button>
@@ -378,7 +375,7 @@ export function CreateConversationModal({
         <div className={`p-6 overflow-y-auto flex-1 custom-scrollbar ${activeTab === "visual" ? "h-full bg-[#0a0f18]/30" : "max-h-[66vh]"}`}>
           {activeTab === "visual" ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full min-h-[460px]">
-              
+
               {/* Left Pane: Interactive Puzzle Canvas */}
               <div className="lg:col-span-7 rounded-2xl border border-white/5 bg-black/40 p-5 relative overflow-y-auto custom-scrollbar flex flex-col gap-4">
                 {/* Dot Grid Background */}
@@ -391,15 +388,14 @@ export function CreateConversationModal({
                 />
 
                 <div className="relative space-y-4 z-10">
-                  
+
                   {/* Node 1: Trigger Block */}
                   <div
                     onClick={() => setSelectedNode("trigger")}
-                    className={`rounded-xl border p-4 bg-slate-900/60 backdrop-blur-md cursor-pointer transition-all hover:scale-[1.01] ${
-                      selectedNode === "trigger"
-                        ? "border-emerald-500 ring-2 ring-emerald-500/20 shadow-emerald-500/10 shadow-lg"
-                        : "border-white/5 hover:border-emerald-500/40"
-                    }`}
+                    className={`rounded-xl border p-4 bg-slate-900/60 backdrop-blur-md cursor-pointer transition-all hover:scale-[1.01] ${selectedNode === "trigger"
+                      ? "border-emerald-500 ring-2 ring-emerald-500/20 shadow-emerald-500/10 shadow-lg"
+                      : "border-white/5 hover:border-emerald-500/40"
+                      }`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
@@ -422,11 +418,10 @@ export function CreateConversationModal({
                   {/* Node 2: AI Agent Block */}
                   <div
                     onClick={() => setSelectedNode("agent")}
-                    className={`rounded-xl border p-4 bg-slate-900/60 backdrop-blur-md cursor-pointer transition-all hover:scale-[1.01] ${
-                      selectedNode === "agent"
-                        ? "border-purple-500 ring-2 ring-purple-500/20 shadow-purple-500/10 shadow-lg"
-                        : "border-white/5 hover:border-purple-500/40"
-                    }`}
+                    className={`rounded-xl border p-4 bg-slate-900/60 backdrop-blur-md cursor-pointer transition-all hover:scale-[1.01] ${selectedNode === "agent"
+                      ? "border-purple-500 ring-2 ring-purple-500/20 shadow-purple-500/10 shadow-lg"
+                      : "border-white/5 hover:border-purple-500/40"
+                      }`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full">
@@ -449,11 +444,10 @@ export function CreateConversationModal({
                   {/* Node 3: Initial Message Block */}
                   <div
                     onClick={() => setSelectedNode("message")}
-                    className={`rounded-xl border p-4 bg-slate-900/60 backdrop-blur-md cursor-pointer transition-all hover:scale-[1.01] ${
-                      selectedNode === "message"
-                        ? "border-cyan-500 ring-2 ring-cyan-500/20 shadow-cyan-500/10 shadow-lg"
-                        : "border-white/5 hover:border-cyan-500/40"
-                    }`}
+                    className={`rounded-xl border p-4 bg-slate-900/60 backdrop-blur-md cursor-pointer transition-all hover:scale-[1.01] ${selectedNode === "message"
+                      ? "border-cyan-500 ring-2 ring-cyan-500/20 shadow-cyan-500/10 shadow-lg"
+                      : "border-white/5 hover:border-cyan-500/40"
+                      }`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full">
@@ -473,15 +467,14 @@ export function CreateConversationModal({
 
                   {/* Branching Layout: Interactive Menu Options & Fallbacks */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    
+
                     {/* Node 4: Interactive Menu */}
                     <div
                       onClick={() => setSelectedNode("menu")}
-                      className={`rounded-xl border p-4 bg-slate-900/60 backdrop-blur-md cursor-pointer transition-all hover:scale-[1.01] flex flex-col justify-between ${
-                        selectedNode === "menu"
-                          ? "border-cyan-400 ring-2 ring-cyan-400/20 shadow-cyan-400/10 shadow-lg"
-                          : "border-white/5 hover:border-cyan-400/40"
-                      }`}
+                      className={`rounded-xl border p-4 bg-slate-900/60 backdrop-blur-md cursor-pointer transition-all hover:scale-[1.01] flex flex-col justify-between ${selectedNode === "menu"
+                        ? "border-cyan-400 ring-2 ring-cyan-400/20 shadow-cyan-400/10 shadow-lg"
+                        : "border-white/5 hover:border-cyan-400/40"
+                        }`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-3">
@@ -489,7 +482,7 @@ export function CreateConversationModal({
                             Buttons Menu
                           </span>
                         </div>
-                        
+
                         {interactiveMenu.length === 0 ? (
                           <p className="text-xs text-slate-500 italic">Tanpa menu tombol (Direct text).</p>
                         ) : (
@@ -497,7 +490,7 @@ export function CreateConversationModal({
                             {interactiveMenu.map((item, index) => (
                               <div key={item.id} className="flex items-center gap-2 text-xs bg-black/30 p-2 rounded-lg border border-white/5">
                                 <CornerDownRight className="h-3 w-3 text-cyan-400 shrink-0" />
-                                <span className="font-bold text-slate-300 truncate max-w-[80px]">{item.label || `Btn ${index+1}`}</span>
+                                <span className="font-bold text-slate-300 truncate max-w-[80px]">{item.label || `Btn ${index + 1}`}</span>
                                 <span className="text-[10px] text-slate-500 truncate">{item.response ? "↳ Balasan diatur" : "↳ Balasan kosong"}</span>
                               </div>
                             ))}
@@ -523,15 +516,14 @@ export function CreateConversationModal({
 
                     {/* Right Side Branches: Fallback & Handoff */}
                     <div className="space-y-4">
-                      
+
                       {/* Node 5: Fallback Message Block */}
                       <div
                         onClick={() => setSelectedNode("fallback")}
-                        className={`rounded-xl border p-4 bg-slate-900/60 backdrop-blur-md cursor-pointer transition-all hover:scale-[1.01] ${
-                          selectedNode === "fallback"
-                            ? "border-amber-500 ring-2 ring-amber-500/20 shadow-amber-500/10 shadow-lg"
-                            : "border-white/5 hover:border-amber-500/40"
-                        }`}
+                        className={`rounded-xl border p-4 bg-slate-900/60 backdrop-blur-md cursor-pointer transition-all hover:scale-[1.01] ${selectedNode === "fallback"
+                          ? "border-amber-500 ring-2 ring-amber-500/20 shadow-amber-500/10 shadow-lg"
+                          : "border-white/5 hover:border-amber-500/40"
+                          }`}
                       >
                         <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full mb-2">
                           <AlertCircle className="h-2.5 w-2.5" />
@@ -545,11 +537,10 @@ export function CreateConversationModal({
                       {/* Node 6: Forward to Human Block */}
                       <div
                         onClick={() => setSelectedNode("handoff")}
-                        className={`rounded-xl border p-4 bg-slate-900/60 backdrop-blur-md cursor-pointer transition-all hover:scale-[1.01] ${
-                          selectedNode === "handoff"
-                            ? "border-rose-500 ring-2 ring-rose-500/20 shadow-rose-500/10 shadow-lg"
-                            : "border-white/5 hover:border-rose-500/40"
-                        }`}
+                        className={`rounded-xl border p-4 bg-slate-900/60 backdrop-blur-md cursor-pointer transition-all hover:scale-[1.01] ${selectedNode === "handoff"
+                          ? "border-rose-500 ring-2 ring-rose-500/20 shadow-rose-500/10 shadow-lg"
+                          : "border-white/5 hover:border-rose-500/40"
+                          }`}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full">
@@ -577,7 +568,7 @@ export function CreateConversationModal({
                 <div className="flex-1">
                   {renderInspector()}
                 </div>
-                
+
                 <div className="mt-8 border-t border-white/5 pt-4 flex items-center justify-between text-[11px] text-slate-500">
                   <span className="flex items-center gap-1">
                     <Settings className="h-3.5 w-3.5 text-slate-400" />
@@ -677,7 +668,7 @@ export function CreateConversationModal({
                     Add Menu
                   </Button>
                 </div>
-                
+
                 {interactiveMenu.length === 0 ? (
                   <div className="rounded-lg border border-dashed border-white/10 p-4 text-center text-sm text-slate-500">
                     Belum ada menu. Pelanggan hanya akan menerima pesan awal.
@@ -739,7 +730,7 @@ export function CreateConversationModal({
                     <div className="h-5 w-9 rounded-full bg-slate-700 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-cyan-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"></div>
                   </label>
                 </div>
-                
+
                 {handoffEnabled && (
                   <div className="space-y-2 pt-2 border-t border-white/10">
                     <label className="text-xs font-semibold text-slate-300">Kondisi Handoff</label>

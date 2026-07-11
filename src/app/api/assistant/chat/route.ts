@@ -3,6 +3,7 @@ import { jsonError, jsonOk, requireApiSession } from "@/server/http";
 import type { DashboardConfig } from "@/types/dashboard-config";
 import { resolveAppUrl } from "@/lib/app-url";
 import { assertSafeExternalUrl } from "@/server/security/safe-fetch";
+import { callLlm } from "@/server/services/ai-service";
 import {
   getKnowledgeChunks,
   type KnowledgeChunk,
@@ -545,90 +546,16 @@ ATAU (untuk menambah produk baru):
 Pastikan data yang dimasukkan ke dalam proposal seakurat mungkin berdasarkan keluhan atau obrolan admin. Jangan mengarang data target untuk follow-up jika tidak ada di daftar "DAFTAR PELANGGAN YANG BELUM BOOKING".
 `;
 
-    const provider = config.aiProvider.provider;
-    const apiKey = config.aiProvider.apiKey.trim();
-    const endpoint = resolveProviderEndpoint(config);
-    assertSafeExternalUrl(endpoint);
-    const history = body.history || [];
+    const history = (body.history || []).map((h) => ({
+      role: h.role === "user" ? ("user" as const) : ("assistant" as const),
+      content: h.content,
+    }));
 
-    let response: Response;
-
-    if (provider === "gemini") {
-      const contents = [
-        ...history.map((h) => ({
-          role: h.role === "user" ? "user" : "model",
-          parts: [{ text: h.content }],
-        })),
-        { role: "user", parts: [{ text: body.message.trim() }] },
-      ];
-
-      response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents,
-          generationConfig: { temperature: 0.35, maxOutputTokens: 1024 },
-        }),
-      });
-    } else if (provider === "anthropic") {
-      const messages = [
-        ...history.map((h) => ({
-          role: h.role === "user" ? ("user" as const) : ("assistant" as const),
-          content: h.content,
-        })),
-        { role: "user" as const, content: body.message.trim() },
-      ];
-
-      response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: config.aiProvider.model.trim() || "claude-3-haiku-20240307",
-          max_tokens: 1024,
-          system: systemPrompt,
-          messages,
-          temperature: 0.35,
-        }),
-      });
-    } else {
-      const headers: Record<string, string> = {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      };
-      if (provider === "openrouter") {
-        headers["HTTP-Referer"] = resolveAppUrl();
-        headers["X-Title"] = config.workspace.name || "Balesin Desk";
-      }
-
-      const messages = [
-        { role: "system", content: systemPrompt },
-        ...history.map((h) => ({ role: h.role, content: h.content })),
-        { role: "user", content: body.message.trim() },
-      ];
-
-      response = await fetch(endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model: config.aiProvider.model.trim() || "gpt-3.5-turbo",
-          temperature: 0.35,
-          messages,
-        }),
-      });
-    }
-
-    if (!response.ok) {
-      await response.text().catch(() => "");
-      return jsonError("Provider API gagal memproses request.", response.status);
-    }
-
-    const payload = (await response.json()) as unknown;
-    const reply = extractAiResponseText(payload, provider);
+    const reply = await callLlm(config, systemPrompt, body.message.trim(), {
+      temperature: 0.35,
+      maxTokens: 1024,
+      history,
+    });
 
     return jsonOk({
       ok: true,

@@ -2,6 +2,7 @@ import { getKnowledgeChunks, type KnowledgeChunk } from "@/server/repositories/d
 import { resolveAppUrl } from "@/lib/app-url";
 import { formatCurrentTimeContext, getDefaultTimezone } from "@/lib/time";
 import { assertSafeExternalUrl } from "@/server/security/safe-fetch";
+import { callLlm } from "@/server/services/ai-service";
 import type { DashboardConfig, FAQItem } from "@/types/dashboard-config";
 import type { ConversationStatus } from "@/types/operations";
 
@@ -1451,12 +1452,6 @@ async function generateProviderReply(
     return null;
   }
 
-  const endpoint = resolveProviderEndpoint(config);
-  if (!endpoint) {
-    return null;
-  }
-  assertSafeExternalUrl(endpoint);
-
   const faqContext = buildRelevantFaqContext(messageText, config.knowledgeBase.faqs);
   const documentContext = await buildRelevantDocumentContext(messageText);
   const conversationContext = buildConversationSnippet(context);
@@ -1538,75 +1533,14 @@ PERTANYAAN CUSTOMER
 ${messageText}
 `.trim();
 
-  const provider = config.aiProvider.provider;
-  const apiKey = config.aiProvider.apiKey.trim();
-
   try {
-    let response: Response;
+    const reply = await callLlm(config, systemPrompt, userPrompt, {
+      temperature: 0.25,
+      maxTokens: 1024,
+    });
 
-    // ── Gemini (Google AI) ──────────────────────────────────────────────
-    if (provider === "gemini") {
-      response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-          generationConfig: { temperature: 0.25, maxOutputTokens: 1024 },
-        }),
-      });
-    }
-    // ── Anthropic (Claude) ──────────────────────────────────────────────
-    else if (provider === "anthropic") {
-      response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: config.aiProvider.model.trim(),
-          max_tokens: 1024,
-          system: systemPrompt,
-          messages: [{ role: "user", content: userPrompt }],
-        }),
-      });
-    }
-    // ── OpenAI / OpenRouter (default) ───────────────────────────────────
-    else {
-      const headers: Record<string, string> = {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      };
-      if (provider === "openrouter") {
-        headers["HTTP-Referer"] = resolveAppUrl();
-        headers["X-Title"] = config.workspace.name || "Balesin Desk";
-      }
-      response = await fetch(endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model: config.aiProvider.model.trim(),
-          temperature: 0.25,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-        }),
-      });
-    }
-
-    if (!response.ok) {
-      await response.text().catch(() => "");
-      console.error(`[reply-engine] provider=${provider} status=${response.status}`);
-      return null;
-    }
-
-    const payload = (await response.json()) as unknown;
-    const reply = extractAiResponseText(payload, provider);
     if (!reply) {
-      console.error("[reply-engine] empty reply from provider", provider);
+      console.error("[reply-engine] empty reply from provider", config.aiProvider.provider);
       return null;
     }
 
@@ -2078,74 +2012,14 @@ export async function isNegativeComment(text: string, config: DashboardConfig): 
     config.aiProvider.model.trim()
   ) {
     try {
-      const endpoint = resolveProviderEndpoint(config);
-      if (!endpoint) return false;
-      assertSafeExternalUrl(endpoint);
-
-      const systemPrompt = `You are a strict content moderation AI. 
-Analyze if the customer comment is NEGATIVE (e.g., contains insults, profanity, anger, harassment, spam, scam, fraud accusations, or hostile complaints).
-Respond with ONLY "yes" or "no". Do not output any other text.`;
-      
+      const systemPrompt = `You are a strict content moderation AI. \nAnalyze if the customer comment is NEGATIVE (e.g., contains insults, profanity, anger, harassment, spam, scam, fraud accusations, or hostile complaints).\nRespond with ONLY "yes" or "no". Do not output any other text.`;
       const userPrompt = `Comment: "${text}"`;
-      const provider = config.aiProvider.provider;
-      const apiKey = config.aiProvider.apiKey.trim();
-      let response: Response;
 
-      if (provider === "gemini") {
-        response = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-            generationConfig: { temperature: 0.0, maxOutputTokens: 5 },
-          }),
-        });
-      } else if (provider === "anthropic") {
-        response = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: config.aiProvider.model.trim(),
-            max_tokens: 5,
-            system: systemPrompt,
-            messages: [{ role: "user", content: userPrompt }],
-            temperature: 0.0,
-          }),
-        });
-      } else {
-        const headers: Record<string, string> = {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        };
-        if (provider === "openrouter") {
-          headers["HTTP-Referer"] = resolveAppUrl();
-          headers["X-Title"] = config.workspace.name || "Balesin Desk";
-        }
-        response = await fetch(endpoint, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            model: config.aiProvider.model.trim(),
-            temperature: 0.0,
-            max_tokens: 5,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
-            ],
-          }),
-        });
-      }
-
-      if (response.ok) {
-        const payload = (await response.json()) as unknown;
-        const reply = extractAiResponseText(payload, provider).toLowerCase().trim();
-        return reply.includes("yes");
-      }
+      const reply = await callLlm(config, systemPrompt, userPrompt, {
+        temperature: 0.0,
+        maxTokens: 5,
+      });
+      return reply.toLowerCase().trim().includes("yes");
     } catch (err) {
       console.error("[moderation-engine] AI sentiment analysis failed", err);
     }
@@ -2219,62 +2093,17 @@ Jawab HANYA dengan satu kata: "positive", "neutral", atau "negative". Jangan ber
       const apiKey = config.aiProvider.apiKey.trim();
       let response: Response;
 
-      if (provider === "gemini") {
-        response = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-            generationConfig: { temperature: 0.0, maxOutputTokens: 10 },
-          }),
-        });
-      } else if (provider === "anthropic") {
-        response = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: config.aiProvider.model.trim(),
-            max_tokens: 10,
-            system: systemPrompt,
-            messages: [{ role: "user", content: userPrompt }],
-            temperature: 0.0,
-          }),
-        });
-      } else {
-        const headers: Record<string, string> = {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        };
-        if (provider === "openrouter") {
-          headers["HTTP-Referer"] = resolveAppUrl();
-          headers["X-Title"] = config.workspace.name || "Balesin Desk";
-        }
-        response = await fetch(endpoint, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            model: config.aiProvider.model.trim(),
-            temperature: 0.0,
-            max_tokens: 10,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
-            ],
-          }),
-        });
-      }
+      try {
+        const reply = await callLlm(config, systemPrompt, userPrompt, {
+          temperature: 0.0,
+          maxTokens: 10,
+        }).then(r => r.toLowerCase().trim());
 
-      if (response.ok) {
-        const payload = (await response.json()) as unknown;
-        const reply = extractAiResponseText(payload, provider).toLowerCase().trim();
         if (reply.includes("positive")) return "positive";
         if (reply.includes("negative")) return "negative";
         return "neutral";
+      } catch (err) {
+        console.error("[sentiment-engine] AI sentiment analysis failed", err);
       }
     } catch (err) {
       console.error("[sentiment-engine] AI sentiment analysis failed", err);
