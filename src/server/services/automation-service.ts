@@ -169,6 +169,8 @@ async function processConversationIdleCheck(payload: Record<string, unknown>) {
   if (
     conversation.status === "resolved" ||
     conversation.status === "spam" ||
+    conversation.status === "ai_paused" ||
+    conversation.status === "assigned_to_admin" ||
     !config.automation.idleAction.enabled
   ) {
     return { skipped: true, reason: "inactive_rule" };

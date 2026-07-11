@@ -48,11 +48,37 @@ function normalizeIdentityValue(value?: string | null) {
   return normalized ? normalized : null;
 }
 
+function cleanIdentity(val: string): string {
+  let cleaned = val.trim().toLowerCase();
+  
+  // Strip WhatsApp domain suffix if present
+  cleaned = cleaned.replace(/@(s\.whatsapp\.net|c\.us)$/i, "");
+  
+  // If it's a phone number or looks like one, strip all non-digits and normalize country code
+  const digits = cleaned.replace(/\D/g, "");
+  if (digits.length >= 9) {
+    if (digits.startsWith("0")) {
+      return "62" + digits.slice(1);
+    }
+    return digits;
+  }
+  
+  return cleaned;
+}
+
 function hasSameIdentity(left?: string | null, right?: string | null) {
   const normalizedLeft = normalizeIdentityValue(left);
   const normalizedRight = normalizeIdentityValue(right);
 
-  return normalizedLeft != null && normalizedLeft === normalizedRight;
+  if (normalizedLeft == null || normalizedRight == null) {
+    return false;
+  }
+
+  if (normalizedLeft === normalizedRight) {
+    return true;
+  }
+
+  return cleanIdentity(normalizedLeft) === cleanIdentity(normalizedRight);
 }
 
 function findExistingConversation(
