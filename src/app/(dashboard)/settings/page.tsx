@@ -558,13 +558,13 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Group 3: Chatbot API Token */}
+          {/* Group 3: AI Provider Key */}
           <div className="space-y-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block px-2.5">
-              API Token
+              AI Provider Key
             </span>
             <div className="space-y-1 bg-white/[0.01] border border-white/6 rounded-xl p-1.5">
-              {/* Chatbot Token */}
+              {/* AI API Key & Token */}
               <button
                 onClick={() => setActiveSetting("token_bot")}
                 className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
@@ -574,7 +574,7 @@ export default function SettingsPage() {
                 }`}
               >
                 <FileCode className="h-4 w-4 text-emerald-400" />
-                <span>Chatbot Token</span>
+                <span>AI API Key & Token</span>
               </button>
             </div>
           </div>

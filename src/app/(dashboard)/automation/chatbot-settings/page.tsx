@@ -85,7 +85,7 @@ const DEFAULT_SETTINGS: ChatbotSettingsState = {
 const TABS = [
   { id: "ai_config", label: "AI Configuration", icon: Sliders },
   { id: "idle_action", label: "Idle Action", icon: Clock },
-  { id: "api_integration", label: "API Integration", icon: Plug },
+  { id: "api_integration", label: "Webhook / API Eksternal", icon: Plug },
   { id: "crm_integration", label: "CRM Integration", icon: GitMerge },
 ];
 
@@ -565,8 +565,8 @@ function ApiIntegrationPanel({
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-white">API Integration Utama</h2>
-          <p className="text-sm text-slate-400 mt-1">Chatbot hanya memakai satu integrasi API aktif untuk webhook, lookup data, dan trigger otomasi.</p>
+          <h2 className="text-lg font-bold text-white">Webhook / API Bisnis Eksternal</h2>
+          <p className="text-sm text-slate-400 mt-1">Gunakan untuk memanggil API bisnis Anda sendiri (seperti cek stok, status booking, database mekanik) saat percakapan berlangsung. <strong>Bukan untuk API Key AI (OpenAI/Gemini).</strong></p>
         </div>
         <Button onClick={() => { setEditingApi(primaryIntegration); setIsModalOpen(true); }} className="gap-2 shrink-0">
           <Plus className="h-4 w-4" />
@@ -575,7 +575,7 @@ function ApiIntegrationPanel({
       </div>
 
       <Card className="border-white/10 bg-white/[0.02] p-4 text-sm text-slate-300">
-        Gunakan satu endpoint utama saja agar alur chatbot, idle action, dan automation ke Unified Inbox tetap konsisten.
+        Ini adalah konfigurasi Webhook bisnis eksternal. Jika Anda ingin mengatur API Key AI (OpenAI/Gemini/OpenRouter), silakan atur di menu <strong>Settings &gt; AI API Key &amp; Token</strong>.
       </Card>
 
       {!primaryIntegration ? (
