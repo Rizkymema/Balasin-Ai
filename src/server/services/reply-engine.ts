@@ -569,8 +569,13 @@ function previousMessageNeedsFollowUp(message: string) {
 
 function buildContextualMessage(
   messageText: string,
+  config: DashboardConfig,
   context?: ReplyContext,
 ) {
+  if (isGreetingMessage(messageText, config)) {
+    return messageText;
+  }
+
   if (!context?.recentMessages?.length || !messageNeedsConversationContext(messageText)) {
     return messageText;
   }
@@ -703,7 +708,7 @@ function buildPriceFollowUpReply(
   config: DashboardConfig,
   context?: ReplyContext,
 ) {
-  const contextualText = buildContextualMessage(messageText, context);
+  const contextualText = buildContextualMessage(messageText, config, context);
   const serviceDetail = detectServiceDetail(contextualText);
   const rawMotorType = extractMotorType(contextualText);
   const motorType =
@@ -1605,7 +1610,7 @@ export async function generateReplyDecision(
   const rawOpener = stripOpeningPhrase(messageText);
   const rawLower = normalizeText(rawOpener.stripped || messageText);
 
-  const effectiveMessage = buildContextualMessage(messageText, context);
+  const effectiveMessage = buildContextualMessage(messageText, config, context);
   const opener = stripOpeningPhrase(effectiveMessage);
   const routedMessage = opener.stripped || effectiveMessage;
   const lower = normalizeText(routedMessage);
