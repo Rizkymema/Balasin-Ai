@@ -178,16 +178,20 @@ async function processConversationIdleCheck(payload: Record<string, unknown>) {
     config.automation.idleAction.idleTimeoutUnit === "days"
       ? config.automation.idleAction.idleTimeout * 24
       : config.automation.idleAction.idleTimeout;
-  const idleReference =
-    conversation.automation?.lastHumanReplyAt ??
-    conversation.automation?.lastOutboundAt ??
-    conversation.automation?.lastInboundAt;
+  const times = [
+    conversation.automation?.lastHumanReplyAt,
+    conversation.automation?.lastOutboundAt,
+    conversation.automation?.lastInboundAt,
+  ]
+    .filter((t): t is string => Boolean(t))
+    .map((t) => new Date(t).getTime());
 
-  if (!idleReference) {
+  const latestTime = times.length > 0 ? Math.max(...times) : null;
+  if (!latestTime) {
     return { skipped: true, reason: "missing_reference" };
   }
 
-  const idleAt = new Date(idleReference).getTime() + timeoutHours * 60 * 60 * 1000;
+  const idleAt = latestTime + timeoutHours * 60 * 60 * 1000;
   if (Date.now() < idleAt) {
     return { skipped: true, reason: "not_due" };
   }
