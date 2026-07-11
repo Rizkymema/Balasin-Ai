@@ -130,7 +130,7 @@ async function fetchArrayBufferOrThrow(url: string) {
       },
       cache: "no-store",
     },
-    { timeoutMs: 10_000, maxBytes: KNOWLEDGE_SHEET_MAX_BYTES },
+    { timeoutMs: 30_000, maxBytes: KNOWLEDGE_SHEET_MAX_BYTES },
   );
 
   if (!response.ok) {
@@ -231,22 +231,35 @@ export async function syncKnowledgeSources(config: DashboardConfig) {
   const failures: SyncFailure[] = [];
   const syncedDocuments: Array<{ id: string; name: string; sourceType: string }> = [];
 
+  // Gabungkan semua Google Sheet URL dari kedua sumber agar prune tidak salah hapus
+  // (sync route memindahkan Sheet URLs dari websiteUrls ke googleSheetUrls,
+  //  tapi document lama mungkin masih punya sourceUrl dari websiteUrls)
+  const allGoogleSheetUrls = Array.from(
+    new Set([
+      ...googleSheetUrls,
+      ...websiteUrls.filter((url) => /docs\.google\.com\/spreadsheets/i.test(url)),
+    ]),
+  );
+
   await pruneDetachedSources(
     config.knowledgeBase.documents,
     websiteUrls,
-    googleSheetUrls,
+    allGoogleSheetUrls,
   );
 
+  // Proses website biasa (non-Google Sheet) dari websiteUrls
   for (const url of websiteUrls) {
+    // Skip Google Sheet URLs — akan diproses di loop googleSheetUrls di bawah
+    if (/docs\.google\.com\/spreadsheets/i.test(url)) {
+      continue;
+    }
+
     try {
-      const isGoogleSheet = /docs\.google\.com\/spreadsheets/i.test(url);
-      const result = isGoogleSheet
-        ? await syncGoogleSheetSource(url)
-        : await syncWebsiteSource(url);
+      const result = await syncWebsiteSource(url);
       syncedDocuments.push({
         id: result.document.id,
         name: result.document.name,
-        sourceType: isGoogleSheet ? "google_sheet" : "website",
+        sourceType: "website",
       });
     } catch (error) {
       failures.push({
@@ -257,24 +270,32 @@ export async function syncKnowledgeSources(config: DashboardConfig) {
     }
   }
 
-  for (const url of googleSheetUrls) {
+  // Proses semua Google Sheet URLs (sudah di-dedupe)
+  for (const url of allGoogleSheetUrls) {
     try {
+      console.log(`[knowledge-sync] Syncing Google Sheet: ${url}`);
       const result = await syncGoogleSheetSource(url);
+      console.log(`[knowledge-sync] Google Sheet synced OK: ${result.document.name} (${result.document.id})`);
       syncedDocuments.push({
         id: result.document.id,
         name: result.document.name,
         sourceType: "google_sheet",
       });
     } catch (error) {
+      const reason = error instanceof Error
+        ? error.message
+        : "Google Sheet source gagal disinkronkan.";
+      console.error(`[knowledge-sync] Google Sheet sync FAILED: ${url} — ${reason}`);
       failures.push({
         url,
-        reason:
-          error instanceof Error
-            ? error.message
-            : "Google Sheet source gagal disinkronkan.",
+        reason,
       });
     }
   }
+
+  console.log(
+    `[knowledge-sync] Sync complete: ${syncedDocuments.length} synced, ${failures.length} failed`,
+  );
 
   return {
     syncedCount: syncedDocuments.length,

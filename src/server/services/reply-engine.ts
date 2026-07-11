@@ -1721,7 +1721,16 @@ export async function generateReplyDecision(
   const providerReply = await generateProviderReply(routedMessage, config, context);
 
   // If AI Provider is active, use it to phrase the response according to Custom Instructions!
-  if (providerReply && (hasStaticMatch || providerReply.grounded)) {
+  const isHarmlessQuery =
+    isGreetingMessage(messageText, config) ||
+    (opener.hadOpener && !opener.stripped) ||
+    (hasKeyword(rawLower, LOCATION_KEYWORDS) && config.workspace.address.trim()) ||
+    (hasKeyword(rawLower, HOURS_KEYWORDS) && config.workspace.businessHours.trim()) ||
+    (hasKeyword(rawLower, EMAIL_KEYWORDS) && config.workspace.supportEmail.trim()) ||
+    (hasKeyword(rawLower, DESCRIPTION_KEYWORDS) && config.workspace.description.trim()) ||
+    (hasKeyword(rawLower, NAME_KEYWORDS) && config.workspace.name.trim());
+
+  if (providerReply && (hasStaticMatch || providerReply.grounded || isHarmlessQuery)) {
     return {
       intent: hasKeyword(lower, PRICE_KEYWORDS)
         ? "Tanya harga"
