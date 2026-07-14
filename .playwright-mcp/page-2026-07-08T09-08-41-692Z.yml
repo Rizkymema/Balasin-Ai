@@ -1,0 +1,216 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - link "Balesin Desk" [ref=e6] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e8]
+          - generic [ref=e12]: Balesin Desk
+        - generic [ref=e16] [cursor=pointer]:
+          - generic [ref=e17]:
+            - generic [ref=e18]: WO
+            - generic [ref=e19]: Workspace Baru
+          - img [ref=e20]
+        - navigation [ref=e22]:
+          - link "Dashboard" [ref=e23] [cursor=pointer]:
+            - /url: /dashboard
+            - generic [ref=e24]:
+              - img [ref=e25]
+              - text: Dashboard
+          - link "Kotak Masuk Terpadu" [ref=e30] [cursor=pointer]:
+            - /url: /inbox
+            - generic [ref=e31]:
+              - img [ref=e32]
+              - text: Kotak Masuk Terpadu
+          - link "Kontak / CRM" [ref=e34] [cursor=pointer]:
+            - /url: /customers
+            - generic [ref=e35]:
+              - img [ref=e36]
+              - text: Kontak / CRM
+          - link "Produk & Layanan" [ref=e40] [cursor=pointer]:
+            - /url: /products-services
+            - generic [ref=e41]:
+              - img [ref=e42]
+              - text: Produk & Layanan
+          - link "Reservasi / Pemesanan" [ref=e44] [cursor=pointer]:
+            - /url: /booking
+            - generic [ref=e45]:
+              - img [ref=e46]
+              - text: Reservasi / Pemesanan
+          - link "Otomatisasi" [ref=e49] [cursor=pointer]:
+            - /url: /automation
+            - generic [ref=e50]:
+              - img [ref=e51]
+              - text: Otomatisasi
+            - img [ref=e55]
+          - link "Siaran / Kampanye" [ref=e57] [cursor=pointer]:
+            - /url: /broadcast
+            - generic [ref=e58]:
+              - img [ref=e59]
+              - text: Siaran / Kampanye
+          - link "Saluran Hubung" [ref=e61] [cursor=pointer]:
+            - /url: /channels
+            - generic [ref=e62]:
+              - img [ref=e63]
+              - text: Saluran Hubung
+          - link "Laporan & Analisis" [ref=e67] [cursor=pointer]:
+            - /url: /analytics
+            - generic [ref=e68]:
+              - img [ref=e69]
+              - text: Laporan & Analisis
+          - link "Tim & Pengaturan" [ref=e70] [cursor=pointer]:
+            - /url: /settings
+            - generic [ref=e71]:
+              - img [ref=e72]
+              - text: Tim & Pengaturan
+        - button "Collapse sidebar" [ref=e76] [cursor=pointer]:
+          - img [ref=e77]
+    - generic [ref=e80]:
+      - banner [ref=e81]:
+        - generic [ref=e83]: "Workspace: Workspace Baru"
+        - generic [ref=e84]:
+          - button "Notifikasi (0 belum dibaca)" [ref=e85]:
+            - img [ref=e86]
+          - generic [ref=e89]: Sistem aktif
+          - button "ad" [ref=e92] [cursor=pointer]:
+            - generic [ref=e93]: ad
+            - img [ref=e94]
+      - main [ref=e96]:
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - heading "Integrations & Channels" [level=1] [ref=e100]:
+              - img [ref=e101]
+              - text: Integrations & Channels
+            - paragraph [ref=e105]: Kelola seluruh channel sosial media, widget chat khusus, sistem internal, dan integrasi CRM omnichannel Anda.
+          - generic [ref=e106]:
+            - generic [ref=e107]:
+              - generic [ref=e108]:
+                - generic [ref=e109]: Saluran Pesan & Media Sosial
+                - generic [ref=e110]:
+                  - button "WhatsApp Draft" [ref=e111]:
+                    - generic [ref=e112]:
+                      - img [ref=e113]
+                      - generic [ref=e115]: WhatsApp
+                    - generic [ref=e116]: Draft
+                  - button "Facebook Roadmap" [ref=e117]:
+                    - generic [ref=e118]:
+                      - img [ref=e119]
+                      - generic [ref=e121]: Facebook
+                    - generic [ref=e122]: Roadmap
+                  - button "Instagram Draft" [ref=e123]:
+                    - generic [ref=e124]:
+                      - img [ref=e125]
+                      - generic [ref=e128]: Instagram
+                    - generic [ref=e129]: Draft
+                  - button "Telegram Roadmap" [ref=e130]:
+                    - generic [ref=e131]:
+                      - img [ref=e132]
+                      - generic [ref=e135]: Telegram
+                    - generic [ref=e136]: Roadmap
+                  - button "X (Twitter) Roadmap" [ref=e137]:
+                    - generic [ref=e138]:
+                      - img [ref=e139]
+                      - generic [ref=e141]: X (Twitter)
+                    - generic [ref=e142]: Roadmap
+                  - button "Line Messenger Roadmap" [ref=e143]:
+                    - generic [ref=e144]:
+                      - img [ref=e145]
+                      - generic [ref=e147]: Line Messenger
+                    - generic [ref=e148]: Roadmap
+              - generic [ref=e149]:
+                - generic [ref=e150]: Widget Khusus
+                - generic [ref=e151]:
+                  - button "Mobile chat Active" [ref=e152]:
+                    - generic [ref=e153]:
+                      - img [ref=e154]
+                      - generic [ref=e156]: Mobile chat
+                    - generic [ref=e157]: Active
+                  - button "Web chat Draft" [ref=e158]:
+                    - generic [ref=e159]:
+                      - img [ref=e160]
+                      - generic [ref=e163]: Web chat
+                    - generic [ref=e164]: Draft
+              - generic [ref=e165]:
+                - generic [ref=e166]:
+                  - text: Ekspansi Baru
+                  - generic [ref=e167]: NEW
+                - generic [ref=e168]:
+                  - button "Call (Telepon) Roadmap" [ref=e169]:
+                    - generic [ref=e170]:
+                      - img [ref=e171]
+                      - generic [ref=e173]: Call (Telepon)
+                    - generic [ref=e174]: Roadmap
+                  - button "E-commerce Roadmap" [ref=e175]:
+                    - generic [ref=e176]:
+                      - img [ref=e177]
+                      - generic [ref=e181]: E-commerce
+                    - generic [ref=e182]: Roadmap
+                  - button "Email Roadmap" [ref=e183]:
+                    - generic [ref=e184]:
+                      - img [ref=e185]
+                      - generic [ref=e188]: Email
+                    - generic [ref=e189]: Roadmap
+              - generic [ref=e190]:
+                - generic [ref=e191]: Sistem Internal
+                - button "Qontak CRM Sync Active 2-Way" [ref=e193]:
+                  - generic [ref=e194]:
+                    - img [ref=e195]
+                    - generic [ref=e198]: Qontak CRM Sync
+                  - generic [ref=e199]: Active 2-Way
+            - generic [ref=e201]:
+              - heading "WhatsApp Business" [level=3] [ref=e203]:
+                - img [ref=e204]
+                - text: WhatsApp Business
+              - generic [ref=e206]:
+                - generic [ref=e207]:
+                  - generic [ref=e208]:
+                    - img [ref=e210]
+                    - generic [ref=e212]:
+                      - heading "Connect WhatsApp Business" [level=4] [ref=e213]
+                      - paragraph [ref=e214]: Hubungkan nomor WA Anda lewat Facebook — tidak perlu copy-paste token manual.
+                  - generic [ref=e215]:
+                    - paragraph [ref=e216]:
+                      - img [ref=e217]
+                      - text: Flow OAuth (1 klik)
+                    - list [ref=e219]:
+                      - listitem [ref=e220]:
+                        - generic [ref=e221]: "1"
+                        - text: Login ke akun Facebook Business
+                      - listitem [ref=e222]:
+                        - generic [ref=e223]: "2"
+                        - text: Pilih Business Portfolio
+                      - listitem [ref=e224]:
+                        - generic [ref=e225]: "3"
+                        - text: Buat atau pilih WABA (WhatsApp Business Account)
+                      - listitem [ref=e226]:
+                        - generic [ref=e227]: "4"
+                        - text: Verifikasi nomor telepon
+                      - listitem [ref=e228]:
+                        - generic [ref=e229]: "5"
+                        - text: Sistem menyimpan Phone Number ID otomatis ✓
+                  - button "Connect via Facebook" [ref=e230] [cursor=pointer]:
+                    - img [ref=e231]
+                    - text: Connect via Facebook
+                - generic [ref=e235]: atau isi manual
+                - generic [ref=e237]:
+                  - paragraph [ref=e238]: Jika Anda sudah punya token dari Meta Developer Console, isi langsung di bawah ini.
+                  - generic [ref=e239]:
+                    - generic [ref=e240]:
+                      - text: Label nomor bisnis
+                      - 'textbox "Contoh: Johan Garage WA" [ref=e241]': Johan Garage WA
+                    - generic [ref=e242]:
+                      - text: Phone Number ID
+                      - textbox "Dari Meta Developer" [ref=e243]
+                  - generic [ref=e244]:
+                    - text: Permanent access token
+                    - textbox "EAABwzLixnjY..." [ref=e245]
+                  - generic [ref=e246]:
+                    - text: Verify token
+                    - 'textbox "Contoh: balesin_verify" [ref=e247]': verify123
+                  - generic [ref=e248]:
+                    - generic [ref=e249]: Webhook Callback URL
+                    - code [ref=e250]: https://balasin-ai-tau.vercel.app/api/webhooks/whatsapp
+                  - button "Simpan & Hubungkan" [ref=e252] [cursor=pointer]
+    - button "Tanya AI Copilot" [ref=e254]:
+      - img [ref=e255]
+  - alert [ref=e258]

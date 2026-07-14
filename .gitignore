@@ -15,3 +15,6 @@ pnpm-debug.log*
 
 .vercel
 .env*
+
+.agents
+.impeccable

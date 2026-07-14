@@ -2,3 +2,6 @@ data/
 .env.local
 .env.*.local
 *.sqlite*
+
+.agents
+.impeccable
