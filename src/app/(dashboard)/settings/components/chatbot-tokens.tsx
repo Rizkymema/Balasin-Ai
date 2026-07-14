@@ -36,6 +36,8 @@ export function ChatbotTokens() {
   );
   const [providerBaseUrl, setProviderBaseUrl] = useState(config.aiProvider.baseUrl);
   const [isSavedLlm, setIsSavedLlm] = useState(false);
+  const [llmError, setLlmError] = useState<string | null>(null);
+  const hasStoredProviderApiKey = Boolean(config.aiProvider.apiKeyConfigured);
 
   useEffect(() => {
     setPublicAppUrl(config.runtime.publicAppUrl);
@@ -62,19 +64,27 @@ export function ChatbotTokens() {
 
   const handleSaveLlm = (e: React.FormEvent) => {
     e.preventDefault();
+    const nextApiKey = providerApiKey.trim();
+    const providerChanged = defaultLlmProvider !== config.aiProvider.provider;
+
+    if (providerChanged && !nextApiKey) {
+      setLlmError("Masukkan API key baru saat mengganti provider AI.");
+      return;
+    }
 
     patchConfig((current) => ({
       ...current,
       aiProvider: {
         ...current.aiProvider,
-        enabled: Boolean(providerApiKey.trim()),
+        enabled: nextApiKey ? true : current.aiProvider.enabled,
         provider: defaultLlmProvider,
-        apiKey: providerApiKey.trim(),
+        apiKey: nextApiKey,
         model: providerModel.trim(),
         baseUrl: providerBaseUrl.trim(),
       },
     }));
 
+    setLlmError(null);
     setIsSavedLlm(true);
     setTimeout(() => setIsSavedLlm(false), 2000);
   };
@@ -117,17 +127,36 @@ export function ChatbotTokens() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
-              <KeyRound className="h-3 w-3 text-cyan-400" />
-              API Key Provider Aktif
-            </label>
+            <div className="flex items-center justify-between gap-3">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+                <KeyRound className="h-3 w-3 text-cyan-400" />
+                API Key Provider Aktif
+              </label>
+              {hasStoredProviderApiKey ? (
+                <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
+                  <Check className="h-3 w-3" /> API key tersimpan
+                </span>
+              ) : null}
+            </div>
             <Input
               type="password"
               value={providerApiKey}
-              onChange={(e) => setProviderApiKey(e.target.value)}
-              placeholder="Masukkan API key provider yang dipilih"
+              onChange={(e) => {
+                setProviderApiKey(e.target.value);
+                setLlmError(null);
+              }}
+              placeholder={
+                hasStoredProviderApiKey
+                  ? "Key dilindungi. Isi hanya untuk mengganti API key."
+                  : "Masukkan API key provider yang dipilih"
+              }
+              aria-describedby="provider-api-key-help"
               className="h-10 bg-black/20 font-mono text-xs"
             />
+            <p id="provider-api-key-help" className="text-[10px] text-slate-500">
+              API key tidak pernah ditampilkan kembali di dashboard. Kosongkan saat menyimpan model yang sama untuk mempertahankan key yang sudah ada.
+            </p>
+            {llmError ? <p className="text-[11px] text-rose-400">{llmError}</p> : null}
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

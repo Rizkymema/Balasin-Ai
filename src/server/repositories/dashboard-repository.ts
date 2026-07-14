@@ -261,6 +261,10 @@ function mergePersistedDashboardConfig(
   existing: DashboardConfig,
   incoming: DashboardConfig,
 ) {
+  const { apiKeyConfigured: _apiKeyConfigured, ...incomingAiProvider } = incoming.aiProvider;
+  const submittedAiApiKey = incomingAiProvider.apiKey.trim();
+  const hasStoredAiApiKey = Boolean(existing.aiProvider.apiKey.trim());
+
   return {
     ...incoming,
     runtime: {
@@ -273,9 +277,15 @@ function mergePersistedDashboardConfig(
       ),
     },
     aiProvider: {
-      ...incoming.aiProvider,
+      ...incomingAiProvider,
+      // The dashboard deliberately sends an empty API key after redaction. Do not
+      // disable a working provider when the user only updates its model/settings.
+      enabled:
+        !submittedAiApiKey && hasStoredAiApiKey
+          ? existing.aiProvider.enabled
+          : incomingAiProvider.enabled,
       apiKey: normalizeSecretLikeValue(
-        keepExistingString(existing.aiProvider.apiKey, incoming.aiProvider.apiKey),
+        keepExistingString(existing.aiProvider.apiKey, submittedAiApiKey),
       ),
     },
     channels: {
@@ -361,6 +371,7 @@ export function redactDashboardConfigSecrets(
     aiProvider: {
       ...config.aiProvider,
       apiKey: "",
+      apiKeyConfigured: Boolean(config.aiProvider.apiKey.trim()),
     },
     channels: {
       ...config.channels,

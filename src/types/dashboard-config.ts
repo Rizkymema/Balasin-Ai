@@ -293,6 +293,8 @@ export type DashboardConfig = {
     enabled: boolean;
     provider: AIProviderKind;
     apiKey: string;
+    // Public dashboard responses expose this flag instead of the actual key.
+    apiKeyConfigured?: boolean;
     model: string;
     embeddingModel: string;
     baseUrl: string;
