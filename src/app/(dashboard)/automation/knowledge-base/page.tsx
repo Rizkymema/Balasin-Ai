@@ -6,10 +6,12 @@ import {
   ArrowLeft,
   Check,
   Database,
+  ExternalLink,
   FileText,
   Link2,
   Loader2,
   MessageSquare,
+  RefreshCw,
   Search,
   Trash2,
   Upload,
@@ -25,6 +27,15 @@ import { EmptyState } from "@/components/ui/empty-state";
 
 function isGoogleSheetUrl(url: string) {
   return /docs\.google\.com\/spreadsheets/i.test(url);
+}
+
+function getSourceDisplayName(url: string, fallback: string) {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.hostname}${parsed.pathname === "/" ? "" : parsed.pathname}`;
+  } catch {
+    return fallback;
+  }
 }
 
 export default function KnowledgeBasePage() {
@@ -97,11 +108,44 @@ export default function KnowledgeBasePage() {
   );
   const unansweredQuestions = config?.knowledgeBase.pendingQuestions ?? [];
 
-  const filteredKbDocs = useMemo(() => {
-    const docs = config?.knowledgeBase.documents || [];
-    if (!kbSearchQuery.trim()) return docs;
-    return docs.filter((doc) => doc.name.toLowerCase().includes(kbSearchQuery.toLowerCase()));
-  }, [config, kbSearchQuery]);
+  const sourceItems = useMemo(() => {
+    const documents = config?.knowledgeBase.documents || [];
+    const indexedSourceUrls = new Set(
+      documents.map((document) => document.sourceUrl).filter(Boolean),
+    );
+    const pendingSources = [
+      ...websiteUrls.map((sourceUrl) => ({ sourceUrl, sourceType: "website" as const })),
+      ...googleSheetUrls.map((sourceUrl) => ({ sourceUrl, sourceType: "google_sheet" as const })),
+    ]
+      .filter(({ sourceUrl }) => !indexedSourceUrls.has(sourceUrl))
+      .map(({ sourceUrl, sourceType }) => ({
+        id: `pending-${sourceType}-${sourceUrl}`,
+        name: getSourceDisplayName(
+          sourceUrl,
+          sourceType === "google_sheet" ? "Google Sheet" : "External URL",
+        ),
+        size: "Belum diindeks",
+        status: "processing" as const,
+        progress: 0,
+        sourceType,
+        sourceUrl,
+        isIndexed: false,
+      }));
+
+    return [
+      ...documents.map((document) => ({ ...document, isIndexed: true })),
+      ...pendingSources,
+    ];
+  }, [config, googleSheetUrls, websiteUrls]);
+
+  const filteredSourceItems = useMemo(() => {
+    const query = kbSearchQuery.trim().toLowerCase();
+    if (!query) return sourceItems;
+
+    return sourceItems.filter((source) =>
+      `${source.name} ${source.sourceUrl ?? ""}`.toLowerCase().includes(query),
+    );
+  }, [kbSearchQuery, sourceItems]);
 
   type SyncResponse = {
     ok: boolean;
@@ -220,6 +264,22 @@ export default function KnowledgeBasePage() {
       setTimeout(() => setIsSaved(false), 2500);
     } catch (e) {
       const message = e instanceof Error ? e.message : "Sinkronisasi Google Sheet gagal.";
+      setSyncError(message);
+      alert(message);
+    } finally {
+      setIsSyncingKbSources(false);
+    }
+  };
+
+  const handleResyncKnowledgeSources = async () => {
+    setIsSyncingKbSources(true);
+    try {
+      await syncKnowledgeSourceUrls({});
+      await refreshConfig();
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2500);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Sinkronisasi source gagal.";
       setSyncError(message);
       alert(message);
     } finally {
@@ -476,7 +536,7 @@ export default function KnowledgeBasePage() {
               </div>
 
               <div className="space-y-3">
-                {filteredKbDocs.length === 0 ? (
+                {filteredSourceItems.length === 0 ? (
                   <EmptyState
                     icon={<Database className="h-10 w-10 text-slate-500" />}
                     title="Belum ada referensi"
@@ -484,7 +544,7 @@ export default function KnowledgeBasePage() {
                     className="min-h-[200px]"
                   />
                 ) : (
-                  filteredKbDocs.map((doc) => (
+                  filteredSourceItems.map((doc) => (
                     <div
                       key={doc.id}
                       className="rounded-xl border border-white/6 bg-white/2 p-4 flex items-center justify-between gap-4"
@@ -517,17 +577,42 @@ export default function KnowledgeBasePage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <span className="flex items-center gap-1 rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-                          <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-                          Terserap AI
-                        </span>
-                        <button
-                          onClick={() => handleDeleteKbDocument(doc.id)}
-                          className="rounded p-1.5 text-slate-500 transition hover:text-red-400"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {doc.sourceUrl && (
+                          <a
+                            href={doc.sourceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-400/20 px-2.5 text-[10px] font-bold text-cyan-300 transition hover:border-cyan-400/50 hover:bg-cyan-950/30"
+                          >
+                            Buka
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                        {doc.isIndexed ? (
+                          <span className="hidden items-center gap-1 rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 sm:flex">
+                            <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                            Terserap AI
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => void handleResyncKnowledgeSources()}
+                            disabled={isSyncingKbSources}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-amber-400/20 px-2.5 text-[10px] font-bold text-amber-300 transition hover:border-amber-400/50 hover:bg-amber-950/30 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <RefreshCw className={`h-3.5 w-3.5 ${isSyncingKbSources ? "animate-spin" : ""}`} />
+                            Sinkronkan
+                          </button>
+                        )}
+                        {doc.isIndexed && (
+                          <button
+                            onClick={() => handleDeleteKbDocument(doc.id)}
+                            className="rounded p-1.5 text-slate-500 transition hover:text-red-400"
+                            aria-label={`Hapus ${doc.name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))
