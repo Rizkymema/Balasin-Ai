@@ -29,7 +29,7 @@ import {
   replaceKnowledgeChunksForDocumentAsync,
   deleteKnowledgeChunksForDocumentAsync,
 } from "@/server/db";
-import { parseCsvBuffer } from "@/server/services/csv";
+import { parseSpreadsheetBuffer } from "@/server/services/spreadsheet-parser";
 import type {
   DashboardConfig,
   FAQItem,
@@ -608,6 +608,7 @@ function buildSpreadsheetChunks(params: {
   sourceName: string;
   sourceType?: KnowledgeSourceType;
   sourceUrl?: string;
+  chunkIndexOffset?: number;
 }) {
   const chunks: KnowledgeChunk[] = [];
 
@@ -633,7 +634,7 @@ function buildSpreadsheetChunks(params: {
       chunks.push(
         createTextChunk({
           documentId: params.documentId,
-          chunkIndex: chunks.length,
+          chunkIndex: (params.chunkIndexOffset ?? 0) + chunks.length,
           content: `Pertanyaan: ${question}\nJawaban: ${answer}`,
           sourceName: params.sourceName,
           sourceType: params.sourceType,
@@ -665,7 +666,7 @@ function buildSpreadsheetChunks(params: {
     chunks.push(
       createTextChunk({
         documentId: params.documentId,
-        chunkIndex: chunks.length,
+        chunkIndex: (params.chunkIndexOffset ?? 0) + chunks.length,
         content: parts.join(" | "),
         sourceName: params.sourceName,
         sourceType: params.sourceType,
@@ -675,10 +676,6 @@ function buildSpreadsheetChunks(params: {
   }
 
   return chunks;
-}
-
-function parseSpreadsheetBuffer(buffer: Buffer) {
-  return parseCsvBuffer(buffer);
 }
 
 async function readAllKnowledgeChunks() {
@@ -905,12 +902,12 @@ async function extractDocumentText(params: {
     return params.buffer.toString("utf8");
   }
 
-  if (
-    lowerName.endsWith(".csv")
-  ) {
-    const rows = parseSpreadsheetBuffer(params.buffer);
-    return rows
-      .map((row) =>
+  if (lowerName.endsWith(".csv") || lowerName.endsWith(".xlsx")) {
+    const sheets = await parseSpreadsheetBuffer(params.buffer, params.fileName);
+    return sheets
+      .flatMap((sheet) =>
+        sheet.rows.map((row) =>
+          `[${sheet.name}] ` +
         Object.entries(row)
           .map(([key, value]) => {
             const normalizedValue =
@@ -924,6 +921,7 @@ async function extractDocumentText(params: {
           })
           .filter(Boolean)
           .join(" | "),
+        ),
       )
       .filter(Boolean)
       .join("\n");
@@ -966,17 +964,22 @@ async function buildKnowledgeChunksFromBuffer(params: {
 }) {
   const lowerName = params.fileName.toLowerCase();
 
-  if (
-    lowerName.endsWith(".csv")
-  ) {
-    const rows = parseSpreadsheetBuffer(params.buffer);
-    const chunks = buildSpreadsheetChunks({
-      rows,
-      documentId: params.documentId,
-      sourceName: params.fileName,
-      sourceType: params.sourceType,
-      sourceUrl: params.sourceUrl,
-    });
+  if (lowerName.endsWith(".csv") || lowerName.endsWith(".xlsx")) {
+    const sheets = await parseSpreadsheetBuffer(params.buffer, params.fileName);
+    const chunks: KnowledgeChunk[] = [];
+
+    for (const sheet of sheets) {
+      chunks.push(
+        ...buildSpreadsheetChunks({
+          rows: sheet.rows,
+          documentId: params.documentId,
+          sourceName: `${params.fileName} | ${sheet.name}`,
+          sourceType: params.sourceType,
+          sourceUrl: params.sourceUrl,
+          chunkIndexOffset: chunks.length,
+        }),
+      );
+    }
 
     return {
       chunks,

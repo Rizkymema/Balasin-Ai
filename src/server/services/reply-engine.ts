@@ -1152,6 +1152,21 @@ const SHEET_INCLUDE_KEYS = [
   "deskripsi",
   "keterangan",
 ];
+const STRUCTURED_QUERY_NOISE_TOKENS = new Set([
+  "harga",
+  "berapa",
+  "jasa",
+  "paket",
+  "motor",
+  "untuk",
+  "biaya",
+  "tarif",
+  "servis",
+  "ingin",
+  "mau",
+  "tanya",
+  "ada",
+]);
 
 function parseKeyValueParts(content: string) {
   return content
@@ -1291,6 +1306,16 @@ function scoreStructuredSheetRow(
     specificationScore * 1.15,
   );
   const supportingScore = includeScore * 0.7;
+  const identityTokens = new Set(
+    tokenize([row.name, row.category, row.specification].filter(Boolean).join(" ")),
+  );
+  const specificQueryTokens = tokenize(messageText).filter(
+    (token) => !STRUCTURED_QUERY_NOISE_TOKENS.has(token),
+  );
+  const identityCoverage = specificQueryTokens.length
+    ? specificQueryTokens.filter((token) => identityTokens.has(token)).length /
+      specificQueryTokens.length
+    : 0;
 
   if (askingPrice && primaryScore < 0.45) {
     return 0;
@@ -1301,7 +1326,13 @@ function scoreStructuredSheetRow(
   }
 
   const priceBoost = askingPrice && (row.priceStart || row.priceMax) ? 0.12 : 0;
-  return Math.min(1, Math.max(primaryScore, supportingScore) + priceBoost);
+  // Model/type terms such as "Genio" must outrank a package that only matches
+  // generic words like "upgrade CVT". Keep this above the confidence cap so it
+  // remains a ranking signal even when both candidates are strong matches.
+  return Math.min(
+    1.4,
+    Math.max(primaryScore, supportingScore) + priceBoost + identityCoverage * 0.22,
+  );
 }
 
 function formatGoogleSheetReply(content: string): string {
@@ -2020,7 +2051,6 @@ export async function generateReplyDecision(
   const googleSheetMatch = await findBestGoogleSheetMatch(routedMessage);
   const isSheetMatch =
     googleSheetMatch &&
-    googleSheetMatch.confidence >= staticKnowledgeThreshold &&
     !isInstructionOnly(googleSheetMatch.reply);
 
   // B. FAQ Match

@@ -80,20 +80,45 @@ function extractGoogleSheetGid(url: string) {
   return hashMatch?.[1] ?? "0";
 }
 
-function buildGoogleSheetExportCandidates(url: string) {
+type GoogleSheetExportCandidate = {
+  url: string;
+  fileName: string;
+  mimeType: string;
+};
+
+function buildGoogleSheetExportCandidates(url: string): GoogleSheetExportCandidate[] {
   if (/\/export\?/i.test(url)) {
-    return [url];
+    return [{
+      url,
+      fileName: "google-sheet.csv",
+      mimeType: "text/csv",
+    }];
   }
 
   const sheetId = extractGoogleSheetId(url);
   if (!sheetId) {
-    return [url];
+    return [{
+      url,
+      fileName: "google-sheet.csv",
+      mimeType: "text/csv",
+    }];
   }
 
   const gid = extractGoogleSheetGid(url);
 
   return [
-    `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`,
+    {
+      // Workbook export includes every tab, not only the active/default gid.
+      url: `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`,
+      fileName: "google-sheet.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    },
+    {
+      // Retain a single-tab CSV fallback for Sheets that disallow workbook export.
+      url: `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`,
+      fileName: "google-sheet.csv",
+      mimeType: "text/csv",
+    },
   ];
 }
 
@@ -166,7 +191,7 @@ async function syncGoogleSheetSource(url: string) {
 
   for (const candidate of candidates) {
     try {
-      const payload = await fetchArrayBufferOrThrow(candidate);
+      const payload = await fetchArrayBufferOrThrow(candidate.url);
       const textContent = payload.buffer.toString("utf8");
 
       // Check if we fetched a Google login or HTML redirect page, which means the sheet is private
@@ -181,12 +206,10 @@ async function syncGoogleSheetSource(url: string) {
         );
       }
 
-      const extension = ".csv";
-
       return ingestKnowledgeDocument({
         id: `google_sheet-${extractGoogleSheetId(url) || "knowledge"}`,
-        fileName: `google-sheet${extension}`,
-        mimeType: payload.contentType || "text/csv",
+        fileName: candidate.fileName,
+        mimeType: payload.contentType || candidate.mimeType,
         buffer: payload.buffer,
         sourceType: "google_sheet",
         sourceUrl: url,
