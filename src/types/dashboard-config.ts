@@ -17,6 +17,16 @@ export type KnowledgeDocument = {
   syncedAt?: string;
 };
 
+export type KnowledgeGap = {
+  id: string;
+  question: string;
+  category: string;
+  sourceChannel: string;
+  occurrences: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+};
+
 export type TeamMember = {
   id: string;
   name: string;
@@ -301,6 +311,7 @@ export type DashboardConfig = {
       sentiment: "positive" | "neutral" | "negative";
       createdAt: string;
     }>;
+    pendingQuestions?: KnowledgeGap[];
   };
   channels: {
     webchat: {

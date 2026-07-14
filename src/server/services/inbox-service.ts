@@ -5,6 +5,7 @@ import type { DashboardConfig } from "@/types/dashboard-config";
 import {
   getDashboardConfigRecord,
   getDashboardOperationsRecord,
+  recordKnowledgeGap,
   saveDashboardOperationsRecord,
 } from "@/server/repositories/dashboard-repository";
 import { formatClockTime } from "@/lib/time";
@@ -421,6 +422,18 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     } catch (error) {
       console.error("generateReplyDecision failed", error);
       decision = buildSafeFallbackDecision(effectiveConfig);
+    }
+  }
+
+  if (decision.knowledgeGap) {
+    try {
+      await recordKnowledgeGap({
+        question: decision.knowledgeGap.question,
+        category: decision.knowledgeGap.category,
+        sourceChannel: input.channel,
+      });
+    } catch (error) {
+      console.error("[inbox-service] failed to record Knowledge Base candidate", error);
     }
   }
 

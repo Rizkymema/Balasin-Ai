@@ -32,18 +32,13 @@ export default function KnowledgeBasePage() {
   const [isSaved, setIsSaved] = useState(false);
   const [kbSubsection, setKbSubsection] = useState("resources");
 
-  const [unansweredQuestions, setUnansweredQuestions] = useState<string[]>([
-    "Apakah Johan Garage menerima servis motor listrik?",
-    "Berapa biaya ganti ban tubeless untuk motor NMax?",
-    "Apakah Johan Garage buka saat libur Idul Fitri?",
-  ]);
-
   const [inputMethodActive, setInputMethodActive] = useState<"none" | "url" | "sheet" | "text">("none");
   const [kbUrlInput, setKbUrlInput] = useState("");
   const [kbSheetInput, setKbSheetInput] = useState("");
   const [kbTextTitle, setKbTextTitle] = useState("");
   const [kbTextContent, setKbTextContent] = useState("");
   const [syncError, setSyncError] = useState("");
+  const [ingestSuccess, setIngestSuccess] = useState("");
   const [isSyncingKbSources, setIsSyncingKbSources] = useState(false);
   const [isIngestingText, setIsIngestingText] = useState(false);
   const [isUploadingKbFile, setIsUploadingKbFile] = useState(false);
@@ -100,6 +95,7 @@ export default function KnowledgeBasePage() {
     () => config?.knowledgeBase.documents.filter((d) => d.name.endsWith(".txt")).length || 0,
     [config]
   );
+  const unansweredQuestions = config?.knowledgeBase.pendingQuestions ?? [];
 
   const filteredKbDocs = useMemo(() => {
     const docs = config?.knowledgeBase.documents || [];
@@ -112,6 +108,12 @@ export default function KnowledgeBasePage() {
     data?: {
       failures?: Array<{ url: string; reason: string }>;
       syncedCount?: number;
+      syncedDocuments?: Array<{
+        id: string;
+        name: string;
+        sourceType: string;
+        chunkCount: number;
+      }>;
     };
     error?: string;
     details?: Array<{ url: string; reason: string }>;
@@ -139,6 +141,7 @@ export default function KnowledgeBasePage() {
     incomingGoogleSheetUrls?: string[];
   }) => {
     setSyncError("");
+    setIngestSuccess("");
     const combinedWebsiteUrls = Array.from(
       new Set([...(websiteUrls || []), ...(params.incomingWebsiteUrls || [])]),
     );
@@ -166,6 +169,14 @@ export default function KnowledgeBasePage() {
     if (payload.data?.failures?.length) {
       setSyncError(formatSyncFailureMessage(payload));
     }
+
+    const indexedChunks = (payload.data?.syncedDocuments ?? []).reduce(
+      (total, document) => total + document.chunkCount,
+      0,
+    );
+    setIngestSuccess(
+      `Sumber berhasil diindeks: ${indexedChunks} potongan data siap digunakan chatbot.`,
+    );
   };
 
   const handleSyncKbUrl = async (event: FormEvent) => {
@@ -220,6 +231,8 @@ export default function KnowledgeBasePage() {
     event.preventDefault();
     if (!kbTextTitle.trim() || !kbTextContent.trim()) return;
     setIsIngestingText(true);
+    setSyncError("");
+    setIngestSuccess("");
     try {
       const response = await fetch("/api/knowledge/text", {
         method: "POST",
@@ -227,12 +240,30 @@ export default function KnowledgeBasePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: kbTextTitle.trim() + ".txt", content: kbTextContent.trim() }),
       });
-      if (!response.ok) throw new Error("Gagal menyimpan teks fakta.");
-      setUnansweredQuestions((prev) => prev.filter((q) => q !== kbTextTitle.trim()));
+      const payload = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        data?: { chunkCount?: number };
+        error?: string;
+      } | null;
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error || "Gagal menyimpan teks fakta.");
+      }
+      await patchConfig((current) => ({
+        ...current,
+        knowledgeBase: {
+          ...current.knowledgeBase,
+          pendingQuestions: (current.knowledgeBase.pendingQuestions ?? []).filter(
+            (item) => item.question !== kbTextTitle.trim(),
+          ),
+        },
+      }));
       await refreshConfig();
       setKbTextTitle("");
       setKbTextContent("");
       setInputMethodActive("none");
+      setIngestSuccess(
+        `Konten teks berhasil diindeks: ${payload.data?.chunkCount ?? 0} potongan data siap digunakan chatbot.`,
+      );
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2500);
     } catch (e) {
@@ -246,6 +277,8 @@ export default function KnowledgeBasePage() {
     const file = event.target.files?.[0];
     if (!file) return;
     setIsUploadingKbFile(true);
+    setSyncError("");
+    setIngestSuccess("");
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -254,14 +287,25 @@ export default function KnowledgeBasePage() {
         credentials: "include",
         body: formData,
       });
-      if (!response.ok) throw new Error("Gagal mengunggah file.");
+      const payload = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        data?: { chunkCount?: number };
+        error?: string;
+      } | null;
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error || "Gagal mengunggah file.");
+      }
       await refreshConfig();
+      setIngestSuccess(
+        `File berhasil diindeks: ${payload.data?.chunkCount ?? 0} potongan data siap digunakan chatbot.`,
+      );
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2500);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Gagal mengunggah berkas.");
     } finally {
       setIsUploadingKbFile(false);
+      event.target.value = "";
     }
   };
 
@@ -282,8 +326,20 @@ export default function KnowledgeBasePage() {
     setKbSubsection("resources");
   };
 
-  const handleDismissQuestion = (question: string) => {
-    setUnansweredQuestions((prev) => prev.filter((q) => q !== question));
+  const handleDismissQuestion = async (id: string) => {
+    try {
+      await patchConfig((current) => ({
+        ...current,
+        knowledgeBase: {
+          ...current.knowledgeBase,
+          pendingQuestions: (current.knowledgeBase.pendingQuestions ?? []).filter(
+            (item) => item.id !== id,
+          ),
+        },
+      }));
+    } catch {
+      alert("Gagal mengabaikan kandidat pertanyaan.");
+    }
   };
 
   const handleSaveInstructions = async (event: FormEvent) => {
@@ -494,18 +550,23 @@ export default function KnowledgeBasePage() {
                     Tidak ada pertanyaan tak terjawab saat ini. Sistem bekerja sempurna!
                   </div>
                 ) : (
-                  unansweredQuestions.map((question, idx) => (
+                  unansweredQuestions.map((question) => (
                     <div
-                      key={idx}
+                      key={question.id}
                       className="rounded-xl border border-white/8 bg-white/[0.02] p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
                     >
-                      <p className="text-xs font-semibold text-slate-200">{question}</p>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-200">{question.question}</p>
+                        <p className="mt-1 text-[10px] text-slate-500">
+                          Kategori: {question.category} - muncul {question.occurrences}x dari {question.sourceChannel}
+                        </p>
+                      </div>
                       <div className="flex gap-2 shrink-0">
-                        <Button onClick={() => handleAnswerQuestion(question)} className="text-[10px] h-8 px-3 rounded-lg">
+                        <Button onClick={() => handleAnswerQuestion(question.question)} className="text-[10px] h-8 px-3 rounded-lg">
                           Jawab via Text Content
                         </Button>
                         <button
-                          onClick={() => handleDismissQuestion(question)}
+                          onClick={() => void handleDismissQuestion(question.id)}
                           className="text-[10px] h-8 px-3 rounded-lg border border-white/10 text-slate-400 hover:text-white"
                         >
                           Abaikan
@@ -742,6 +803,12 @@ export default function KnowledgeBasePage() {
               <div className="flex items-center gap-1.5 rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-3 text-xs font-bold text-emerald-400">
                 <Check className="h-4 w-4" />
                 Knowledge Base diperbarui! AI Inbox langsung menggunakan data baru ini.
+              </div>
+            )}
+            {ingestSuccess && (
+              <div className="flex items-center gap-1.5 rounded-xl border border-cyan-400/20 bg-cyan-950/20 p-3 text-xs font-bold text-cyan-200">
+                <Check className="h-4 w-4" />
+                {ingestSuccess}
               </div>
             )}
           </div>

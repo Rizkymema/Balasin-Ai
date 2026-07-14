@@ -229,7 +229,12 @@ export async function syncKnowledgeSources(config: DashboardConfig) {
   const websiteUrls = uniqueUrls(config.knowledgeBase.websiteUrls);
   const googleSheetUrls = uniqueUrls(config.knowledgeBase.googleSheetUrls);
   const failures: SyncFailure[] = [];
-  const syncedDocuments: Array<{ id: string; name: string; sourceType: string }> = [];
+  const syncedDocuments: Array<{
+    id: string;
+    name: string;
+    sourceType: string;
+    chunkCount: number;
+  }> = [];
 
   // Gabungkan semua Google Sheet URL dari kedua sumber agar prune tidak salah hapus
   // (sync route memindahkan Sheet URLs dari websiteUrls ke googleSheetUrls,
@@ -260,6 +265,7 @@ export async function syncKnowledgeSources(config: DashboardConfig) {
         id: result.document.id,
         name: result.document.name,
         sourceType: "website",
+        chunkCount: result.chunks.length,
       });
     } catch (error) {
       failures.push({
@@ -280,6 +286,7 @@ export async function syncKnowledgeSources(config: DashboardConfig) {
         id: result.document.id,
         name: result.document.name,
         sourceType: "google_sheet",
+        chunkCount: result.chunks.length,
       });
     } catch (error) {
       const reason = error instanceof Error

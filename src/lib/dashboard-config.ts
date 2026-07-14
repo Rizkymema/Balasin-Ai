@@ -134,6 +134,7 @@ export const defaultDashboardConfig: DashboardConfig = {
     websiteUrls: [],
     googleSheetUrls: [],
     sentimentCorrections: [],
+    pendingQuestions: [],
   },
   channels: {
     webchat: {
@@ -261,6 +262,9 @@ export function mergeDashboardConfig(
       sentimentCorrections:
         incoming.knowledgeBase?.sentimentCorrections ??
         base.knowledgeBase.sentimentCorrections ?? [],
+      pendingQuestions:
+        incoming.knowledgeBase?.pendingQuestions ??
+        base.knowledgeBase.pendingQuestions ?? [],
     },
     channels: {
       webchat: { ...base.channels.webchat, ...incoming.channels?.webchat },

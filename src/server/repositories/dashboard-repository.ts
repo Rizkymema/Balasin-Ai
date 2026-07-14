@@ -34,6 +34,7 @@ import type {
   DashboardConfig,
   FAQItem,
   KnowledgeDocument,
+  KnowledgeGap,
   KnowledgeSourceType,
 } from "@/types/dashboard-config";
 import type {
@@ -445,6 +446,63 @@ export async function saveDashboardConfigRecord(config: DashboardConfig) {
     "knowledge_documents",
     nextConfig.knowledgeBase.documents,
   );
+}
+
+const MAX_PENDING_KNOWLEDGE_QUESTIONS = 100;
+
+function normalizeKnowledgeGapQuestion(question: string) {
+  return question.toLocaleLowerCase("id-ID").replace(/\s+/g, " ").trim();
+}
+
+export async function recordKnowledgeGap(input: {
+  question: string;
+  category: string;
+  sourceChannel: string;
+}) {
+  const question = input.question.replace(/\s+/g, " ").trim().slice(0, 1_000);
+  if (!question) {
+    return;
+  }
+
+  const config = await getDashboardConfigRecord();
+  const now = new Date().toISOString();
+  const normalizedQuestion = normalizeKnowledgeGapQuestion(question);
+  const pendingQuestions = config.knowledgeBase.pendingQuestions ?? [];
+  const existing = pendingQuestions.find(
+    (item) => normalizeKnowledgeGapQuestion(item.question) === normalizedQuestion,
+  );
+  const nextPendingQuestions: KnowledgeGap[] = existing
+    ? pendingQuestions.map((item) =>
+        item.id === existing.id
+          ? {
+              ...item,
+              category: input.category,
+              sourceChannel: input.sourceChannel,
+              occurrences: item.occurrences + 1,
+              lastSeenAt: now,
+            }
+          : item,
+      )
+    : [
+        {
+          id: randomUUID(),
+          question,
+          category: input.category,
+          sourceChannel: input.sourceChannel,
+          occurrences: 1,
+          firstSeenAt: now,
+          lastSeenAt: now,
+        },
+        ...pendingQuestions,
+      ].slice(0, MAX_PENDING_KNOWLEDGE_QUESTIONS);
+
+  await saveDashboardConfigRecord({
+    ...config,
+    knowledgeBase: {
+      ...config.knowledgeBase,
+      pendingQuestions: nextPendingQuestions,
+    },
+  });
 }
 
 export async function getDashboardOperationsRecord(): Promise<DashboardOperationsData> {
@@ -970,6 +1028,12 @@ export async function ingestKnowledgeTextSource(params: {
     sourceUrl: params.sourceUrl,
   });
 
+  if (chunks.length === 0) {
+    throw new Error(
+      "Konten knowledge kosong atau tidak dapat dibuat menjadi indeks pencarian.",
+    );
+  }
+
   await upsertKnowledgeDocumentRecord(document);
   await replaceKnowledgeChunksForDocument(documentId, chunks);
 
@@ -989,11 +1053,6 @@ export async function ingestKnowledgeDocument(params: {
   sourceUrl?: string;
 }) {
   const documentId = params.id ?? randomUUID();
-  const uploadDir = getUploadDirectory();
-  const normalizedName = params.fileName.replace(/[^a-zA-Z0-9._-]/g, "-");
-  const savedPath = join(uploadDir, `${documentId}-${normalizedName}`);
-  writeFileSync(savedPath, params.buffer);
-
   const { chunks, extractedText } = await buildKnowledgeChunksFromBuffer({
     documentId,
     fileName: params.fileName,
@@ -1002,6 +1061,17 @@ export async function ingestKnowledgeDocument(params: {
     sourceType: params.sourceType ?? "upload",
     sourceUrl: params.sourceUrl,
   });
+
+  if (chunks.length === 0) {
+    throw new Error(
+      "Konten dokumen tidak dapat dibaca. Pastikan file berisi teks yang dapat dipilih atau gunakan CSV, TXT, DOCX, atau PDF berbasis teks.",
+    );
+  }
+
+  const uploadDir = getUploadDirectory();
+  const normalizedName = params.fileName.replace(/[^a-zA-Z0-9._-]/g, "-");
+  const savedPath = join(uploadDir, `${documentId}-${normalizedName}`);
+  writeFileSync(savedPath, params.buffer);
 
   const document: KnowledgeDocument = {
     id: documentId,
