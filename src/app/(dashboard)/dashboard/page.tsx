@@ -355,98 +355,96 @@ export default function DashboardPage() {
   const checklistPercentage = Math.round((completedChecklist / setupChecklist.length) * 100);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 md:p-8">
-        <div className="relative z-10 space-y-2">
+      <div className="relative overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 md:p-5">
+        <div className="relative z-10 space-y-1">
           <div className="flex items-center gap-2">
-            <Badge className="border-[var(--color-success)]/20 bg-[var(--color-success)]/10 text-[var(--color-success)] text-[10px]">
+            <Badge className="border-[var(--color-success)]/20 bg-[var(--color-success)]/10 text-[var(--color-success)] text-[9px] px-1.5 py-0">
               Sistem Aktif
             </Badge>
-            <span className="text-xs text-[var(--color-muted)] font-medium">
+            <span className="text-[10px] text-[var(--color-muted)] font-medium">
               Timezone: {config.workspace.timezone}
             </span>
           </div>
-          <h1 className="text-2xl font-bold text-white md:text-3xl tracking-tight mt-1">
+          <h1 className="text-xl font-bold text-white md:text-2xl tracking-tight">
             Selamat datang di Workspace <span className="text-[var(--color-brand)]">{config.workspace.name}</span>
           </h1>
-          <p className="max-w-3xl text-sm leading-relaxed text-[var(--color-muted)]">
+          <p className="max-w-2xl text-xs leading-relaxed text-[var(--color-muted)] font-normal">
             Kelola interaksi pelanggan, automasi AI assistant, basis pengetahuan FAQ, booking slot, dan ticket eskalasi dalam satu panel kontrol terpusat yang aman dan andal.
           </p>
         </div>
       </div>
 
       {/* Stats Cards Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
 
           return (
-            <Card key={stat.label} className="relative overflow-hidden p-5 bg-[var(--color-surface)] hover:border-[var(--color-border-hover)] transition duration-200">
+            <Card key={stat.label} className="relative overflow-hidden p-4 bg-[var(--color-surface)] hover:border-[var(--color-border-hover)] transition duration-200">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]">
+                <span className="text-[9px] font-extrabold uppercase tracking-widest text-[var(--color-muted)]">
                   {stat.label}
                 </span>
-                <div className={`flex h-8 w-8 items-center justify-center rounded border ${stat.color}`}>
-                  <Icon className="h-4 w-4" />
+                <div className={`flex h-7 w-7 items-center justify-center rounded border ${stat.color}`}>
+                  <Icon className="h-3.5 w-3.5" />
                 </div>
               </div>
-              <div className="mt-4">
-                <span className="font-sans text-3xl font-extrabold text-white tracking-tight">
+              <div className="mt-2.5 flex items-baseline gap-2">
+                <span className="font-sans text-2xl font-extrabold text-white tracking-tight">
                   {stat.value}
                 </span>
-                <div className="mt-2 flex items-center gap-1.5">
-                  <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${stat.badgeColor}`}>
-                    {stat.badgeText}
-                  </span>
-                </div>
-                <p className="mt-3 text-[11px] leading-5 text-[var(--color-muted)]">
-                  {stat.note}
-                </p>
+                <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-bold ${stat.badgeColor}`}>
+                  {stat.badgeText}
+                </span>
               </div>
+              <p className="mt-1 text-[10px] text-[var(--color-muted)] truncate" title={stat.note}>
+                {stat.note}
+              </p>
             </Card>
           );
         })}
       </div>
 
       {/* Main Content Layout Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Left Column: Control Center & Checklist */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4">
           {/* Operational Control Center */}
-          <Card className="p-6 bg-[var(--color-surface)]">
-            <div className="border-b border-[var(--color-border)] pb-4 mb-5">
-              <h3 className="text-base font-bold tracking-tight text-white">
+          <Card className="p-4 md:p-5 bg-[var(--color-surface)]">
+            <div className="border-b border-[var(--color-border)] pb-3 mb-4">
+              <h3 className="text-sm font-bold tracking-tight text-white">
                 Pusat Kendali Operasional
               </h3>
-              <p className="mt-1 text-xs text-[var(--color-muted)]">
+              <p className="mt-0.5 text-[11px] text-[var(--color-muted)]">
                 Akses cepat ke berbagai modul utama untuk mengelola respon dan layanan bisnis Anda.
               </p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               {controlCenterCards.map((card) => {
                 const Icon = card.icon;
                 return (
                   <Link
                     key={card.title}
                     href={card.href}
-                    className="flex flex-col justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-strong)]/30 p-4 transition-all duration-200 hover:border-[var(--color-border-hover)] hover:bg-[var(--color-surface-hover)]/30 group"
+                    className="flex flex-col justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-strong)]/30 p-3.5 transition-all duration-200 hover:border-[var(--color-border-hover)] hover:bg-[var(--color-surface-hover)]/30 group"
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[var(--color-brand)]">
-                          <Icon className="h-3.5 w-3.5" />
+                        <div className="flex h-6 w-6 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[var(--color-brand)]">
+                          <Icon className="h-3 w-3" />
                         </div>
-                        <h4 className="text-sm font-bold text-white tracking-tight group-hover:text-[var(--color-brand)] transition-colors duration-150">
+                        <h4 className="text-xs font-bold text-white tracking-tight group-hover:text-[var(--color-brand)] transition-colors duration-150">
                           {card.title}
                         </h4>
                       </div>
-                      <p className="mt-3 text-xs leading-relaxed text-[var(--color-muted)]">
+                      <p className="mt-2 text-[11px] leading-normal text-[var(--color-muted)]">
                         {card.detail}
                       </p>
                     </div>
-                    <div className="mt-4 flex items-center gap-1.5 text-[11px] font-bold text-[var(--color-brand)] group-hover:text-[var(--color-brand-hover)] transition-colors duration-150">
+                    <div className="mt-3 flex items-center gap-1.5 text-[10px] font-bold text-[var(--color-brand)] group-hover:text-[var(--color-brand-hover)] transition-colors duration-150">
                       Buka Modul
                       <ArrowRight className="h-3 w-3 transform group-hover:translate-x-0.5 transition-transform duration-150" />
                     </div>
@@ -457,30 +455,30 @@ export default function DashboardPage() {
           </Card>
 
           {/* Setup Checklist Progress */}
-          <Card className="p-6 bg-[var(--color-surface)] border border-[var(--color-border)]">
-            <div className="border-b border-[var(--color-border)] pb-4 mb-6">
+          <Card className="p-4 md:p-5 bg-[var(--color-surface)] border border-[var(--color-border)]">
+            <div className="border-b border-[var(--color-border)] pb-3 mb-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
-                  <h3 className="text-base font-bold tracking-tight text-white flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-[var(--color-brand)] animate-pulse" />
+                  <h3 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+                    <Zap className="h-4.5 w-4.5 text-[var(--color-brand)] animate-pulse" />
                     Panduan Cepat Mulai Balesin AI
                   </h3>
-                  <p className="mt-1 text-xs text-[var(--color-muted)]">
+                  <p className="mt-0.5 text-[11px] text-[var(--color-muted)]">
                     Ikuti 5 langkah mudah berikut untuk mengaktifkan asisten AI pintar di bengkel Anda.
                   </p>
                 </div>
-                <Badge className="border-[var(--color-brand)]/20 bg-[var(--color-brand)]/5 text-[var(--color-brand)] font-bold px-2.5 py-1 text-xs">
+                <Badge className="border-[var(--color-brand)]/20 bg-[var(--color-brand)]/5 text-[var(--color-brand)] font-bold px-2 py-0.5 text-[10px] shrink-0 self-start sm:self-center">
                   {completedChecklist} dari {setupChecklist.length} Siap
                 </Badge>
               </div>
 
               {/* Progress Bar */}
-              <div className="mt-4">
-                <div className="flex justify-between text-[10px] font-bold text-[var(--color-muted)] mb-2 uppercase tracking-wider">
+              <div className="mt-3">
+                <div className="flex justify-between text-[9px] font-bold text-[var(--color-muted)] mb-1.5 uppercase tracking-wider">
                   <span>Kelengkapan Sistem</span>
                   <span>{checklistPercentage}%</span>
                 </div>
-                <div className="h-2 w-full bg-[var(--color-surface-strong)] rounded-full overflow-hidden border border-[var(--color-border)] p-[1px]">
+                <div className="h-1.5 w-full bg-[var(--color-surface-strong)] rounded-full overflow-hidden border border-[var(--color-border)] p-[1px]">
                   <div
                     className="h-full bg-gradient-to-r from-[var(--color-brand)] to-cyan-400 rounded-full transition-all duration-500 ease-out"
                     style={{ width: `${checklistPercentage}%` }}
@@ -490,7 +488,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Interactive Timeline Roadmap */}
-            <div className="relative border-l-2 border-white/8 ml-3.5 pl-6 space-y-8">
+            <div className="relative border-l border-white/10 ml-2.5 pl-5 space-y-4">
               {[
                 {
                   step: 1,
@@ -530,28 +528,28 @@ export default function DashboardPage() {
                   desc: "Monitor semua chat yang masuk secara terpadu. Admin manusia dapat mengambil alih percakapan kapan saja untuk kenyamanan pelanggan.",
                   href: "/inbox",
                   complete: true,
-                  actionText: "Buka Inbox Percakapan",
+                  actionText: "Buka Inbox",
                 },
               ].map((item) => {
                 const isStepComplete = item.complete;
                 return (
                   <div key={item.step} className="relative group">
                     {/* Circle Indicator */}
-                    <div className={`absolute -left-[35px] top-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 transition-all duration-200 ${
+                    <div className={`absolute -left-[29px] top-1 flex h-[16px] w-[16px] items-center justify-center rounded-full border transition-all duration-200 ${
                       isStepComplete
-                        ? "bg-[var(--color-success)] border-[var(--color-success)] text-slate-950 font-bold"
-                        : "bg-[var(--color-surface)] border-slate-600 text-slate-500 font-semibold"
+                        ? "bg-[var(--color-success)] border-[var(--color-success)] text-slate-950"
+                        : "bg-[var(--color-surface)] border-slate-600 text-slate-500"
                     }`}>
                       {isStepComplete ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 text-slate-950 stroke-[3px]" />
+                        <CheckCircle2 className="h-3 w-3 text-slate-950 stroke-[3px]" />
                       ) : (
-                        <span className="text-[9px]">{item.step}</span>
+                        <span className="text-[8px] font-bold">{item.step}</span>
                       )}
                     </div>
 
                     {/* Content Area */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-white/4 bg-white/[0.01] p-4 transition-all duration-150 group-hover:border-white/8 group-hover:bg-white/[0.03]">
-                      <div className="space-y-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-white/5 bg-white/[0.01] p-3 transition-all duration-150 group-hover:border-white/10 group-hover:bg-white/[0.02]">
+                      <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
                           <h4 className={`text-xs font-bold tracking-tight transition-colors duration-150 ${
                             isStepComplete ? "text-emerald-400" : "text-white"
@@ -559,7 +557,7 @@ export default function DashboardPage() {
                             Langkah {item.step}: {item.title}
                           </h4>
                           {isStepComplete && (
-                            <span className="rounded bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 text-[9px] font-black text-emerald-400 uppercase tracking-wider">
+                            <span className="rounded bg-emerald-500/10 border border-emerald-500/20 px-1 py-0.2 text-[8px] font-bold text-emerald-400 uppercase tracking-wider">
                               Selesai
                             </span>
                           )}
@@ -572,26 +570,26 @@ export default function DashboardPage() {
                       {item.href ? (
                         <Link
                           href={item.href}
-                          className={`inline-flex items-center justify-center h-8.5 px-4 rounded-lg text-[10px] font-bold tracking-tight transition-all shrink-0 ${
+                          className={`inline-flex items-center justify-center h-7.5 px-3 rounded-lg text-[10px] font-bold tracking-tight transition-all shrink-0 ${
                             isStepComplete
                               ? "bg-white/5 border border-white/8 text-slate-300 hover:bg-white/10"
                               : "bg-[var(--color-brand)] text-slate-950 hover:bg-[var(--color-brand-hover)] shadow-sm"
                           }`}
                         >
                           {item.actionText}
-                          <ArrowRight className="h-3 w-3 ml-1.5 transform transition-transform group-hover:translate-x-0.5" />
+                          <ArrowRight className="h-3 w-3 ml-1 transform transition-transform group-hover:translate-x-0.5" />
                         </Link>
                       ) : (
                         <button
                           onClick={item.onClick}
-                          className={`inline-flex items-center justify-center h-8.5 px-4 rounded-lg text-[10px] font-bold tracking-tight transition-all shrink-0 ${
+                          className={`inline-flex items-center justify-center h-7.5 px-3 rounded-lg text-[10px] font-bold tracking-tight transition-all shrink-0 ${
                             isStepComplete
                               ? "bg-white/5 border border-white/8 text-slate-300 hover:bg-white/10"
                               : "bg-[var(--color-brand)] text-slate-950 hover:bg-[var(--color-brand-hover)] shadow-sm"
                           }`}
                         >
                           {item.actionText}
-                          <ArrowRight className="h-3 w-3 ml-1.5 transform transition-transform group-hover:translate-x-0.5" />
+                          <ArrowRight className="h-3 w-3 ml-1 transform transition-transform group-hover:translate-x-0.5" />
                         </button>
                       )}
                     </div>
@@ -603,26 +601,26 @@ export default function DashboardPage() {
         </div>
 
         {/* Right Column: API Credentials Info & Workspace Snapshot */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Security & Env Configuration Card */}
-          <Card className="p-6 bg-[var(--color-surface)] border border-[var(--color-border)]">
-            <div className="flex items-center gap-2.5 border-b border-[var(--color-border)] pb-4 mb-4">
-              <ShieldCheck className="h-5 w-5 text-[var(--color-success)]" />
-              <h3 className="text-sm font-bold tracking-tight text-white">
+          <Card className="p-4 md:p-5 bg-[var(--color-surface)] border border-[var(--color-border)]">
+            <div className="flex items-center gap-2 border-b border-[var(--color-border)] pb-2.5 mb-3">
+              <ShieldCheck className="h-4.5 w-4.5 text-[var(--color-success)]" />
+              <h3 className="text-xs font-bold tracking-tight text-white">
                 Kredensial & Integrasi Aman
               </h3>
             </div>
-            <p className="text-xs leading-relaxed text-[var(--color-muted)]">
-              Untuk menjamin keamanan operasional, seluruh token API pihak ketiga, secret token webhook, App URL, dan session key tidak disimpan di database frontend, melainkan dikelola langsung melalui variabel lingkungan server (*environment variables*).
+            <p className="text-[11px] leading-relaxed text-[var(--color-muted)]">
+              Untuk menjamin keamanan operasional, seluruh token API pihak ketiga, secret token webhook, App URL, dan session key tidak disimpan di database, melainkan dikelola langsung melalui variabel lingkungan server (*environment variables*).
             </p>
-            <div className="mt-4 space-y-2 border-t border-[var(--color-border)] pt-4">
-              <div className="flex items-center justify-between text-[11px] py-1">
+            <div className="mt-3 space-y-1.5 border-t border-[var(--color-border)] pt-3">
+              <div className="flex items-center justify-between text-[10px] py-0.5">
                 <span className="text-[var(--color-muted)] font-medium">App Environment</span>
-                <Badge className="bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/20 text-[10px] px-2 py-0">
+                <Badge className="bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/20 text-[9px] px-1.5 py-0">
                   Secure Live
                 </Badge>
               </div>
-              <div className="flex items-center justify-between text-[11px] py-1">
+              <div className="flex items-center justify-between text-[10px] py-0.5">
                 <span className="text-[var(--color-muted)] font-medium">AI Provider API Key</span>
                 <span className="font-mono text-slate-300">
                   {config.aiProvider.enabled && config.aiProvider.apiKey.trim()
@@ -630,7 +628,7 @@ export default function DashboardPage() {
                     : "Not Configured"}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-[11px] py-1">
+              <div className="flex items-center justify-between text-[10px] py-0.5">
                 <span className="text-[var(--color-muted)] font-medium">Workspace Status</span>
                 <span className="text-[var(--color-success)] font-semibold flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)] animate-pulse" />
@@ -641,53 +639,53 @@ export default function DashboardPage() {
           </Card>
 
           {/* System Workspace Snapshot */}
-          <Card className="p-6 bg-[var(--color-surface)]">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-white border-b border-[var(--color-border)] pb-3 mb-4">
+          <Card className="p-4 md:p-5 bg-[var(--color-surface)]">
+            <h3 className="text-[10px] font-extrabold uppercase tracking-widest text-white border-b border-[var(--color-border)] pb-2.5 mb-3">
               Snapshot Workspace
             </h3>
-            <div className="space-y-3.5">
-              <div className="flex items-start gap-3 text-xs">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[10px] font-bold text-[var(--color-brand)]">
+            <div className="space-y-2.5">
+              <div className="flex items-start gap-2.5 text-xs">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-[var(--color-brand)]">
                   WS
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-white text-[11px]">Workspace</p>
+                  <p className="font-bold text-white text-[10px]">Workspace</p>
                   <p className="text-[10px] text-[var(--color-muted)] mt-0.5 truncate">
                     {config.workspace.name} ({config.workspace.industry})
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 text-xs">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[10px] font-bold text-[var(--color-brand)]">
+              <div className="flex items-start gap-2.5 text-xs">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-[var(--color-brand)]">
                   AI
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-white text-[11px]">Asisten Bot</p>
+                  <p className="font-bold text-white text-[10px]">Asisten Bot</p>
                   <p className="text-[10px] text-[var(--color-muted)] mt-0.5 truncate">
                     {config.aiAgent.name} | {config.aiAgent.blacklist.length} blacklist kata
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 text-xs">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[10px] font-bold text-[var(--color-brand)]">
+              <div className="flex items-start gap-2.5 text-xs">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-[var(--color-brand)]">
                   TK
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-white text-[11px]">Support Desk</p>
+                  <p className="font-bold text-white text-[10px]">Support Desk</p>
                   <p className="text-[10px] text-[var(--color-muted)] mt-0.5">
-                    {data.tickets.filter((t) => t.status === "in_progress").length} tiket sedang diproses operator
+                    {data.tickets.filter((t) => t.status === "in_progress").length} tiket diproses operator
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 text-xs">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[10px] font-bold text-[var(--color-brand)]">
+              <div className="flex items-start gap-2.5 text-xs">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-[var(--color-brand)]">
                   BC
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-white text-[11px]">Kampanye Broadcast</p>
+                  <p className="font-bold text-white text-[10px]">Kampanye Broadcast</p>
                   <p className="text-[10px] text-[var(--color-muted)] mt-0.5">
                     {data.broadcasts.filter((item) => item.status === "sent").length} terkirim | {data.broadcasts.filter((item) => item.status === "scheduled").length} dijadwalkan
                   </p>

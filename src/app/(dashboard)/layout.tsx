@@ -318,7 +318,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside
         className={`fixed inset-y-0 left-0 z-45 border-r border-[var(--color-border)] bg-[var(--color-surface-strong)] transition-all duration-300 md:translate-x-0 md:static ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } ${isMainSidebarCollapsed ? "w-20" : "w-64"}`}
+        } ${isMainSidebarCollapsed ? "md:w-20 w-64" : "w-64"}`}
       >
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
@@ -327,20 +327,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-brand)] shrink-0">
                 <Building2 className="h-4.5 w-4.5" />
               </div>
-              {hasMounted && !isMainSidebarCollapsed && (
-                <span className="font-heading font-bold text-lg whitespace-nowrap">
+              {hasMounted && (
+                <span className={`font-heading font-bold text-lg whitespace-nowrap ${isMainSidebarCollapsed ? "md:hidden" : ""}`}>
                   Balesin<span className="text-slate-400"> Desk</span>
                 </span>
               )}
             </Link>
-            {!isMainSidebarCollapsed && (
-              <button
-                onClick={() => setIsSidebarOpen(false)}
-                className="p-1 rounded text-slate-400 hover:bg-[var(--color-surface-hover)] md:hidden"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            )}
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="p-1 rounded text-slate-400 hover:bg-[var(--color-surface-hover)] md:hidden"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
 
           {/* Workspace Switcher */}
@@ -348,14 +346,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Dropdown
               trigger={
                 hasMounted && isMainSidebarCollapsed ? (
-                  <div
-                    onMouseEnter={(e) => handleMouseEnter(e, businessName)}
-                    onMouseLeave={handleMouseLeave}
-                    onClick={handleMouseLeave}
-                    className="flex h-10 w-10 mx-auto cursor-pointer items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] transition duration-200 text-[var(--color-brand)] font-black text-sm shadow-sm"
-                  >
-                    {businessName.substring(0, 2).toUpperCase()}
-                  </div>
+                  <>
+                    <div
+                      onMouseEnter={(e) => handleMouseEnter(e, businessName)}
+                      onMouseLeave={handleMouseLeave}
+                      onClick={handleMouseLeave}
+                      className="hidden md:flex h-10 w-10 mx-auto cursor-pointer items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] transition duration-200 text-[var(--color-brand)] font-black text-sm shadow-sm"
+                    >
+                      {businessName.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex md:hidden items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 hover:bg-[var(--color-surface-hover)] transition duration-200 cursor-pointer">
+                      <div className="flex items-center gap-2 max-w-[170px]">
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] text-[var(--color-brand)] border border-[var(--color-brand)]/20 text-xs font-bold font-heading">
+                          {businessName.substring(0, 2).toUpperCase()}
+                        </div>
+                        <span className="text-xs font-semibold text-[var(--color-text)] truncate">
+                          {businessName}
+                        </span>
+                      </div>
+                      <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                    </div>
+                  </>
                 ) : (
                   <div className="flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 hover:bg-[var(--color-surface-hover)] transition duration-200 cursor-pointer">
                     <div className="flex items-center gap-2 max-w-[170px]">
@@ -407,19 +418,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     isActive
                       ? "bg-[var(--color-surface)] border border-[var(--color-brand)]/25 text-[var(--color-brand)]"
                       : "text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white"
-                  } ${isMainSidebarCollapsed ? "justify-center px-1" : ""}`}
+                  } ${isMainSidebarCollapsed ? "md:justify-center md:px-1" : ""}`}
                 >
                   <span className="flex items-center gap-3">
                     <Icon className={`h-4.5 w-4.5 ${isActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
-                    {!isMainSidebarCollapsed && translatedLabel}
-                  </span>
-                  {!isMainSidebarCollapsed && dynamicBadge && (
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-brand)] text-[10px] font-bold text-slate-950">
-                      {dynamicBadge}
+                    <span className={isMainSidebarCollapsed ? "md:hidden" : ""}>
+                      {translatedLabel}
                     </span>
-                  )}
+                  </span>
+                  <span className={`flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-brand)] text-[10px] font-bold text-slate-950 ${
+                    dynamicBadge ? "" : "hidden"
+                  } ${isMainSidebarCollapsed ? "md:hidden" : ""}`}>
+                    {dynamicBadge}
+                  </span>
                   {isMainSidebarCollapsed && dynamicBadge && (
-                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-brand)] text-[8px] font-bold text-slate-950 shadow-[0_1px_4px_rgba(0,0,0,0.4)]">
+                    <span className="hidden md:flex absolute top-1 right-1 h-4 w-4 items-center justify-center rounded-full bg-[var(--color-brand)] text-[8px] font-bold text-slate-950 shadow-[0_1px_4px_rgba(0,0,0,0.4)]">
                       {dynamicBadge}
                     </span>
                   )}
@@ -443,20 +456,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       isAutomationActive
                         ? "bg-[var(--color-surface)] border border-[var(--color-brand)]/25 text-[var(--color-brand)]"
                         : "text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white"
-                    } ${isMainSidebarCollapsed ? "justify-center px-1" : ""}`}
+                    } ${isMainSidebarCollapsed ? "md:justify-center md:px-1" : ""}`}
                   >
                     <span className="flex items-center gap-3">
                       <Workflow className={`h-4.5 w-4.5 ${isAutomationActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
-                      {!isMainSidebarCollapsed && t.automation}
+                      <span className={isMainSidebarCollapsed ? "md:hidden" : ""}>
+                        {t.automation}
+                      </span>
                     </span>
-                    {!isMainSidebarCollapsed && (
-                      <ChevronDown className={`h-3.5 w-3.5 text-slate-500 transition-transform duration-200 ${isExpanded ? "" : "-rotate-90"}`} />
-                    )}
+                    <ChevronDown className={`h-3.5 w-3.5 text-slate-500 transition-transform duration-200 ${isExpanded ? "" : "-rotate-90"} ${isMainSidebarCollapsed ? "md:hidden" : ""}`} />
                   </Link>
 
                   {/* Sub-items */}
-                  {!isMainSidebarCollapsed && isExpanded && (
-                    <div className="ml-3 pl-3 border-l border-white/[0.06] space-y-0.5 py-1">
+                  {isExpanded && (
+                    <div className={`ml-3 pl-3 border-l border-white/[0.06] space-y-0.5 py-1 ${isMainSidebarCollapsed ? "md:hidden" : ""}`}>
                       {AUTOMATION_SUBNAV.map((sub) => {
                         const SubIcon = sub.icon;
                         const subActive = sub.exact
@@ -511,11 +524,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     isActive
                       ? "bg-[var(--color-surface)] border border-[var(--color-brand)]/25 text-[var(--color-brand)]"
                       : "text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white"
-                  } ${isMainSidebarCollapsed ? "justify-center px-1" : ""}`}
+                  } ${isMainSidebarCollapsed ? "md:justify-center md:px-1" : ""}`}
                 >
                   <span className="flex items-center gap-3">
                     <Icon className={`h-4.5 w-4.5 ${isActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
-                    {!isMainSidebarCollapsed && translatedLabel}
+                    <span className={isMainSidebarCollapsed ? "md:hidden" : ""}>
+                      {translatedLabel}
+                    </span>
                   </span>
                 </Link>
               );
@@ -545,16 +560,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* RIGHT CONTENT WORKSPACE */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* TOPBAR */}
-        <header className="h-16 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-xl flex items-center justify-between px-6 z-30 shrink-0">
-          <div className="flex items-center gap-4">
+        <header className="h-16 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 z-30 shrink-0">
+          <div className="flex items-center gap-4 min-w-0">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="p-2 -ml-2 rounded text-slate-400 hover:bg-[var(--color-surface-hover)] md:hidden"
+              className="p-2 -ml-2 rounded text-slate-400 hover:bg-[var(--color-surface-hover)] md:hidden shrink-0"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="text-sm font-semibold text-[var(--color-muted)]">
-              {t.workspace}: <span className="text-[var(--color-text)]">{businessName}</span>
+            <div className="text-sm font-semibold text-[var(--color-muted)] truncate max-w-[200px] sm:max-w-none">
+              {t.workspace}: <span className="text-[var(--color-text)] font-bold">{businessName}</span>
             </div>
           </div>
 
@@ -626,7 +641,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           className={`relative flex-1 ${
             isInboxRoute
               ? "flex min-h-0 flex-col overflow-y-auto p-3 lg:overflow-hidden lg:p-4"
-              : "overflow-y-auto custom-scrollbar p-6"
+              : "overflow-y-auto custom-scrollbar p-4 sm:p-6"
           }`}
         >
           <div
