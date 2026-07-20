@@ -528,12 +528,13 @@ function ApiIntegrationPanel({
 }: {
   integrations: ApiIntegration[];
   onChange: (v: ApiIntegration[]) => void;
-  onSave: () => void;
+  onSave: () => Promise<void>;
   isSaved: boolean;
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingApi, setEditingApi] = useState<ApiIntegration | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [testError, setTestError] = useState("");
   const primaryIntegration = integrations[0] ?? null;
 
   const handleSave = (data: Omit<ApiIntegration, "id" | "lastTest">) => {
@@ -545,12 +546,46 @@ function ApiIntegrationPanel({
     setEditingApi(null);
   };
 
-  const handleTest = (id: string) => {
+  const handleTest = async (id: string) => {
     setTestingId(id);
-    setTimeout(() => {
-      onChange(integrations.map((a) => a.id === id ? { ...a, lastTest: Math.random() > 0.3 ? "Success" : "Failed" } : a));
+    setTestError("");
+    try {
+      await onSave();
+      const response = await fetch("/api/automation/integrations/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ integrationId: id }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || "Tes koneksi API gagal.");
+      }
+      onChange(
+        integrations.map((integration) =>
+          integration.id === id
+            ? { ...integration, lastTest: payload.data.result as ApiTestResult }
+            : integration,
+        ),
+      );
+      if (payload.data.result !== "Success") {
+        setTestError(
+          `API merespons HTTP ${payload.data.status || 0}: ${payload.data.response || "tanpa respons"}`,
+        );
+      }
+    } catch (error) {
+      onChange(
+        integrations.map((integration) =>
+          integration.id === id
+            ? { ...integration, lastTest: "Failed" as const }
+            : integration,
+        ),
+      );
+      setTestError(
+        error instanceof Error ? error.message : "Tes koneksi API gagal.",
+      );
+    } finally {
       setTestingId(null);
-    }, 1500);
+    }
   };
 
   const methodColors: Record<ApiMethod, string> = {
@@ -619,7 +654,7 @@ function ApiIntegrationPanel({
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleTest(primaryIntegration.id)}
+                onClick={() => void handleTest(primaryIntegration.id)}
                 disabled={testingId === primaryIntegration.id}
                 className="rounded-lg border border-[var(--color-border)] p-2 text-slate-400 transition hover:bg-white/10 hover:text-[var(--color-brand)] disabled:opacity-50"
                 title="Test API"
@@ -643,6 +678,12 @@ function ApiIntegrationPanel({
             </div>
           </div>
         </Card>
+      )}
+
+      {testError && (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {testError}
+        </div>
       )}
 
       {isModalOpen && (

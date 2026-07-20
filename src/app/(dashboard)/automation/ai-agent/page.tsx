@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Bot,
   PlusCircle,
@@ -20,7 +20,6 @@ import {
   X,
   Send,
   Save,
-  Upload,
   FileText,
   AlertTriangle,
   BrainCircuit,
@@ -28,7 +27,7 @@ import {
 } from "lucide-react";
 
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
-import type { AIAgent, AIAgentTrainingSource } from "@/types/dashboard-config";
+import type { AIAgent } from "@/types/dashboard-config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -43,14 +42,6 @@ function AgentStatusBadge({ status }: { status: AIAgent["status"] }) {
   if (status === "Draft")
     return <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20">Draft</Badge>;
   return <Badge className="bg-slate-500/10 text-slate-400 border-slate-500/20">Inactive</Badge>;
-}
-
-function TrainingStatusBadge({ status }: { status: AIAgentTrainingSource["status"] }) {
-  if (status === "Indexed")
-    return <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">Indexed</span>;
-  if (status === "Processing")
-    return <span className="text-xs font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">Processing</span>;
-  return <span className="text-xs font-semibold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">Failed</span>;
 }
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
@@ -74,29 +65,67 @@ function EmptyAgentState({ onCreate }: { onCreate: () => void }) {
 
 // ─── Test Agent Panel ─────────────────────────────────────────────────────────
 function TestAgentPanel({ agent, onClose }: { agent: AIAgent; onClose: () => void }) {
-  const [messages, setMessages] = useState<{ sender: "user" | "ai"; text: string; confidence?: number }[]>([
+  const [messages, setMessages] = useState<Array<{
+    sender: "user" | "ai";
+    text: string;
+    confidence?: number;
+    source?: string;
+  }>>([
     { sender: "ai", text: `Halo! Saya ${agent.name}. Ada yang bisa saya bantu?` },
   ]);
   const [input, setInput] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState("");
 
-  const simulateReply = (userText: string) => {
-    const replies: Record<string, string> = {
-      "servis": "Untuk info servis, kami menyediakan servis ringan, servis lengkap, dan pengecekan menyeluruh. Bisa saya bantu jadwalkan booking?",
-      "harga": "Harga servis dimulai dari Rp 50.000 tergantung jenis layanan. Silakan sebutkan motor Anda agar saya bisa berikan estimasi lebih tepat.",
-      "booking": "Untuk booking, kirimkan nama, tipe motor, keluhan, dan jadwal yang diinginkan. Saya akan segera konfirmasi.",
-      "default": "Terima kasih atas pertanyaannya. Bisa saya bantu lebih lanjut?"
-    };
-    const lowerText = userText.toLowerCase();
-    const key = Object.keys(replies).find(k => lowerText.includes(k)) ?? "default";
-    return replies[key];
-  };
+  const handleSend = async () => {
+    const message = input.trim();
+    if (!message || isSending) return;
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-    const userMsg = { sender: "user" as const, text: input.trim() };
-    const aiReply = { sender: "ai" as const, text: simulateReply(input), confidence: Math.floor(Math.random() * 20) + 78 };
-    setMessages((prev) => [...prev, userMsg, aiReply]);
+    const userMsg = { sender: "user" as const, text: message };
+    const conversationMessages = [...messages, userMsg];
+    setMessages(conversationMessages);
     setInput("");
+    setError("");
+    setIsSending(true);
+
+    try {
+      const response = await fetch("/api/ai-agent/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message,
+          agentId: agent.id,
+          context: {
+            recentMessages: conversationMessages.map((item) => ({
+              sender: item.sender === "user" ? "customer" : "ai",
+              text: item.text,
+            })),
+          },
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || "Gagal menguji AI Agent.");
+      }
+
+      setMessages((current) => [
+        ...current,
+        {
+          sender: "ai",
+          text: payload.data.reply || "AI tidak menghasilkan balasan.",
+          confidence: payload.data.confidence,
+          source: payload.data.source,
+        },
+      ]);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Gagal menguji AI Agent.",
+      );
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -127,24 +156,34 @@ function TestAgentPanel({ agent, onClose }: { agent: AIAgent; onClose: () => voi
               }`}>
                 {msg.text}
                 {msg.sender === "ai" && msg.confidence && (
-                  <div className="text-[10px] text-slate-500 mt-1">Confidence: {msg.confidence}%</div>
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    Confidence: {msg.confidence}%{msg.source ? ` | Source: ${msg.source}` : ""}
+                  </div>
                 )}
               </div>
             </div>
           ))}
         </div>
 
-        <div className="border-t border-[var(--color-border)] p-4 flex gap-2 shrink-0">
-          <Input
-            placeholder="Tulis pesan test..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            className="bg-black/20"
-          />
-          <Button onClick={handleSend} className="px-3 py-2 shrink-0">
-            <Send className="h-4 w-4" />
-          </Button>
+        <div className="border-t border-[var(--color-border)] p-4 shrink-0">
+          {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
+          <div className="flex gap-2">
+            <Input
+              placeholder="Tulis pesan test..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && void handleSend()}
+              disabled={isSending}
+              className="bg-black/20"
+            />
+            <Button
+              onClick={() => void handleSend()}
+              disabled={isSending || !input.trim()}
+              className="px-3 py-2 shrink-0"
+            >
+              {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -468,7 +507,7 @@ export default function AIAgentsPage() {
         <div>
           <h1 className="text-2xl font-bold font-heading text-white">AI Agents</h1>
           <p className="text-sm text-slate-400 mt-1 max-w-xl">
-            Buat dan kelola asisten AI yang dapat memahami pesan pelanggan, menjawab berdasarkan data internal, menjalankan aksi otomatis, dan meneruskan percakapan ke human agent jika diperlukan.
+            Buat dan kelola asisten AI. Setiap Agent memakai Custom Instructions global dan seluruh sumber Knowledge Base yang sudah berstatus siap.
           </p>
         </div>
         <Button onClick={() => setIsCreateOpen(true)} className="gap-2 shrink-0">
@@ -484,7 +523,7 @@ export default function AIAgentsPage() {
             { label: "Total Agents", value: agents.length, icon: Bot },
             { label: "Active", value: agents.filter((a) => a.status === "Active").length, icon: Power },
             { label: "Draft", value: agents.filter((a) => a.status === "Draft").length, icon: Save },
-            { label: "Training Sources", value: agents.reduce((sum, a) => sum + a.trainingSources.length, 0), icon: Database },
+            { label: "KB Sources", value: config.knowledgeBase.documents.filter((document) => document.status === "ready").length, icon: Database },
           ].map(({ label, value, icon: Icon }) => (
             <Card key={label} className="p-4 border-white/10 bg-white/[0.02] flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-brand)]/15 text-[var(--color-brand)] shrink-0">
@@ -509,7 +548,7 @@ export default function AIAgentsPage() {
               <thead className="bg-white/[0.02] text-xs uppercase text-slate-500">
                 <tr>
                   <th className="px-5 py-4 font-semibold">Agent Name</th>
-                  <th className="px-5 py-4 font-semibold">Training Sources</th>
+                  <th className="px-5 py-4 font-semibold">Knowledge Base</th>
                   <th className="px-5 py-4 font-semibold">Actions Enabled</th>
                   <th className="px-5 py-4 font-semibold">Channel</th>
                   <th className="px-5 py-4 font-semibold">Last Update</th>
@@ -536,7 +575,7 @@ export default function AIAgentsPage() {
                       <td className="px-5 py-4">
                         <span className="flex items-center gap-1.5">
                           <Database className="h-3.5 w-3.5 text-slate-500" />
-                          {agent.trainingSources.length} sources
+                          {config.knowledgeBase.documents.filter((document) => document.status === "ready").length} shared sources
                         </span>
                       </td>
                       <td className="px-5 py-4">
@@ -576,37 +615,42 @@ export default function AIAgentsPage() {
             </table>
           </div>
 
-          {/* Training Sources Expandable Detail */}
+          {/* Shared Knowledge Base detail */}
           <div className="space-y-3">
             <h2 className="text-sm font-bold text-slate-300 flex items-center gap-2">
               <Database className="h-4 w-4 text-[var(--color-brand)]" />
-              Training Sources Overview
+              Knowledge Base Terhubung
             </h2>
-            {agents.filter(a => a.trainingSources.length > 0).map((agent) => (
-              <Card key={agent.id} className="border-white/10 bg-white/[0.02] overflow-hidden">
-                <div className="px-5 py-3 border-b border-[var(--color-border)] flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                    <Bot className="h-4 w-4 text-[var(--color-brand)]" />
-                    {agent.name}
-                  </div>
-                  <AgentStatusBadge status={agent.status} />
+            <Card className="border-white/10 bg-white/[0.02] overflow-hidden">
+              <div className="px-5 py-3 border-b border-[var(--color-border)] flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                  <Database className="h-4 w-4 text-[var(--color-brand)]" />
+                  Sumber bersama untuk semua AI Agent
                 </div>
+                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                  {config.knowledgeBase.documents.filter((document) => document.status === "ready").length} Ready
+                </Badge>
+              </div>
+              {config.knowledgeBase.documents.length === 0 ? (
+                <p className="px-5 py-4 text-sm text-amber-300">
+                  Belum ada sumber. Tambahkan FAQ, dokumen, URL, Google Sheet, atau text content di menu Knowledge Base.
+                </p>
+              ) : (
                 <div className="divide-y divide-[var(--color-border)]">
-                  {agent.trainingSources.map((src) => (
-                    <div key={src.id} className="flex items-center justify-between px-5 py-3 text-sm">
-                      <div className="flex items-center gap-2 text-slate-300">
-                        <FileText className="h-3.5 w-3.5 text-slate-500 shrink-0" />
-                        {src.name}
+                  {config.knowledgeBase.documents.slice(0, 8).map((document) => (
+                    <div key={document.id} className="flex items-center justify-between gap-4 px-5 py-3 text-sm">
+                      <div className="flex min-w-0 items-center gap-2 text-slate-300">
+                        <FileText className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                        <span className="truncate">{document.name}</span>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <span className="text-xs text-slate-500 hidden sm:block">{src.uploadedAt}</span>
-                        <TrainingStatusBadge status={src.status} />
-                      </div>
+                      <span className={document.status === "ready" ? "text-xs text-emerald-400" : "text-xs text-amber-400"}>
+                        {document.status}
+                      </span>
                     </div>
                   ))}
                 </div>
-              </Card>
-            ))}
+              )}
+            </Card>
           </div>
         </div>
       )}

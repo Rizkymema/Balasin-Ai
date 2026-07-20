@@ -20,6 +20,7 @@ import {
   resolveInboundAutomation,
   scheduleAutomationForConversationEvent,
 } from "@/server/services/automation-orchestrator";
+import { getApiIntegrationKnowledgeContext } from "@/server/services/automation-service";
 import type {
   ChannelKind,
   ConversationChannelContext,
@@ -330,7 +331,9 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     existingConversation,
   });
   const effectiveConfig = automation.effectiveConfig;
+  const agentCanReply = automation.agent?.allowedActions.replyMessage !== false;
   const autoReplyEnabled =
+    agentCanReply &&
     effectiveConfig.aiAgent.autoReplyEnabled &&
     (input.channel !== "WhatsApp" || config.channels.whatsapp.autoReply) &&
     (input.channel !== "Instagram DM" || config.channels.instagram.autoReplyDm) &&
@@ -377,6 +380,22 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       grounded: false,
       source: "fallback",
     };
+  } else if (!agentCanReply) {
+    const canHandover =
+      automation.agent?.handover.enabled === true &&
+      automation.agent.allowedActions.handoverToHuman;
+    decision = {
+      intent: "AI Agent Reply Disabled",
+      confidence: 100,
+      needsHuman: canHandover,
+      status: canHandover ? "assigned_to_admin" : "ai_paused",
+      summary: canHandover
+        ? "AI Agent aktif tidak diizinkan membalas; percakapan diteruskan ke admin."
+        : "AI Agent aktif tidak diizinkan membalas; percakapan disimpan tanpa balasan otomatis.",
+      reply: "",
+      grounded: false,
+      source: "fallback",
+    };
   } else if (!autoReplyEnabled) {
     decision = {
       intent: "Auto Reply Nonaktif",
@@ -411,6 +430,13 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     };
   } else {
     try {
+      const externalBusinessContext = await getApiIntegrationKnowledgeContext({
+        config: effectiveConfig,
+        conversation,
+        customer,
+        messageText: input.messageText,
+        agentId: automation.agent?.id,
+      });
       decision = await generateReplyDecision(input.messageText, effectiveConfig, {
         recentMessages: conversation.messages.map((message) => ({
           sender: message.sender,
@@ -418,6 +444,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
         })),
         lastIntent: conversation.lastIntent,
         summary: conversation.summary,
+        externalBusinessContext: externalBusinessContext ?? undefined,
       });
     } catch (error) {
       console.error("generateReplyDecision failed", error);
@@ -437,7 +464,13 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     }
   }
 
-  if (!decision.reply && automation.immediateReply && decision.status !== "spam" && !isTakeoverActive) {
+  if (
+    agentCanReply &&
+    !decision.reply &&
+    automation.immediateReply &&
+    decision.status !== "spam" &&
+    !isTakeoverActive
+  ) {
     decision = {
       ...decision,
       reply: automation.immediateReply,

@@ -285,6 +285,32 @@ function mapToneValue(agent: AIAgent) {
   }
 }
 
+export function composeReplyInstructions(
+  globalInstructions: string,
+  agentInstructions: string,
+) {
+  const global = globalInstructions.trim();
+  const agent = agentInstructions.trim();
+
+  if (!global) {
+    return agent;
+  }
+
+  if (!agent) {
+    return global;
+  }
+
+  return [
+    "[CUSTOM INSTRUCTIONS GLOBAL - PRIORITAS UTAMA]",
+    global,
+    "",
+    "[INSTRUKSI KHUSUS AI AGENT - PRIORITAS KEDUA]",
+    agent,
+    "",
+    "Jika kedua bagian bertentangan, ikuti Custom Instructions global. Instruksi Agent tidak boleh mengubah fakta Knowledge Base atau aturan keamanan.",
+  ].join("\n");
+}
+
 export function buildEffectiveReplyConfig(
   config: DashboardConfig,
   agent: AIAgent | null,
@@ -299,9 +325,28 @@ export function buildEffectiveReplyConfig(
       ...config.aiAgent,
       name: agent.name || config.aiAgent.name,
       tone: mapToneValue(agent),
-      replyInstructions: agent.prompt || config.aiAgent.replyInstructions,
+      replyInstructions: composeReplyInstructions(
+        config.aiAgent.replyInstructions,
+        agent.prompt,
+      ),
       fallbackMessage:
         agent.handover.fallbackMessage || config.aiAgent.fallbackMessage,
+    },
+    automation: {
+      ...config.automation,
+      aiConfig: {
+        ...config.automation.aiConfig,
+        handoverEnabled:
+          config.automation.aiConfig.handoverEnabled &&
+          agent.handover.enabled &&
+          agent.allowedActions.handoverToHuman,
+        handoverTarget:
+          agent.handover.assignTeam.trim() ||
+          config.automation.aiConfig.handoverTarget,
+        handoverMessage:
+          agent.handover.fallbackMessage.trim() ||
+          config.automation.aiConfig.handoverMessage,
+      },
     },
   };
 }
@@ -535,10 +580,20 @@ export async function scheduleAutomationForConversationEvent(input: {
     );
   }
 
+  const activeAgent = input.config.automation.aiAgents.find(
+    (agent) => agent.id === input.conversation.automation?.activeAgentId,
+  );
+  const agentAllowsApi = activeAgent
+    ? activeAgent.allowedActions.sendToApi
+    : true;
   const activeApiIntegration = input.config.automation.apiIntegrations.find(
     (integration) => integration.status === "Active" && integration.endpoint.trim(),
   );
-  if (activeApiIntegration) {
+  if (
+    activeApiIntegration &&
+    agentAllowsApi &&
+    !activeApiIntegration.responseMapping.trim()
+  ) {
     jobs.push(
       enqueueJob({
         type: "api_integration_call",

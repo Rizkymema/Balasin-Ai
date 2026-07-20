@@ -10,13 +10,24 @@ import {
 import {
   getDashboardConfigRecord,
   getDashboardOperationsRecord,
+  saveDashboardConfigRecord,
   saveDashboardOperationsRecord,
 } from "@/server/repositories/dashboard-repository";
 import { fetchExternalWithLimit } from "@/server/security/safe-fetch";
 import { appendAutomationLog } from "@/server/services/automation-orchestrator";
 import { sendChannelMessage } from "@/server/services/channel-adapters";
 import { formatClockTime } from "@/lib/time";
-import type { CrmDealEntry, CrmTaskEntry } from "@/types/operations";
+import type {
+  ApiIntegration,
+  ApiTestResult,
+  DashboardConfig,
+} from "@/types/dashboard-config";
+import type {
+  ConversationRecord,
+  CrmDealEntry,
+  CrmTaskEntry,
+  CustomerRecord,
+} from "@/types/operations";
 
 function interpolateTemplate(
   template: string,
@@ -43,6 +54,234 @@ function buildTemplateContext(input: {
     "customer.phone": input.customer?.phone,
     "customer.email": input.customer?.email,
     "customer.segment": input.customer?.segment,
+  };
+}
+
+function buildIntegrationHeaders(
+  integration: ApiIntegration,
+  templateContext: Record<string, string | undefined>,
+) {
+  let headers: Record<string, string> = {};
+  if (integration.headers.trim()) {
+    const parsed = JSON.parse(
+      interpolateTemplate(integration.headers, templateContext),
+    ) as unknown;
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") {
+      throw new Error("Headers API wajib berupa object JSON.");
+    }
+    headers = Object.fromEntries(
+      Object.entries(parsed).map(([key, value]) => [key, String(value)]),
+    );
+  }
+
+  const authToken = integration.authToken.trim();
+  if (integration.authType === "Bearer Token" && authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
+  } else if (integration.authType === "API Key" && authToken) {
+    headers["X-API-Key"] = authToken;
+  } else if (integration.authType === "Basic Auth" && authToken) {
+    headers.Authorization = `Basic ${Buffer.from(authToken).toString("base64")}`;
+  } else if (integration.authType === "Custom Header" && authToken) {
+    const separator = authToken.indexOf(":");
+    if (separator <= 0) {
+      throw new Error("Custom Header harus memakai format Nama-Header: nilai.");
+    }
+    headers[authToken.slice(0, separator).trim()] = authToken
+      .slice(separator + 1)
+      .trim();
+  }
+
+  return headers;
+}
+
+async function executeApiIntegration(
+  integration: ApiIntegration,
+  templateContext: Record<string, string | undefined>,
+) {
+  const headers = buildIntegrationHeaders(integration, templateContext);
+  let requestBody: string | undefined;
+  if (integration.method !== "GET" && integration.requestBody.trim()) {
+    requestBody = interpolateTemplate(integration.requestBody, templateContext);
+    if (!headers["Content-Type"]) {
+      headers["Content-Type"] = "application/json";
+    }
+  }
+
+  const { response, buffer } = await fetchExternalWithLimit(
+    integration.endpoint,
+    {
+      method: integration.method,
+      headers,
+      body: requestBody,
+      cache: "no-store",
+    },
+    { timeoutMs: 10_000, maxBytes: 512 * 1024 },
+  );
+
+  return {
+    status: response.status,
+    responseBody: buffer.toString("utf8"),
+    ok: response.status >= 200 && response.status < 300,
+  };
+}
+
+function readMappedResponseValue(value: unknown, path: string) {
+  return path.split(".").reduce<unknown>((current, key) => {
+    if (!current || typeof current !== "object" || Array.isArray(current)) {
+      return undefined;
+    }
+    return (current as Record<string, unknown>)[key];
+  }, value);
+}
+
+function mapIntegrationResponse(responseBody: string, mapping: string) {
+  const parsed = JSON.parse(responseBody) as unknown;
+  const mappedValues = mapping
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const match = line.match(
+        /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*response\.([a-zA-Z0-9_.-]+)$/,
+      );
+      if (!match) {
+        throw new Error(
+          `Response Mapping tidak valid: "${line.slice(0, 80)}". Gunakan format namaVariabel = response.field.path.`,
+        );
+      }
+
+      const value = readMappedResponseValue(parsed, match[2]);
+      if (value == null) {
+        return null;
+      }
+
+      const serialized =
+        typeof value === "string" ? value : JSON.stringify(value);
+      return `${match[1]}: ${serialized.slice(0, 1_000)}`;
+    })
+    .filter((item): item is string => Boolean(item));
+
+  return mappedValues.join("\n").slice(0, 4_000);
+}
+
+export async function getApiIntegrationKnowledgeContext(input: {
+  config: DashboardConfig;
+  conversation: ConversationRecord;
+  customer: CustomerRecord;
+  messageText: string;
+  agentId?: string;
+}) {
+  const activeAgent = input.config.automation.aiAgents.find(
+    (agent) =>
+      agent.id ===
+      (input.agentId ?? input.conversation.automation?.activeAgentId),
+  );
+  if (activeAgent && !activeAgent.allowedActions.sendToApi) {
+    return null;
+  }
+
+  const integration = input.config.automation.apiIntegrations.find(
+    (item) =>
+      item.status === "Active" &&
+      item.endpoint.trim() &&
+      item.responseMapping.trim(),
+  );
+  if (!integration) {
+    return null;
+  }
+
+  try {
+    const templateContext = buildTemplateContext({
+      conversation: {
+        ...input.conversation,
+        lastMessage: input.messageText,
+      },
+      customer: input.customer,
+    });
+    const execution = await executeApiIntegration(integration, templateContext);
+    if (!execution.ok || !execution.responseBody.trim()) {
+      return null;
+    }
+
+    const mapped = mapIntegrationResponse(
+      execution.responseBody,
+      integration.responseMapping,
+    );
+    return mapped || null;
+  } catch (error) {
+    console.error(
+      "[automation-service] failed to build API knowledge context",
+      error instanceof Error ? error.message : error,
+    );
+    return null;
+  }
+}
+
+export async function testApiIntegrationConnection(integrationId: string) {
+  const config = await getDashboardConfigRecord();
+  const integration = config.automation.apiIntegrations.find(
+    (item) => item.id === integrationId,
+  );
+  if (!integration?.endpoint.trim()) {
+    throw new Error("Integrasi API belum tersimpan atau endpoint masih kosong.");
+  }
+
+  let result: ApiTestResult = "Failed";
+  let status = 0;
+  let responseBody = "";
+
+  try {
+    const execution = await executeApiIntegration(integration, {
+      "conversation.id": "connection-test",
+      "conversation.last_message": "Connection test",
+      "conversation.intent": "connection_test",
+      "conversation.summary": "Chatbot API integration connection test",
+      "conversation.status": "test",
+      "customer.id": "connection-test",
+      "customer.name": "Connection Test",
+      "customer.phone": "",
+      "customer.email": "",
+      "customer.segment": "test",
+    });
+    status = execution.status;
+    responseBody = execution.responseBody;
+    if (execution.ok && integration.responseMapping.trim()) {
+      const mapped = mapIntegrationResponse(
+        execution.responseBody,
+        integration.responseMapping,
+      );
+      if (!mapped) {
+        throw new Error(
+          "API berhasil merespons, tetapi Response Mapping tidak menghasilkan data.",
+        );
+      }
+    }
+    result = execution.ok
+      ? "Success"
+      : execution.status === 401 || execution.status === 403
+        ? "Unauthorized"
+        : "Failed";
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown integration error";
+    responseBody = message;
+    result = /abort|timeout/i.test(message) ? "Timeout" : "Failed";
+  }
+
+  await saveDashboardConfigRecord({
+    ...config,
+    automation: {
+      ...config.automation,
+      apiIntegrations: config.automation.apiIntegrations.map((item) =>
+        item.id === integrationId ? { ...item, lastTest: result } : item,
+      ),
+    },
+  });
+
+  return {
+    integrationId,
+    result,
+    status,
+    response: responseBody.slice(0, 300),
   };
 }
 
@@ -393,44 +632,12 @@ async function processApiIntegrationCall(payload: Record<string, unknown>) {
   );
   const templateContext = buildTemplateContext({ conversation, customer });
 
-  let headers: Record<string, string> = {};
-  if (integration.headers.trim()) {
-    try {
-      const parsedHeaders = JSON.parse(
-        interpolateTemplate(integration.headers, templateContext),
-      ) as Record<string, string>;
-      headers = parsedHeaders;
-    } catch {
-      headers = {};
-    }
-  }
-
-  if (integration.authType === "Bearer Token" && integration.authToken.trim()) {
-    headers.Authorization = `Bearer ${integration.authToken.trim()}`;
-  }
-
-  let requestBody: string | undefined;
-  if (integration.method !== "GET" && integration.requestBody.trim()) {
-    requestBody = interpolateTemplate(integration.requestBody, templateContext);
-    if (!headers["Content-Type"]) {
-      headers["Content-Type"] = "application/json";
-    }
-  }
-
   let responseStatus = 0;
   let responseBody = "";
   try {
-    const { response, buffer } = await fetchExternalWithLimit(
-      integration.endpoint,
-      {
-        method: integration.method,
-        headers,
-        body: requestBody,
-      },
-      { timeoutMs: 10_000, maxBytes: 512 * 1024 },
-    );
-    responseStatus = response.status;
-    responseBody = buffer.toString("utf8");
+    const execution = await executeApiIntegration(integration, templateContext);
+    responseStatus = execution.status;
+    responseBody = execution.responseBody;
   } catch (error) {
     responseBody = error instanceof Error ? error.message : "Unknown integration error";
   }

@@ -247,17 +247,24 @@ export function ConversationThreadPanel({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: lastCustomerMessage,
-        config,
+        agentId: conversation.automation?.activeAgentId,
         context: {
           recentMessages: conversation.messages.map((m) => ({ sender: m.sender, text: m.text })),
           lastIntent: conversation.lastIntent,
+          summary: conversation.summary,
         },
       }),
     })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.reply) {
-          setSuggestionText(data.reply);
+      .then(async (res) => {
+        const payload = await res.json();
+        if (!res.ok || !payload.ok) {
+          throw new Error(payload.error || "Gagal membuat saran AI.");
+        }
+        return payload.data;
+      })
+      .then((decision) => {
+        if (decision.reply) {
+          setSuggestionText(decision.reply);
         } else {
           setSuggestionText(
             buildAiSuggestion({

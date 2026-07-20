@@ -134,6 +134,8 @@ export async function fetchExternalWithLimit(
     const response = await fetch(url, {
       ...init,
       signal: controller.signal,
+      // Redirect targets are not automatically revalidated and could bypass SSRF checks.
+      redirect: "error",
     });
     return {
       response,
