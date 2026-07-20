@@ -125,22 +125,52 @@ export async function fetchExternalWithLimit(
   init: RequestInit,
   options: { timeoutMs: number; maxBytes: number },
 ) {
-  assertSafeExternalUrl(url);
-
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
 
   try {
-    const response = await fetch(url, {
-      ...init,
-      signal: controller.signal,
-      // Redirect targets are not automatically revalidated and could bypass SSRF checks.
-      redirect: "error",
-    });
-    return {
-      response,
-      buffer: await readResponseBytes(response, options.maxBytes),
-    };
+    let currentUrl = assertSafeExternalUrl(url).toString();
+
+    for (let redirectCount = 0; redirectCount <= 4; redirectCount += 1) {
+      const response = await fetch(currentUrl, {
+        ...init,
+        signal: controller.signal,
+        // Validate every redirect target ourselves to prevent SSRF bypasses.
+        redirect: "manual",
+      });
+
+      if (response.status < 300 || response.status >= 400) {
+        return {
+          response,
+          buffer: await readResponseBytes(response, options.maxBytes),
+        };
+      }
+
+      const method = (init.method ?? "GET").toUpperCase();
+      if (method !== "GET" && method !== "HEAD") {
+        throw new Error("Redirect untuk request non-GET tidak diizinkan.");
+      }
+
+      const headers = new Headers(init.headers);
+      if (
+        headers.has("authorization") ||
+        headers.has("cookie") ||
+        headers.has("x-api-key")
+      ) {
+        throw new Error("Redirect dengan header autentikasi tidak diizinkan.");
+      }
+
+      const location = response.headers.get("location");
+      if (!location) {
+        throw new Error("Response redirect tidak memiliki lokasi tujuan.");
+      }
+
+      currentUrl = assertSafeExternalUrl(
+        new URL(location, currentUrl).toString(),
+      ).toString();
+    }
+
+    throw new Error("Terlalu banyak redirect dari sumber eksternal.");
   } finally {
     clearTimeout(timeout);
   }

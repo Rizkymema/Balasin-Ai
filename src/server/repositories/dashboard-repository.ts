@@ -430,10 +430,36 @@ export async function getDashboardConfigRecord(): Promise<DashboardConfig> {
     defaultDashboardConfig,
     (await readAppConfigRecord<Partial<DashboardConfig>>()) ?? undefined,
   );
+  const [faqs, storedDocuments] = await Promise.all([
+    listJsonRowsAsync<FAQItem>("knowledge_faqs"),
+    listJsonRowsAsync<KnowledgeDocument>("knowledge_documents"),
+  ]);
+  let documents = storedDocuments;
+
+  if (documents.length === 0 && isBlobStateEnabled()) {
+    const blobConfig = await readPrivateJsonBlob<Partial<DashboardConfig>>(
+      DASHBOARD_CONFIG_BLOB_PATH,
+    );
+    const configuredSourceUrls = new Set([
+      ...base.knowledgeBase.websiteUrls,
+      ...base.knowledgeBase.googleSheetUrls,
+    ]);
+    const blobDocuments = (blobConfig?.knowledgeBase?.documents ?? []).filter(
+      (document) =>
+        document.sourceUrl && configuredSourceUrls.has(document.sourceUrl),
+    );
+    if (blobDocuments.length > 0) {
+      console.warn(
+        `[dashboard-repository] Supabase knowledge_documents kosong; memakai ${blobDocuments.length} dokumen dari Blob sebagai fallback.`,
+      );
+      documents = blobDocuments;
+    }
+  }
+
   return finalizeDashboardConfig(
     base,
-    await listJsonRowsAsync<FAQItem>("knowledge_faqs"),
-    await listJsonRowsAsync<KnowledgeDocument>("knowledge_documents"),
+    faqs,
+    documents,
   );
 }
 
@@ -697,6 +723,30 @@ async function readAllKnowledgeChunks() {
   }
 
   const rows = await listKnowledgeChunkRowsAsync();
+
+  if (rows.length === 0 && isBlobStateEnabled()) {
+    const storedConfig =
+      (await readAppConfigRecord<Partial<DashboardConfig>>()) ?? {};
+    const configuredSourceUrls = new Set([
+      ...(storedConfig.knowledgeBase?.websiteUrls ?? []),
+      ...(storedConfig.knowledgeBase?.googleSheetUrls ?? []),
+    ]);
+    const blobChunks = (
+      (await readPrivateJsonBlob<KnowledgeChunk[]>(
+        KNOWLEDGE_CHUNKS_BLOB_PATH,
+      )) ?? []
+    ).filter(
+      (chunk) =>
+        chunk.metadata.sourceUrl &&
+        configuredSourceUrls.has(chunk.metadata.sourceUrl),
+    );
+    if (blobChunks.length > 0) {
+      console.warn(
+        `[dashboard-repository] Supabase knowledge_chunks kosong; memakai ${blobChunks.length} chunk dari Blob sebagai fallback.`,
+      );
+      return blobChunks;
+    }
+  }
 
   return rows.map((row) => ({
     id: row.id,

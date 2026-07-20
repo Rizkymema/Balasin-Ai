@@ -3,6 +3,7 @@ import { resolveAppUrl } from "@/lib/app-url";
 import { formatCurrentTimeContext, getDefaultTimezone } from "@/lib/time";
 import { assertSafeExternalUrl } from "@/server/security/safe-fetch";
 import { callLlm } from "@/server/services/ai-service";
+import { syncKnowledgeSources } from "@/server/services/knowledge-source-sync";
 import type { DashboardConfig, FAQItem } from "@/types/dashboard-config";
 import type { ConversationStatus } from "@/types/operations";
 
@@ -55,6 +56,8 @@ const DESCRIPTION_KEYWORDS = ["siapa", "profil", "tentang", "about", "apa itu", 
 const NAME_KEYWORDS = ["nama bisnis", "nama toko", "nama bengkel", "bengkel apa", "toko apa"];
 
 const PRICE_KEYWORDS = ["harga", "berapa", "biaya", "tarif", "ongkos", "estimasi"];
+const KNOWLEDGE_AUTO_REFRESH_MS = 15 * 60 * 1000;
+let knowledgeRefreshPromise: Promise<void> | null = null;
 const OPENING_PHRASES = [
   "boleh tanya",
   "blh tanya",
@@ -1254,10 +1257,20 @@ function formatStructuredSheetRowReply(
   row: NonNullable<ReturnType<typeof parseStructuredSheetRow>>,
 ) {
   const segments: string[] = [];
+  const formatPrice = (value: string) => {
+    const normalized = value.trim().replace(/[.\s]/g, "");
+    if (!/^\d+$/.test(normalized)) {
+      return value;
+    }
+
+    return `Rp${Number(normalized).toLocaleString("id-ID")}`;
+  };
   const priceLabel =
     row.priceStart && row.priceMax && row.priceStart !== row.priceMax
-      ? `${row.priceStart} - ${row.priceMax}`
-      : row.priceStart || row.priceMax;
+      ? `${formatPrice(row.priceStart)} - ${formatPrice(row.priceMax)}`
+      : row.priceStart || row.priceMax
+        ? formatPrice(row.priceStart || row.priceMax)
+        : "";
 
   if (row.name) {
     segments.push(row.name);
@@ -1288,6 +1301,55 @@ function formatStructuredSheetRowReply(
     reply.trim() ||
     "Data terkait ditemukan di Knowledge Base, tetapi format jawabannya belum lengkap."
   );
+}
+
+async function ensureRemoteKnowledgeFresh(config: DashboardConfig) {
+  const sourceUrls = Array.from(
+    new Set([
+      ...config.knowledgeBase.websiteUrls,
+      ...config.knowledgeBase.googleSheetUrls,
+    ]),
+  ).filter(Boolean);
+  if (sourceUrls.length === 0) {
+    return;
+  }
+
+  const now = Date.now();
+  const needsRefresh = sourceUrls.some((url) => {
+    const document = config.knowledgeBase.documents.find(
+      (item) => item.sourceUrl === url,
+    );
+    const syncedAt = document?.syncedAt
+      ? new Date(document.syncedAt).getTime()
+      : 0;
+    return !syncedAt || now - syncedAt >= KNOWLEDGE_AUTO_REFRESH_MS;
+  });
+  if (!needsRefresh) {
+    return;
+  }
+
+  if (!knowledgeRefreshPromise) {
+    knowledgeRefreshPromise = syncKnowledgeSources(config)
+      .then((result) => {
+        if (result.syncedCount === 0 && result.failures.length > 0) {
+          console.error(
+            "[reply-engine] automatic Knowledge Base refresh failed",
+            result.failures,
+          );
+        }
+      })
+      .catch((error) => {
+        console.error(
+          "[reply-engine] automatic Knowledge Base refresh threw",
+          error,
+        );
+      })
+      .finally(() => {
+        knowledgeRefreshPromise = null;
+      });
+  }
+
+  await knowledgeRefreshPromise;
 }
 
 function scoreStructuredSheetRow(
@@ -2051,6 +2113,8 @@ export async function generateReplyDecision(
       grounded: false,
     };
   }
+
+  await ensureRemoteKnowledgeFresh(config);
 
   // --- 1. PRIORITAS UTAMA: GROUNDED KNOWLEDGE BASE MATCHES ---
   const staticKnowledgeThreshold = getStaticKnowledgeThreshold(config);
