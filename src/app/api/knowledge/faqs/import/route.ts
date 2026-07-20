@@ -3,6 +3,7 @@ import {
   KNOWLEDGE_FAQ_IMPORT_MAX_BYTES,
 } from "@/constants/knowledge-security";
 import { parseFaqImportFile } from "@/server/services/faq-import-service";
+import { upsertKnowledgeFaqRecords } from "@/server/repositories/dashboard-repository";
 import { jsonError, jsonOk, requireApiSession } from "@/server/http";
 import { assertFileUpload, assertRequestSize } from "@/server/security/request";
 
@@ -40,11 +41,14 @@ export async function POST(request: Request) {
       );
     }
 
+    await upsertKnowledgeFaqRecords(items);
+
     return jsonOk(
       {
         items,
         fileName: file.name,
         count: items.length,
+        integrated: true,
       },
       { status: 201 },
     );

@@ -156,6 +156,12 @@ export function useDashboardConfig() {
         const errPayload = await response.json().catch(() => ({}));
         throw new Error(errPayload.error || "Gagal menyimpan pengaturan.");
       }
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data: DashboardConfig;
+      };
+      setConfig(payload.data);
+      configRef.current = payload.data;
     } catch (e) {
       setConfig(previous);
       configRef.current = previous;
@@ -189,6 +195,12 @@ export function useDashboardConfig() {
           const errPayload = await response.json().catch(() => ({}));
           throw new Error(errPayload.error || "Gagal menyimpan pengaturan.");
         }
+        const payload = (await response.json()) as {
+          ok: boolean;
+          data: DashboardConfig;
+        };
+        setConfig(payload.data);
+        configRef.current = payload.data;
       } catch (e) {
         setConfig(previous);
         configRef.current = previous;
@@ -253,4 +265,3 @@ function redactSecretsForComparison(config: DashboardConfig): DashboardConfig {
     },
   };
 }
-

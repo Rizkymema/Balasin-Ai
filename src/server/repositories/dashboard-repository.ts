@@ -485,6 +485,57 @@ export async function saveDashboardConfigRecord(config: DashboardConfig) {
   );
 }
 
+export async function upsertKnowledgeFaqRecords(items: FAQItem[]) {
+  if (items.length === 0) {
+    return;
+  }
+
+  if (!shouldUseBlobState()) {
+    await Promise.all(
+      items.map((item) => upsertJsonRowAsync("knowledge_faqs", item)),
+    );
+    return;
+  }
+
+  const config = await getDashboardConfigRecord();
+  const incomingById = new Map(items.map((item) => [item.id, item]));
+  const existingIds = new Set(config.knowledgeBase.faqs.map((faq) => faq.id));
+  const faqs = [
+    ...items.filter((item) => !existingIds.has(item.id)),
+    ...config.knowledgeBase.faqs.map(
+      (faq) => incomingById.get(faq.id) ?? faq,
+    ),
+  ];
+
+  await saveDashboardConfigRecord({
+    ...config,
+    knowledgeBase: {
+      ...config.knowledgeBase,
+      faqs,
+    },
+  });
+}
+
+export async function upsertKnowledgeFaqRecord(item: FAQItem) {
+  await upsertKnowledgeFaqRecords([item]);
+}
+
+export async function deleteKnowledgeFaqRecord(id: string) {
+  if (!shouldUseBlobState()) {
+    await deleteJsonRowAsync("knowledge_faqs", id);
+    return;
+  }
+
+  const config = await getDashboardConfigRecord();
+  await saveDashboardConfigRecord({
+    ...config,
+    knowledgeBase: {
+      ...config.knowledgeBase,
+      faqs: config.knowledgeBase.faqs.filter((faq) => faq.id !== id),
+    },
+  });
+}
+
 const MAX_PENDING_KNOWLEDGE_QUESTIONS = 100;
 
 function normalizeKnowledgeGapQuestion(question: string) {

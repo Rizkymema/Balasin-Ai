@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import {
   Bot,
   PlusCircle,
@@ -230,7 +230,7 @@ function CreateAgentModal({
 }: {
   initialData?: AIAgent;
   onClose: () => void;
-  onSave: (data: AgentFormData, status: "Active" | "Draft") => void;
+  onSave: (data: AgentFormData, status: "Active" | "Draft") => Promise<void>;
 }) {
   const [name, setName] = useState(initialData?.name ?? "");
   const [description, setDescription] = useState(initialData?.description ?? "");
@@ -249,6 +249,7 @@ function CreateAgentModal({
   const [handoverEnabled, setHandoverEnabled] = useState(initialData?.handover.enabled ?? false);
   const [handoverTeam, setHandoverTeam] = useState(initialData?.handover.assignTeam ?? "");
   const [handoverMsg, setHandoverMsg] = useState(initialData?.handover.fallbackMessage ?? "");
+  const [isSaving, setIsSaving] = useState(false);
 
   const toggleAction = (key: keyof typeof actions) => {
     setActions((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -263,16 +264,21 @@ function CreateAgentModal({
     { key: "handoverToHuman", label: "Meneruskan ke human agent" },
   ];
 
-  const handleSave = (status: "Active" | "Draft") => {
-    onSave({
-      name, description, prompt,
-      toneOfVoice: tone,
-      allowedActions: actions,
-      handover: { enabled: handoverEnabled, assignTeam: handoverTeam, fallbackMessage: handoverMsg },
-      responseMode,
-      channelUsage,
-      status,
-    }, status);
+  const handleSave = async (status: "Active" | "Draft") => {
+    setIsSaving(true);
+    try {
+      await onSave({
+        name, description, prompt,
+        toneOfVoice: tone,
+        allowedActions: actions,
+        handover: { enabled: handoverEnabled, assignTeam: handoverTeam, fallbackMessage: handoverMsg },
+        responseMode,
+        channelUsage,
+        status,
+      }, status);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -414,13 +420,13 @@ function CreateAgentModal({
             Cancel
           </Button>
           <div className="flex gap-3">
-            <Button variant="secondary" onClick={() => handleSave("Draft")} className="gap-2 bg-transparent">
+            <Button variant="secondary" disabled={isSaving} onClick={() => void handleSave("Draft")} className="gap-2 bg-transparent">
               <Save className="h-4 w-4" />
               Save as Draft
             </Button>
-            <Button onClick={() => handleSave("Active")} className="gap-2">
-              <Send className="h-4 w-4" />
-              Publish
+            <Button disabled={isSaving} onClick={() => void handleSave("Active")} className="gap-2">
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {isSaving ? "Integrating..." : "Publish"}
             </Button>
           </div>
         </div>
@@ -439,11 +445,8 @@ export default function AIAgentsPage() {
   const [deletingAgent, setDeletingAgent] = useState<AIAgent | null>(null);
   const [testingAgent, setTestingAgent] = useState<AIAgent | null>(null);
 
-  const isInitializedRef = useRef(false);
-
   useEffect(() => {
-    if (isLoading || !config || isInitializedRef.current) return;
-    isInitializedRef.current = true;
+    if (isLoading || !config) return;
     setAgents(config.automation.aiAgents || []);
   }, [config, isLoading]);
 
@@ -452,43 +455,51 @@ export default function AIAgentsPage() {
       day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
     }).replace(/\./g, ":");
 
-  const persist = (next: AIAgent[]) => {
+  const persist = async (next: AIAgent[]) => {
     setAgents(next);
-    patchConfig((current) => ({
-      ...current,
-      automation: { ...current.automation, aiAgents: next },
-    }));
+    try {
+      await patchConfig((current) => ({
+        ...current,
+        automation: { ...current.automation, aiAgents: next },
+      }));
+    } catch (error) {
+      setAgents(config.automation.aiAgents || []);
+      throw error;
+    }
   };
 
-  const handleSave = (data: AgentFormData, status: "Active" | "Draft") => {
+  const handleSave = async (data: AgentFormData, status: "Active" | "Draft") => {
+    let next: AIAgent[];
     if (editingAgent) {
-      const next = agents.map((a) =>
+      next = agents.map((a) =>
         a.id === editingAgent.id ? { ...a, ...data, status, lastUpdate: now(), trainingSources: a.trainingSources } : a
       );
-      persist(next);
     } else {
       const newAgent: AIAgent = { ...data, id: "agent_" + Date.now(), trainingSources: [], lastUpdate: now() };
-      persist([newAgent, ...agents]);
+      next = [newAgent, ...agents];
     }
+    await persist(next);
     setIsCreateOpen(false);
     setEditingAgent(null);
   };
 
   const handleDuplicate = (agent: AIAgent) => {
     const dup: AIAgent = { ...agent, id: "agent_" + Date.now(), name: agent.name + " Copy", status: "Draft", lastUpdate: now(), trainingSources: [] };
-    persist([dup, ...agents]);
+    void persist([dup, ...agents]).catch(() => undefined);
   };
 
   const handleToggleStatus = (agent: AIAgent) => {
     const next = agents.map((a) =>
       a.id === agent.id ? { ...a, status: a.status === "Inactive" || a.status === "Draft" ? "Active" : "Inactive" } as AIAgent : a
     );
-    persist(next);
+    void persist(next).catch(() => undefined);
   };
 
   const confirmDelete = () => {
     if (!deletingAgent) return;
-    persist(agents.filter((a) => a.id !== deletingAgent.id));
+    void persist(agents.filter((a) => a.id !== deletingAgent.id)).catch(
+      () => undefined,
+    );
     setDeletingAgent(null);
   };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef, type FormEvent } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -38,6 +38,17 @@ function getSourceDisplayName(url: string, fallback: string) {
   }
 }
 
+type RuntimeIntegrationStatus = {
+  connected: boolean;
+  conversations: number;
+  activeAiAgents: number;
+  customInstructionsApplied: boolean;
+  faqs: number;
+  documents: number;
+  chunks: number;
+  lastKnowledgeSyncAt: string | null;
+};
+
 export default function KnowledgeBasePage() {
   const { config, patchConfig, refreshConfig, isLoading } = useDashboardConfig();
   const [isSaved, setIsSaved] = useState(false);
@@ -55,6 +66,7 @@ export default function KnowledgeBasePage() {
   const [isUploadingKbFile, setIsUploadingKbFile] = useState(false);
   const [kbSearchQuery, setKbSearchQuery] = useState("");
   const [isSavingInstructions, setIsSavingInstructions] = useState(false);
+  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeIntegrationStatus | null>(null);
 
   const [personaConfig, setPersonaConfig] = useState("");
   const [toneOfVoice, setToneOfVoice] = useState("");
@@ -62,6 +74,19 @@ export default function KnowledgeBasePage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isInitializedRef = useRef(false);
+
+  const refreshRuntimeStatus = useCallback(async () => {
+    const response = await fetch("/api/assistant/runtime-status", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!response.ok) return;
+    const payload = (await response.json()) as {
+      ok: boolean;
+      data: RuntimeIntegrationStatus;
+    };
+    setRuntimeStatus(payload.data);
+  }, []);
 
   useEffect(() => {
     if (isLoading || !config || isInitializedRef.current) return;
@@ -81,6 +106,12 @@ export default function KnowledgeBasePage() {
       setGuardrails("");
     }
   }, [config, isLoading]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      void refreshRuntimeStatus();
+    }
+  }, [isLoading, config, refreshRuntimeStatus]);
 
   const websiteUrls = useMemo(
     () => config?.knowledgeBase.websiteUrls.filter((url) => !isGoogleSheetUrl(url)) || [],
@@ -236,6 +267,7 @@ export default function KnowledgeBasePage() {
         incomingGoogleSheetUrls: incomingSheetUrls,
       });
       await refreshConfig();
+      await refreshRuntimeStatus();
       setKbUrlInput("");
       setInputMethodActive("none");
       setIsSaved(true);
@@ -258,6 +290,7 @@ export default function KnowledgeBasePage() {
         incomingGoogleSheetUrls: parseSourceUrls(kbSheetInput),
       });
       await refreshConfig();
+      await refreshRuntimeStatus();
       setKbSheetInput("");
       setInputMethodActive("none");
       setIsSaved(true);
@@ -276,6 +309,7 @@ export default function KnowledgeBasePage() {
     try {
       await syncKnowledgeSourceUrls({});
       await refreshConfig();
+      await refreshRuntimeStatus();
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2500);
     } catch (error) {
@@ -318,6 +352,7 @@ export default function KnowledgeBasePage() {
         },
       }));
       await refreshConfig();
+      await refreshRuntimeStatus();
       setKbTextTitle("");
       setKbTextContent("");
       setInputMethodActive("none");
@@ -356,6 +391,7 @@ export default function KnowledgeBasePage() {
         throw new Error(payload?.error || "Gagal mengunggah file.");
       }
       await refreshConfig();
+      await refreshRuntimeStatus();
       setIngestSuccess(
         `File berhasil diindeks: ${payload.data?.chunkCount ?? 0} potongan data siap digunakan chatbot.`,
       );
@@ -374,6 +410,7 @@ export default function KnowledgeBasePage() {
     try {
       await fetch(`/api/knowledge/documents/${id}`, { method: "DELETE", credentials: "include" });
       await refreshConfig();
+      await refreshRuntimeStatus();
     } catch {
       alert("Gagal menghapus dokumen.");
     }
@@ -412,6 +449,7 @@ export default function KnowledgeBasePage() {
         aiAgent: { ...current.aiAgent, replyInstructions: assembledPrompt },
       }));
       await refreshConfig();
+      await refreshRuntimeStatus();
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2500);
     } catch (e) {
@@ -452,13 +490,13 @@ export default function KnowledgeBasePage() {
         <div className="flex items-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-950/20 px-4 py-2.5 text-xs">
           <MessageSquare className="h-4 w-4 text-cyan-400" />
           <span className="text-slate-300">
-            Terhubung ke{" "}
+            {runtimeStatus?.connected ? "Terintegrasi" : "Belum aktif"} dengan{" "}
             <Link href="/inbox" className="font-bold text-cyan-400 hover:underline">
-              Inbox
+              {runtimeStatus?.conversations ?? 0} Conversations
             </Link>{" "}
-            — AI membaca data ini saat menjawab
+            — {runtimeStatus?.activeAiAgents ?? 0} Agent aktif, {runtimeStatus?.chunks ?? 0} chunks siap
           </span>
-          <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className={`flex h-2 w-2 rounded-full ${runtimeStatus?.connected ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
         </div>
       </div>
 

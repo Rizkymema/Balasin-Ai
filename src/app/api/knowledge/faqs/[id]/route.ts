@@ -1,8 +1,8 @@
 import {
-  deleteJsonRowAsync,
-  getJsonRowAsync,
-  upsertJsonRowAsync,
-} from "@/server/db";
+  deleteKnowledgeFaqRecord,
+  getDashboardConfigRecord,
+  upsertKnowledgeFaqRecord,
+} from "@/server/repositories/dashboard-repository";
 import { jsonError, jsonOk, requireApiSession } from "@/server/http";
 import type { FAQItem } from "@/types/dashboard-config";
 
@@ -16,7 +16,9 @@ export async function PATCH(
   }
 
   const { id } = await context.params;
-  const existing = await getJsonRowAsync<FAQItem>("knowledge_faqs", id);
+  const existing = (await getDashboardConfigRecord()).knowledgeBase.faqs.find(
+    (faq) => faq.id === id,
+  );
   if (!existing) {
     return jsonError("FAQ not found.", 404);
   }
@@ -28,7 +30,7 @@ export async function PATCH(
       question: body.question ?? existing.question,
       answer: body.answer ?? existing.answer,
     };
-    await upsertJsonRowAsync("knowledge_faqs", next);
+    await upsertKnowledgeFaqRecord(next);
     return jsonOk(next);
   } catch {
     return jsonError("Gagal memperbarui FAQ.", 500);
@@ -45,6 +47,6 @@ export async function DELETE(
   }
 
   const { id } = await context.params;
-  await deleteJsonRowAsync("knowledge_faqs", id);
+  await deleteKnowledgeFaqRecord(id);
   return jsonOk({ deleted: true, id });
 }

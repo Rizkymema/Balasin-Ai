@@ -9,7 +9,12 @@ import {
   saveDashboardOperationsRecord,
 } from "@/server/repositories/dashboard-repository";
 import { formatClockTime } from "@/lib/time";
-import { generateReplyDecision, type ReplyDecision, analyzeSentiment } from "@/server/services/reply-engine";
+import {
+  analyzeSentiment,
+  generateReplyDecision,
+  type ReplyContext,
+  type ReplyDecision,
+} from "@/server/services/reply-engine";
 import {
   sendChannelMessage,
   sendWhatsAppReadTypingIndicator,
@@ -270,6 +275,27 @@ function buildSafeFallbackDecision(config: DashboardConfig): ReplyDecision {
   };
 }
 
+function buildConversationReplyContext(
+  conversation: ConversationRecord,
+  externalBusinessContext?: string | null,
+): ReplyContext {
+  return {
+    recentMessages: conversation.messages
+      .filter(
+        (message) =>
+          message.sender !== "system" && Boolean(message.text.trim()),
+      )
+      .slice(-12)
+      .map((message) => ({
+        sender: message.sender,
+        text: message.text.trim().slice(0, 2_000),
+      })),
+    lastIntent: conversation.lastIntent,
+    summary: conversation.summary.trim().slice(0, 2_000),
+    externalBusinessContext: externalBusinessContext?.trim() || undefined,
+  };
+}
+
 export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   const config = await getDashboardConfigRecord();
   const current = await getDashboardOperationsRecord();
@@ -437,15 +463,11 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
         messageText: input.messageText,
         agentId: automation.agent?.id,
       });
-      decision = await generateReplyDecision(input.messageText, effectiveConfig, {
-        recentMessages: conversation.messages.map((message) => ({
-          sender: message.sender,
-          text: message.text,
-        })),
-        lastIntent: conversation.lastIntent,
-        summary: conversation.summary,
-        externalBusinessContext: externalBusinessContext ?? undefined,
-      });
+      decision = await generateReplyDecision(
+        input.messageText,
+        effectiveConfig,
+        buildConversationReplyContext(conversation, externalBusinessContext),
+      );
     } catch (error) {
       console.error("generateReplyDecision failed", error);
       decision = buildSafeFallbackDecision(effectiveConfig);

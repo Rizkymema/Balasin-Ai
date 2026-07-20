@@ -58,6 +58,7 @@ const NAME_KEYWORDS = ["nama bisnis", "nama toko", "nama bengkel", "bengkel apa"
 const PRICE_KEYWORDS = ["harga", "berapa", "biaya", "tarif", "ongkos", "estimasi"];
 const KNOWLEDGE_AUTO_REFRESH_MS = 15 * 60 * 1000;
 let knowledgeRefreshPromise: Promise<void> | null = null;
+let lastKnowledgeRefreshAt = 0;
 const OPENING_PHRASES = [
   "boleh tanya",
   "blh tanya",
@@ -1315,6 +1316,10 @@ async function ensureRemoteKnowledgeFresh(config: DashboardConfig) {
   }
 
   const now = Date.now();
+  if (now - lastKnowledgeRefreshAt < KNOWLEDGE_AUTO_REFRESH_MS) {
+    return;
+  }
+
   const needsRefresh = sourceUrls.some((url) => {
     const document = config.knowledgeBase.documents.find(
       (item) => item.sourceUrl === url,
@@ -1331,6 +1336,9 @@ async function ensureRemoteKnowledgeFresh(config: DashboardConfig) {
   if (!knowledgeRefreshPromise) {
     knowledgeRefreshPromise = syncKnowledgeSources(config)
       .then((result) => {
+        if (result.syncedCount > 0) {
+          lastKnowledgeRefreshAt = Date.now();
+        }
         if (result.syncedCount === 0 && result.failures.length > 0) {
           console.error(
             "[reply-engine] automatic Knowledge Base refresh failed",
