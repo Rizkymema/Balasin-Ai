@@ -60,6 +60,7 @@ import type {
 const nodeTypes = {
   start: FlowNodeCard,
   message: FlowNodeCard,
+  form_chat: FlowNodeCard,
   office_hours: FlowNodeCard,
   ai_agent: FlowNodeCard,
   fallback: FlowNodeCard,
@@ -180,6 +181,43 @@ function newNode(
       triggerKeywords: [],
     },
     message: { label: "Send Message", message: "Tulis pesan chatbot di sini." },
+    form_chat: {
+      label: "Form Booking & Lead",
+      formTitle: "Form Booking & Konsultasi",
+      formDescription:
+        "Silakan isi data diri Anda di bawah ini agar tim kami dapat menghubungi Anda.",
+      submitButtonLabel: "Kirim Form Data",
+      successMessage:
+        "Terima kasih! Form Anda telah kami terima dan tim kami akan segera menghubungi Anda.",
+      formFields: [
+        {
+          id: "field-1",
+          label: "Nama Lengkap",
+          type: "text",
+          placeholder: "Contoh: Budi Santoso",
+          required: true,
+        },
+        {
+          id: "field-2",
+          label: "Nomor WhatsApp",
+          type: "phone",
+          placeholder: "0812...",
+          required: true,
+        },
+        {
+          id: "field-3",
+          label: "Pilihan Layanan",
+          type: "select",
+          options: [
+            "Upgrade CVT",
+            "Servis Berkala / Tune Up",
+            "Ganti Oli",
+            "Konsultasi",
+          ],
+          required: true,
+        },
+      ],
+    },
     office_hours: { label: "Office Hours" },
     ai_agent: {
       label: "AI Agent",

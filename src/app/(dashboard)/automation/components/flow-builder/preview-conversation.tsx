@@ -115,7 +115,12 @@ export function PreviewConversation({
         )}
 
         {result?.messages.map((item, index) => (
-          <ChatBubble key={`${item}-${index}`} sender="bot" text={item} />
+          <ChatBubble
+            key={`${item}-${index}`}
+            sender="bot"
+            text={item}
+            onFormSubmitted={(summary) => sendMessage(summary)}
+          />
         ))}
 
         {isRunning && <TypingBubble />}
@@ -271,22 +276,36 @@ function TypingBubble() {
 function ChatBubble({
   sender,
   text,
+  onFormSubmitted,
 }: {
   sender: "customer" | "bot";
   text: string;
+  onFormSubmitted?: (summary: string) => void;
 }) {
   const isCustomer = sender === "customer";
+  const isFormChat = text.startsWith("[FORM_CHAT:");
+  const formTitle = isFormChat
+    ? text.replace(/^\[FORM_CHAT:[^\]]+\]\s*/, "")
+    : "";
+
   return (
     <div
       className={`flex items-end gap-2 ${isCustomer ? "justify-end" : "justify-start"}`}
     >
       {!isCustomer && <Avatar sender="bot" />}
-      <div className="max-w-[82%]">
-        <div
-          className={`rounded-2xl px-3.5 py-2.5 text-[11px] leading-relaxed whitespace-pre-wrap shadow-md ${isCustomer ? "rounded-br-md bg-blue-600 text-white" : "rounded-bl-md border border-white/8 bg-[#17202b] text-slate-100"}`}
-        >
-          {text}
-        </div>
+      <div className="max-w-[85%]">
+        {isFormChat ? (
+          <InteractiveFormWidget
+            title={formTitle}
+            onSubmitted={(summary) => onFormSubmitted?.(summary)}
+          />
+        ) : (
+          <div
+            className={`rounded-2xl px-3.5 py-2.5 text-[11px] leading-relaxed whitespace-pre-wrap shadow-md ${isCustomer ? "rounded-br-md bg-blue-600 text-white" : "rounded-bl-md border border-white/8 bg-[#17202b] text-slate-100"}`}
+          >
+            {text}
+          </div>
+        )}
         <p
           className={`mt-1 flex items-center gap-1 px-1 text-[8px] text-slate-600 ${isCustomer ? "justify-end" : "justify-start"}`}
         >
@@ -295,6 +314,87 @@ function ChatBubble({
         </p>
       </div>
       {isCustomer && <Avatar sender="customer" />}
+    </div>
+  );
+}
+
+function InteractiveFormWidget({
+  title,
+  onSubmitted,
+}: {
+  title: string;
+  onSubmitted: (summary: string) => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: "Budi Santoso",
+    phone: "081298765432",
+    service: "Upgrade CVT",
+  });
+  const [isDone, setIsDone] = useState(false);
+
+  if (isDone) {
+    return (
+      <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300 space-y-1">
+        <p className="font-bold flex items-center gap-1.5">
+          <CheckCheck className="h-4 w-4 text-emerald-400" />
+          Form Berhasil Terkirim
+        </p>
+        <p className="text-[10px] text-slate-300">
+          Terima kasih! Data Form ({formData.name} - {formData.service}) telah kami terima.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2.5 rounded-2xl border border-violet-500/30 bg-[#161324] p-3 text-xs text-slate-200 shadow-xl">
+      <div className="flex items-center gap-2 border-b border-violet-500/20 pb-2">
+        <FileText className="h-4 w-4 text-violet-400" />
+        <span className="font-bold text-violet-200">{title || "Form Chatbot Interaktif"}</span>
+      </div>
+      <div className="space-y-1.5">
+        <div>
+          <label className="text-[9px] font-bold text-slate-400 uppercase">Nama Lengkap</label>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            className="w-full rounded-md border border-white/10 bg-black/40 px-2.5 py-1 text-xs text-white outline-none focus:border-violet-400"
+          />
+        </div>
+        <div>
+          <label className="text-[9px] font-bold text-slate-400 uppercase">Nomor WhatsApp / HP</label>
+          <input
+            type="text"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            className="w-full rounded-md border border-white/10 bg-black/40 px-2.5 py-1 text-xs text-white outline-none focus:border-violet-400"
+          />
+        </div>
+        <div>
+          <label className="text-[9px] font-bold text-slate-400 uppercase">Pilihan Layanan</label>
+          <select
+            value={formData.service}
+            onChange={(e) => setFormData({ ...formData, service: e.target.value })}
+            className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1 text-xs text-white outline-none focus:border-violet-400"
+          >
+            <option value="Upgrade CVT">Upgrade CVT</option>
+            <option value="Servis Berkala / Tune Up">Servis Berkala / Tune Up</option>
+            <option value="Ganti Oli">Ganti Oli</option>
+            <option value="Konsultasi">Konsultasi</option>
+          </select>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          setIsDone(true);
+          onSubmitted(`Mengisi form: ${formData.name} (${formData.phone}) - ${formData.service}`);
+        }}
+        className="w-full rounded-lg bg-violet-600 py-1.5 font-bold text-white text-xs hover:bg-violet-500 transition shadow-md active:scale-95"
+      >
+        Kirim Form Data
+      </button>
     </div>
   );
 }

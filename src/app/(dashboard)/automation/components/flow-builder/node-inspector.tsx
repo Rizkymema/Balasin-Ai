@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Settings2, Trash2 } from "lucide-react";
+import { Bot, FileText, Plus, Settings2, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,6 +124,179 @@ export function NodeInspector({ node, agents, onChange, onDelete }: Props) {
               className="min-h-36 bg-black/30 text-xs leading-relaxed"
             />
           </Field>
+        )}
+
+        {node.type === "form_chat" && (
+          <>
+            <Field label="Judul Form Chat" hint="Tampak di bagian paling atas form chat.">
+              <Input
+                value={node.data.formTitle ?? ""}
+                onChange={(e) => update({ formTitle: e.target.value })}
+                placeholder="Form Booking & Pendaftaran"
+                className="bg-black/30 text-xs font-bold"
+              />
+            </Field>
+
+            <Field label="Deskripsi / Instruksi Chat" hint="Pesan pembuka form yang akan dibaca pelanggan.">
+              <Textarea
+                value={node.data.formDescription ?? ""}
+                onChange={(e) => update({ formDescription: e.target.value })}
+                placeholder="Silakan isi data diri Anda di bawah ini..."
+                className="min-h-20 bg-black/30 text-xs"
+              />
+            </Field>
+
+            <div className="space-y-3 rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-violet-300 flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5" />
+                  Fields Form ({node.data.formFields?.length ?? 0})
+                </span>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    const fields = node.data.formFields ?? [];
+                    const newField = {
+                      id: `field-${Date.now()}`,
+                      label: `Field ${fields.length + 1}`,
+                      type: "text" as const,
+                      placeholder: "Isi data...",
+                      required: true,
+                    };
+                    update({ formFields: [...fields, newField] });
+                  }}
+                  className="h-7 gap-1 px-2.5 text-[10px] font-bold bg-violet-500/20 text-violet-300 border-violet-500/30 hover:bg-violet-500/30"
+                >
+                  <Plus className="h-3 w-3" /> Tambah Field
+                </Button>
+              </div>
+
+              {(node.data.formFields ?? []).map((field, index) => (
+                <div
+                  key={field.id}
+                  className="space-y-2 rounded-lg border border-white/10 bg-black/40 p-2.5"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold text-slate-400">
+                      Field #{index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const fields = (node.data.formFields ?? []).filter(
+                          (f) => f.id !== field.id,
+                        );
+                        update({ formFields: fields });
+                      }}
+                      className="text-slate-500 hover:text-red-400"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-semibold block mb-1">
+                        Nama Field
+                      </span>
+                      <Input
+                        value={field.label}
+                        onChange={(e) => {
+                          const fields = [...(node.data.formFields ?? [])];
+                          fields[index] = { ...fields[index], label: e.target.value };
+                          update({ formFields: fields });
+                        }}
+                        className="h-8 text-xs bg-black/40"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-semibold block mb-1">
+                        Tipe Input
+                      </span>
+                      <select
+                        value={field.type}
+                        onChange={(e) => {
+                          const fields = [...(node.data.formFields ?? [])];
+                          fields[index] = {
+                            ...fields[index],
+                            type: e.target.value as any,
+                          };
+                          update({ formFields: fields });
+                        }}
+                        className="h-8 w-full rounded-md border border-white/10 bg-black/40 px-2 text-xs text-white outline-none focus:border-cyan-400"
+                      >
+                        <option value="text">Teks Biasa</option>
+                        <option value="phone">Nomor HP / WA</option>
+                        <option value="email">Email</option>
+                        <option value="select">Pilihan / Dropdown</option>
+                        <option value="date">Tanggal</option>
+                        <option value="textarea">Catatan Panjang</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {field.type === "select" && (
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-semibold block mb-1">
+                        Pilihan (Pisahkan dengan koma)
+                      </span>
+                      <Input
+                        value={(field.options ?? []).join(", ")}
+                        onChange={(e) => {
+                          const fields = [...(node.data.formFields ?? [])];
+                          fields[index] = {
+                            ...fields[index],
+                            options: e.target.value
+                              .split(",")
+                              .map((s) => s.trim())
+                              .filter(Boolean),
+                          };
+                          update({ formFields: fields });
+                        }}
+                        placeholder="Servis CVT, Ganti Oli, Tune Up"
+                        className="h-8 text-xs bg-black/40"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-1">
+                    <label className="flex items-center gap-1.5 text-[10px] text-slate-400 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={field.required !== false}
+                        onChange={(e) => {
+                          const fields = [...(node.data.formFields ?? [])];
+                          fields[index] = { ...fields[index], required: e.target.checked };
+                          update({ formFields: fields });
+                        }}
+                        className="accent-violet-500"
+                      />
+                      Wajib diisi (Required)
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Field label="Label Tombol Submit">
+              <Input
+                value={node.data.submitButtonLabel ?? ""}
+                onChange={(e) => update({ submitButtonLabel: e.target.value })}
+                placeholder="Kirim Form Data"
+                className="bg-black/30 text-xs font-semibold"
+              />
+            </Field>
+
+            <Field label="Pesan Balasan Setelah Kirim">
+              <Textarea
+                value={node.data.successMessage ?? ""}
+                onChange={(e) => update({ successMessage: e.target.value })}
+                placeholder="Terima kasih! Form Anda telah berhasil dikirim."
+                className="min-h-20 bg-black/30 text-xs"
+              />
+            </Field>
+          </>
         )}
 
         {node.type === "office_hours" && (

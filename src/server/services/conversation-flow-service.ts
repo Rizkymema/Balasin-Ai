@@ -473,6 +473,17 @@ function executeGraphSegment(input: {
       currentId = getNextEdge(graph, current.id)?.target;
       continue;
     }
+    if (current.type === "form_chat") {
+      const formHeader =
+        current.data.formTitle?.trim()
+          ? `[FORM_CHAT:${current.id}] ${current.data.formTitle.trim()}`
+          : current.data.formDescription?.trim() || "Form Chatbot";
+      result.messages.push(formHeader);
+      currentId =
+        getNextEdge(graph, current.id, "submitted")?.target ??
+        getNextEdge(graph, current.id)?.target;
+      continue;
+    }
     if (current.type === "office_hours") {
       const outcome = isOutsideConfiguredBusinessHours(config, input.now)
         ? "outside"

@@ -3,6 +3,7 @@
 import {
   Bot,
   Clock3,
+  FileText,
   Flag,
   MessageSquareText,
   ShieldAlert,
@@ -19,6 +20,11 @@ const NODE_STYLES = {
     color: "#0a84ff",
     eyebrow: "Bot message",
   },
+  form_chat: {
+    icon: FileText,
+    color: "#8b5cf6",
+    eyebrow: "Form Chatbot",
+  },
   office_hours: { icon: Clock3, color: "#ff9f0a", eyebrow: "Condition" },
   ai_agent: { icon: Bot, color: "#64d2ff", eyebrow: "AI response" },
   fallback: { icon: ShieldAlert, color: "#bf5af2", eyebrow: "Safe fallback" },
@@ -32,6 +38,10 @@ const OUTPUTS: Partial<
   office_hours: [
     { id: "outside", label: "Outside" },
     { id: "inside", label: "Inside" },
+  ],
+  form_chat: [
+    { id: "submitted", label: "Submitted" },
+    { id: "cancelled", label: "Skipped" },
   ],
   ai_agent: [
     { id: "answered", label: "Answered" },
@@ -52,15 +62,17 @@ export function FlowNodeCard({
   const outputs = OUTPUTS[resolvedType];
   const preview =
     data.message ||
-    (resolvedType === "ai_agent"
-      ? data.agentId
-        ? "Agent khusus terhubung"
-        : "Auto by channel"
-      : resolvedType === "office_hours"
-        ? "Workspace schedule"
-        : resolvedType === "handoff"
-          ? data.handoffTarget || "Admin Desk"
-          : "");
+    (resolvedType === "form_chat"
+      ? `📋 ${data.formFields?.length ?? 0} Field: ${data.formFields?.map((f) => f.label).join(", ") || "Belum ada field"}`
+      : resolvedType === "ai_agent"
+        ? data.agentId
+          ? "Agent khusus terhubung"
+          : "Auto by channel"
+        : resolvedType === "office_hours"
+          ? "Workspace schedule"
+          : resolvedType === "handoff"
+            ? data.handoffTarget || "Admin Desk"
+            : "");
 
   if (resolvedType === "start") {
     return (

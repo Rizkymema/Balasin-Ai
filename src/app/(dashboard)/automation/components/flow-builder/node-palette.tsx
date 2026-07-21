@@ -3,6 +3,7 @@
 import {
   Bot,
   Clock3,
+  FileText,
   Flag,
   MessageSquareText,
   Plus,
@@ -23,6 +24,12 @@ const ITEMS: Array<{
     label: "Send Message",
     description: "Pesan tetap ke pelanggan",
     icon: MessageSquareText,
+  },
+  {
+    type: "form_chat",
+    label: "Form Chat",
+    description: "Form isian interaktif (Nama, WA, Booking)",
+    icon: FileText,
   },
   {
     type: "office_hours",

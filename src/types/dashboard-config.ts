@@ -93,7 +93,25 @@ export type ConversationFlowNodeType =
   | "ai_agent"
   | "fallback"
   | "handoff"
+  | "form_chat"
   | "end";
+
+export type FormFieldType =
+  | "text"
+  | "phone"
+  | "email"
+  | "select"
+  | "date"
+  | "textarea";
+
+export type FormFieldItem = {
+  id: string;
+  label: string;
+  type: FormFieldType;
+  placeholder?: string;
+  options?: string[];
+  required?: boolean;
+};
 
 export type ConversationFlowNodeData = {
   label: string;
@@ -105,6 +123,11 @@ export type ConversationFlowNodeData = {
   requireKnowledgeBase?: boolean;
   handoffTarget?: string;
   handoffReason?: string;
+  formTitle?: string;
+  formDescription?: string;
+  formFields?: FormFieldItem[];
+  submitButtonLabel?: string;
+  successMessage?: string;
 };
 
 export type ConversationFlowNode = {
