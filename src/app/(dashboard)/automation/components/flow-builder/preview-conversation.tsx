@@ -1,15 +1,17 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import {
   Bot,
+  CheckCheck,
+  Clock3,
   Loader2,
-  Play,
   RotateCcw,
+  Send,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { FlowPreviewResult } from "./flow-builder-types";
 
@@ -34,121 +36,194 @@ export function PreviewConversation({
   onRun,
   onReset,
 }: Props) {
+  const [lastSentMessage, setLastSentMessage] = useState("");
+  const messagesRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = messagesRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+  }, [isRunning, result]);
+
+  const sendMessage = () => {
+    const nextMessage = message.trim();
+    if (!nextMessage || isRunning) return;
+    setLastSentMessage(nextMessage);
+    onReset();
+    onRun();
+  };
+
+  const resetChat = () => {
+    setLastSentMessage("");
+    onReset();
+  };
+
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b border-white/8 p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black tracking-[0.18em] text-cyan-400 uppercase">
-              Preview Conversation
+    <div className="flex h-full min-h-0 flex-col bg-[#0d1117]">
+      <header className="flex h-16 shrink-0 items-center gap-3 border-b border-white/8 bg-[#111821] px-4">
+        <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 text-white shadow-lg shadow-blue-950/30">
+          <Bot className="h-5 w-5" />
+          <span className="absolute right-0 bottom-0 h-3 w-3 rounded-full border-2 border-[#111821] bg-emerald-400" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold text-white">
+            Johan Garage AI
+          </p>
+          <p className="flex items-center gap-1.5 text-[10px] text-emerald-400">
+            <ShieldCheck className="h-3 w-3" />
+            Online - Test sandbox
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={resetChat}
+          className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/8 hover:text-white"
+          aria-label="Reset percakapan test"
+          title="Reset chat"
+        >
+          <RotateCcw className="h-4 w-4" />
+        </button>
+      </header>
+
+      <div
+        ref={messagesRef}
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_center,rgba(30,41,59,0.42)_1px,transparent_1px)] bg-[length:22px_22px] px-4 py-5"
+      >
+        <div className="mx-auto w-fit rounded-full border border-white/8 bg-[#111821]/90 px-3 py-1 text-[9px] font-bold text-slate-500 shadow-sm">
+          Preview percakapan hari ini
+        </div>
+
+        {!result && !isRunning && (
+          <div className="mx-auto max-w-[250px] rounded-2xl border border-white/8 bg-[#111821]/90 p-4 text-center shadow-xl">
+            <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-cyan-400/10 text-cyan-300">
+              <Bot className="h-5 w-5" />
+            </span>
+            <p className="mt-3 text-xs font-bold text-white">
+              Mulai test percakapan
             </p>
-            <p className="mt-1 text-[11px] text-slate-500">
-              Sandbox, tidak mengirim pesan sungguhan.
+            <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
+              Ketik pertanyaan seperti pelanggan biasa. Pesan hanya diproses di
+              sandbox dan tidak dikirim ke channel asli.
             </p>
           </div>
-          <ShieldCheck className="h-5 w-5 text-emerald-400" />
-        </div>
-        <div className="mt-3 space-y-2">
-          <Input
-            value={message}
-            onChange={(event) => onMessageChange(event.target.value)}
-            placeholder="Tulis pesan pelanggan..."
-            className="bg-black/30"
-          />
-          <Input
+        )}
+
+        {(lastSentMessage || result) && (
+          <ChatBubble sender="customer" text={lastSentMessage || message} />
+        )}
+
+        {result?.messages.map((item, index) => (
+          <ChatBubble key={`${item}-${index}`} sender="bot" text={item} />
+        ))}
+
+        {isRunning && <TypingBubble />}
+
+        {result?.error && (
+          <div className="ml-8 rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-[10px] text-red-300">
+            {result.error}
+          </div>
+        )}
+
+        {result?.needsHuman && (
+          <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1.5 text-[9px] font-bold text-amber-300">
+            <UserRound className="h-3 w-3" />
+            Diteruskan ke {result.handoffTarget || "Admin"}
+          </div>
+        )}
+
+        {result && (
+          <details className="rounded-xl border border-white/8 bg-[#111821]/90 text-[10px] shadow-lg">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 font-bold text-slate-400">
+              <span>Detail eksekusi flow</span>
+              {result.decision && (
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[8px] ${result.decision.grounded ? "bg-emerald-400/10 text-emerald-300" : "bg-amber-400/10 text-amber-300"}`}
+                >
+                  {result.decision.grounded ? "Grounded" : "Fallback"} -{" "}
+                  {result.decision.confidence}%
+                </span>
+              )}
+            </summary>
+            <div className="space-y-2 border-t border-white/8 p-3">
+              {result.trace.map((step, index) => (
+                <div
+                  key={`${step.nodeId}-${index}`}
+                  className="flex items-center gap-2"
+                >
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-400/10 font-mono text-cyan-300">
+                    {index + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-slate-300">
+                    {step.label}
+                  </span>
+                  {step.outcome && (
+                    <span className="text-slate-600">{step.outcome}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+      </div>
+
+      <footer className="shrink-0 border-t border-white/8 bg-[#111821] p-3">
+        <label className="mb-2 flex items-center gap-2 px-1 text-[9px] font-bold text-slate-500">
+          <Clock3 className="h-3 w-3" />
+          Waktu simulasi
+          <input
             type="datetime-local"
             value={nowIso}
             onChange={(event) => onNowChange(event.target.value)}
-            className="bg-black/30 text-[11px]"
+            className="ml-auto max-w-44 bg-transparent text-right text-[9px] text-slate-400 outline-none"
           />
-          <div className="flex gap-2">
-            <Button
-              onClick={onRun}
-              disabled={isRunning || !message.trim()}
-              className="h-9 flex-1 gap-2 px-3 text-xs"
-            >
-              {isRunning ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Play className="h-3.5 w-3.5" />
-              )}
-              {isRunning ? "Running..." : "Test Draft"}
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={onReset}
-              className="h-9 px-3"
-              aria-label="Reset preview"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        {!result ? (
-          <div className="flex h-full flex-col items-center justify-center text-center">
-            <Bot className="h-8 w-8 text-slate-700" />
-            <p className="mt-3 text-xs font-bold text-slate-300">
-              Flow belum dites
-            </p>
-            <p className="mt-1 max-w-52 text-[10px] leading-relaxed text-slate-600">
-              Masukkan pesan dan waktu simulasi, lalu jalankan Draft.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <ChatBubble sender="customer" text={message} />
-            {result.messages.map((item, index) => (
-              <ChatBubble key={`${item}-${index}`} sender="bot" text={item} />
-            ))}
-            {result.error && (
-              <div className="rounded-xl border border-red-400/20 bg-red-400/[0.05] p-3 text-[10px] text-red-300">
-                {result.error}
-              </div>
+        </label>
+        <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0d1117] p-1.5 pl-3 focus-within:border-cyan-400/40">
+          <Input
+            value={message}
+            onChange={(event) => onMessageChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+              }
+            }}
+            placeholder="Ketik pesan pelanggan..."
+            className="h-9 flex-1 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
+          />
+          <button
+            type="button"
+            onClick={sendMessage}
+            disabled={isRunning || !message.trim()}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="Kirim pesan test"
+          >
+            {isRunning ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
             )}
+          </button>
+        </div>
+        <p className="mt-2 text-center text-[8px] text-slate-600">
+          Enter untuk mengirim - Tidak terkirim ke pelanggan asli
+        </p>
+      </footer>
+    </div>
+  );
+}
 
-            <div className="rounded-2xl border border-white/8 bg-black/20 p-3">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black tracking-[0.14em] text-slate-400 uppercase">
-                  Execution Trace
-                </p>
-                {result.decision && (
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${result.decision.grounded ? "bg-emerald-400/10 text-emerald-300" : "bg-amber-400/10 text-amber-300"}`}
-                  >
-                    {result.decision.grounded ? "Grounded" : "Fallback"}{" "}
-                    {result.decision.confidence}%
-                  </span>
-                )}
-              </div>
-              <div className="mt-3 space-y-2">
-                {result.trace.map((step, index) => (
-                  <div
-                    key={`${step.nodeId}-${index}`}
-                    className="flex items-center gap-2 text-[10px]"
-                  >
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-400/10 font-mono text-cyan-300">
-                      {index + 1}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-slate-300">
-                      {step.label}
-                    </span>
-                    {step.outcome && (
-                      <span className="text-slate-600">{step.outcome}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-              {result.needsHuman && (
-                <p className="mt-3 rounded-lg bg-red-400/[0.06] px-2.5 py-2 text-[10px] text-red-300">
-                  Handoff: {result.handoffTarget || "Admin"}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
+function TypingBubble() {
+  return (
+    <div className="flex items-end gap-2">
+      <Avatar sender="bot" />
+      <div className="flex items-center gap-1 rounded-2xl rounded-bl-md border border-white/8 bg-[#17202b] px-4 py-3">
+        {[0, 1, 2].map((item) => (
+          <span
+            key={item}
+            className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400"
+            style={{ animationDelay: `${item * 120}ms` }}
+          />
+        ))}
       </div>
     </div>
   );
@@ -166,21 +241,35 @@ function ChatBubble({
     <div
       className={`flex items-end gap-2 ${isCustomer ? "justify-end" : "justify-start"}`}
     >
-      {!isCustomer && (
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-500/15 text-cyan-300">
-          <Bot className="h-3.5 w-3.5" />
-        </span>
-      )}
-      <div
-        className={`max-w-[85%] rounded-2xl px-3 py-2 text-[11px] leading-relaxed ${isCustomer ? "rounded-br-md bg-blue-500 text-white" : "rounded-bl-md border border-white/8 bg-white/[0.05] text-slate-200"}`}
-      >
-        {text}
+      {!isCustomer && <Avatar sender="bot" />}
+      <div className="max-w-[82%]">
+        <div
+          className={`rounded-2xl px-3.5 py-2.5 text-[11px] leading-relaxed whitespace-pre-wrap shadow-md ${isCustomer ? "rounded-br-md bg-blue-600 text-white" : "rounded-bl-md border border-white/8 bg-[#17202b] text-slate-100"}`}
+        >
+          {text}
+        </div>
+        <p
+          className={`mt-1 flex items-center gap-1 px-1 text-[8px] text-slate-600 ${isCustomer ? "justify-end" : "justify-start"}`}
+        >
+          Sekarang
+          {isCustomer && <CheckCheck className="h-3 w-3 text-blue-400" />}
+        </p>
       </div>
-      {isCustomer && (
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/8 text-slate-400">
-          <UserRound className="h-3.5 w-3.5" />
-        </span>
-      )}
+      {isCustomer && <Avatar sender="customer" />}
     </div>
+  );
+}
+
+function Avatar({ sender }: { sender: "customer" | "bot" }) {
+  return (
+    <span
+      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${sender === "bot" ? "bg-cyan-500/15 text-cyan-300" : "bg-white/8 text-slate-400"}`}
+    >
+      {sender === "bot" ? (
+        <Bot className="h-3.5 w-3.5" />
+      ) : (
+        <UserRound className="h-3.5 w-3.5" />
+      )}
+    </span>
   );
 }
