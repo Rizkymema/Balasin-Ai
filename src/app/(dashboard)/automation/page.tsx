@@ -2,8 +2,12 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { PlusCircle, Loader2 } from "lucide-react";
+import { CalendarCheck2, Loader2, PlusCircle, Sparkles } from "lucide-react";
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
+import {
+  BOOKING_SERVICE_TEMPLATE_NAME,
+  createBookingServiceFlowTemplate,
+} from "@/lib/conversation-flow-templates";
 import type { ConversationFlow } from "@/types/dashboard-config";
 import { Button } from "@/components/ui/button";
 
@@ -28,6 +32,7 @@ export default function AutomationPage() {
   const [deletingFlow, setDeletingFlow] = useState<ConversationFlow | null>(
     null,
   );
+  const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
 
   useEffect(() => {
     if (!config) return;
@@ -44,6 +49,47 @@ export default function AutomationPage() {
         flow.status.toLowerCase().includes(query),
     );
   }, [conversations, searchQuery]);
+
+  const bookingTemplateFlow = conversations.find(
+    (flow) => flow.name === BOOKING_SERVICE_TEMPLATE_NAME,
+  );
+
+  const handleUseBookingTemplate = async () => {
+    if (bookingTemplateFlow) {
+      router.push(`/automation/conversations/${bookingTemplateFlow.id}`);
+      return;
+    }
+
+    setIsCreatingTemplate(true);
+    const lastUpdate = new Date()
+      .toLocaleString("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+      .replace(/\./g, ":");
+    const flow = createBookingServiceFlowTemplate({
+      flowId: `conv_booking_service_${Date.now()}`,
+      lastUpdate,
+    });
+    const nextConversations = [flow, ...conversations];
+
+    try {
+      setConversations(nextConversations);
+      await patchConfig((current) => ({
+        ...current,
+        automation: {
+          ...current.automation,
+          conversations: nextConversations,
+        },
+      }));
+      router.push(`/automation/conversations/${flow.id}`);
+    } finally {
+      setIsCreatingTemplate(false);
+    }
+  };
 
   const handleSaveConversation = async (
     flowData: Omit<ConversationFlow, "id" | "botResponse" | "lastUpdate">,
@@ -187,6 +233,44 @@ export default function AutomationPage() {
           Create Conversation
         </Button>
       </div>
+
+      <section className="rounded-2xl border border-emerald-400/15 bg-[linear-gradient(135deg,rgba(16,185,129,0.08),rgba(6,182,212,0.03))] p-4 sm:p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-1 items-start gap-4">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
+              <CalendarCheck2 className="h-6 w-6" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-bold text-white">
+                  Template Booking Service
+                </p>
+                <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-[9px] font-black tracking-wide text-emerald-300 uppercase">
+                  Ready to use
+                </span>
+              </div>
+              <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-400">
+                Trigger booking, cek jam operasional, form data pelanggan dan
+                motor, pilihan layanan serta jadwal, lalu konfirmasi admin.
+                Dibuat sebagai Draft agar aman untuk dites sebelum Publish.
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            onClick={() => void handleUseBookingTemplate()}
+            disabled={isCreatingTemplate}
+            className="h-10 shrink-0 gap-2 bg-emerald-500 px-4 text-xs text-white hover:bg-emerald-400"
+          >
+            {isCreatingTemplate ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {bookingTemplateFlow ? "Buka Template" : "Gunakan Template"}
+          </Button>
+        </div>
+      </section>
 
       {/* Info Tip regarding overlap between Conversation Flow & AI Agent */}
       <div className="animate-fade-in rounded-xl border border-cyan-500/20 bg-cyan-950/10 p-4 text-xs text-cyan-200">

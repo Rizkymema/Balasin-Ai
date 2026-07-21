@@ -19,6 +19,8 @@ delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 async function main() {
   const { defaultDashboardConfig } =
     await import("../src/lib/dashboard-config");
+  const { createBookingServiceFlowTemplate } =
+    await import("../src/lib/conversation-flow-templates");
   const { getDatabase } = await import("../src/server/db");
   closeDatabase = () => getDatabase().close();
   const { saveDashboardConfigRecord } =
@@ -30,6 +32,11 @@ async function main() {
     publishConversationFlow,
     saveConversationFlowDraft,
   } = await import("../src/server/repositories/conversation-flow-repository");
+  const {
+    executeConversationFlowBeforeAi,
+    validateConversationFlowGraph,
+  } =
+    await import("../src/server/services/conversation-flow-service");
 
   const flow = {
     id: "flow-smoke",
@@ -99,6 +106,45 @@ async function main() {
     "Fallback belum dipublikasikan",
   );
 
+  const bookingTemplate = createBookingServiceFlowTemplate({
+    flowId: "flow-booking-template-smoke",
+    lastUpdate: new Date().toISOString(),
+  });
+  assert.equal(bookingTemplate.status, "Draft");
+  assert.equal(bookingTemplate.normalizedTrigger, "booking_intent");
+  assert.ok(bookingTemplate.draftGraph);
+  const bookingValidation = validateConversationFlowGraph(
+    bookingTemplate.draftGraph,
+    config,
+  );
+  assert.equal(
+    bookingValidation.valid,
+    true,
+    bookingValidation.errors.map((item) => item.message).join("; "),
+  );
+  const bookingForm = bookingTemplate.draftGraph.nodes.find(
+    (node) => node.type === "form_chat",
+  );
+  assert.equal(bookingForm?.data.formFields?.length, 7);
+  assert.equal(
+    bookingForm?.data.formFields?.every((field) => field.required),
+    true,
+  );
+  const bookingRuntimeConfig = structuredClone(config);
+  bookingRuntimeConfig.workspace.timezone = "UTC";
+  bookingRuntimeConfig.workspace.businessHours = "00:00 - 23:59";
+  const bookingRuntime = executeConversationFlowBeforeAi({
+    graph: bookingTemplate.draftGraph,
+    config: bookingRuntimeConfig,
+    now: new Date("2026-07-21T12:00:00.000Z"),
+  });
+  assert.equal(bookingRuntime.graphReplyOnly, true);
+  assert.equal(bookingRuntime.needsHuman, true);
+  assert.equal(
+    bookingRuntime.messages.some((item) => item.startsWith("[FORM_CHAT:")),
+    true,
+  );
+
   console.log(
     JSON.stringify({
       initialized: true,
@@ -109,6 +155,8 @@ async function main() {
       discarded: true,
       nodes: discarded?.draftGraph?.nodes.length,
       edges: discarded?.draftGraph?.edges.length,
+      bookingTemplate: true,
+      bookingFields: bookingForm?.data.formFields?.length,
     }),
   );
 }
