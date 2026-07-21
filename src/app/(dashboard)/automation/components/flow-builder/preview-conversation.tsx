@@ -231,7 +231,7 @@ export function PreviewConversation({
           />
           <button
             type="button"
-            onClick={sendMessage}
+            onClick={() => sendMessage()}
             disabled={isRunning || !message.trim()}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Kirim pesan test"
