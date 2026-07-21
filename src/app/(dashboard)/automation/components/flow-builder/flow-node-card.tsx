@@ -107,7 +107,7 @@ export function FlowNodeCard({
 
   return (
     <div
-      className={`max-w-[250px] min-w-[210px] rounded-xl border bg-white shadow-[0_10px_30px_rgba(15,23,42,0.12)] transition ${
+      className={`relative min-w-[240px] max-w-[320px] rounded-xl border bg-white shadow-[0_10px_30px_rgba(15,23,42,0.12)] transition ${
         selected
           ? "border-cyan-500 ring-4 ring-cyan-400/15"
           : "border-slate-300"
@@ -116,16 +116,17 @@ export function FlowNodeCard({
       <Handle
         type="target"
         position={Position.Top}
-        className="!h-3 !w-3 !border-2 !border-white !bg-slate-500"
+        className="!h-3.5 !w-3.5 !border-2 !border-white !bg-slate-500 shadow-sm"
+        style={{ top: "-7px" }}
       />
       <div className="flex items-center gap-2 border-b border-slate-200 px-3.5 py-2.5">
         <span
-          className="flex h-7 w-7 items-center justify-center rounded-lg"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
           style={{ backgroundColor: `${style.color}20`, color: style.color }}
         >
           <Icon className="h-3.5 w-3.5" />
         </span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p
             className="text-[9px] font-black tracking-[0.16em] uppercase"
             style={{ color: style.color }}
@@ -137,11 +138,17 @@ export function FlowNodeCard({
           </p>
         </div>
       </div>
+
       {preview && (
-        <p className="line-clamp-3 px-3.5 py-3 text-[11px] leading-relaxed text-slate-600">
+        <div
+          className={`max-h-52 overflow-y-auto px-3.5 pt-2.5 text-[11px] leading-relaxed text-slate-700 whitespace-pre-wrap break-words nodrag ${
+            outputs ? "pb-3" : "pb-5"
+          }`}
+        >
           {preview}
-        </p>
+        </div>
       )}
+
       {outputs ? (
         <div
           className="grid gap-px border-t border-slate-200 bg-slate-200"
@@ -159,10 +166,11 @@ export function FlowNodeCard({
                 id={output.id}
                 type="source"
                 position={Position.Bottom}
-                className="!h-2.5 !w-2.5 !border-2 !border-white"
+                className="!h-3 !w-3 !border-2 !border-white shadow-sm"
                 style={{
                   left: `${((index + 1) / (outputs.length + 1)) * 100}%`,
                   backgroundColor: style.color,
+                  bottom: "-6px",
                 }}
               />
             </div>
@@ -172,8 +180,8 @@ export function FlowNodeCard({
         <Handle
           type="source"
           position={Position.Bottom}
-          className="!h-3 !w-3 !border-2 !border-white"
-          style={{ backgroundColor: style.color }}
+          className="!h-3.5 !w-3.5 !border-2 !border-white shadow-sm"
+          style={{ backgroundColor: style.color, bottom: "-7px" }}
         />
       )}
     </div>
