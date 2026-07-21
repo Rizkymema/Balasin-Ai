@@ -658,97 +658,126 @@ export default function ConversationFlowBuilderPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#050506]">
-      <header className="z-20 flex min-h-20 shrink-0 flex-wrap items-center gap-3 border-b border-white/8 bg-[#0a0a0c]/95 px-4 py-3 backdrop-blur-xl md:px-6">
-        <Link
-          href="/automation"
-          className="rounded-lg p-2 text-slate-500 transition hover:bg-white/5 hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
-        <div className="min-w-[180px] flex-1">
-          <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-cyan-400 uppercase">
-            Conversation
-          </p>
-          <div className="flex items-center gap-2">
+      <header className="z-20 flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-[#090a0f]/95 px-3 md:px-5 backdrop-blur-xl">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <Link
+            href="/automation"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white/10 hover:text-white"
+            title="Kembali ke Automations"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+
+          <div className="h-4 w-px bg-white/10 shrink-0" />
+
+          {/* Workspace & Flow Title */}
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="hidden sm:inline text-xs font-medium text-slate-400 shrink-0">
+              Workspace: <strong className="text-white">Johan Garage</strong>
+            </span>
+            <span className="hidden sm:inline text-slate-600">/</span>
+
             <Input
               value={flow.name}
               onChange={(event) => {
                 setFlow({ ...flow, name: event.target.value });
                 markChanged();
               }}
-              className="h-8 max-w-2xl border-transparent bg-transparent px-0 text-base font-bold text-white hover:border-white/8 focus:border-cyan-400 md:text-lg"
+              className="h-8 max-w-[200px] sm:max-w-[280px] md:max-w-[340px] border-transparent bg-transparent px-2 text-xs md:text-sm font-bold text-white transition hover:border-white/10 focus:border-cyan-400 focus:bg-white/5"
             />
+
             <span
-              className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${flow.status === "Published" ? "bg-emerald-400/10 text-emerald-300" : "bg-amber-400/10 text-amber-300"}`}
+              className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                flow.status === "Published"
+                  ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                  : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+              }`}
             >
               {flow.status}
             </span>
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-3 text-[10px] text-slate-500">
-            <span>{flow.channel}</span>
-            <span>Last edited {flow.lastUpdate}</span>
-            <span>Draft r{flow.draftRevision ?? 0}</span>
-            <span className="flex items-center gap-1">
-              {saveState === "saving" ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : saveState === "saved" ? (
-                <Cloud className="h-3 w-3 text-emerald-400" />
-              ) : (
-                <CloudOff className="h-3 w-3 text-amber-400" />
-              )}
-              {saveState === "saving"
-                ? "Saving..."
-                : saveState === "saved"
-                  ? "Draft saved"
-                  : saveState === "conflict"
-                    ? "Version conflict"
-                    : "Unsaved changes"}
-            </span>
+
+            {/* Auto-Save & Details */}
+            <div className="hidden lg:flex items-center gap-2 text-[11px] text-slate-400 pl-2">
+              <span className="text-slate-600">•</span>
+              <span className="flex items-center gap-1.5 font-medium">
+                {saveState === "saving" ? (
+                  <Loader2 className="h-3 w-3 animate-spin text-cyan-400" />
+                ) : saveState === "saved" ? (
+                  <Cloud className="h-3 w-3 text-emerald-400" />
+                ) : (
+                  <CloudOff className="h-3 w-3 text-amber-400" />
+                )}
+                {saveState === "saving"
+                  ? "Saving..."
+                  : saveState === "saved"
+                    ? `Draft r${flow.draftRevision ?? 0} saved`
+                    : saveState === "conflict"
+                      ? "Version conflict"
+                      : "Unsaved changes"}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Header Action Buttons & Status */}
+        <div className="flex items-center gap-2 shrink-0">
           {(errorCount > 0 || warningCount > 0) && (
             <button
               type="button"
               onClick={() => setActivePanel("inspector")}
-              className="rounded-full border border-white/8 px-3 py-2 text-[10px] font-bold text-slate-300"
+              className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[11px] font-bold text-red-300 transition hover:bg-red-500/20"
             >
-              <span className="text-red-400">{errorCount} error</span> /{" "}
-              <span className="text-amber-400">{warningCount} warning</span>
+              <AlertTriangle className="h-3 w-3" />
+              <span>{errorCount} error</span>
             </button>
           )}
+
           <Button
             variant="secondary"
             onClick={() => void discardDraft()}
             disabled={!flow.hasUnpublishedChanges && saveState === "saved"}
-            className="h-9 gap-2 px-4 text-xs"
+            className="h-8 gap-1.5 border-white/10 bg-white/5 px-3 text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white"
           >
-            <RotateCcw className="h-3.5 w-3.5 md:hidden" />
-            <span className="hidden md:inline">Discard</span>
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Discard</span>
           </Button>
+
           <Button
             variant="secondary"
             onClick={() => setActivePanel("preview")}
-            className="h-9 gap-2 border-cyan-400/20 px-4 text-xs text-cyan-300"
+            className="h-8 gap-1.5 border-cyan-500/30 bg-cyan-500/10 px-3 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/20"
           >
-            <FlaskConical className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Test Flow</span>
+            <FlaskConical className="h-3.5 w-3.5 text-cyan-400" />
+            <span>Test Flow</span>
           </Button>
+
           <Button
             onClick={() => void publishFlow()}
             disabled={isPublishing || saveState === "conflict"}
-            className="h-9 gap-2 px-5 text-xs"
+            className="h-8 gap-1.5 border-0 bg-cyan-400 px-4 text-xs font-bold text-slate-950 shadow-sm shadow-cyan-400/20 hover:bg-cyan-300"
           >
             {isPublishing ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <Send className="h-3.5 w-3.5" />
             )}
-            <span className="hidden sm:inline">
+            <span>
               {isPublishing ? "Publishing..." : "Publish"}
             </span>
           </Button>
+
+          <div className="h-4 w-px bg-white/10 mx-1 hidden sm:block" />
+
+          {/* System active badge */}
+          <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium text-slate-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Sistem aktif
+          </div>
+
+          {/* Profile badge */}
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-400/15 text-[10px] font-black text-cyan-300 border border-cyan-400/30">
+            ME
+          </div>
         </div>
       </header>
 
@@ -810,40 +839,40 @@ export default function ConversationFlowBuilderPage() {
               size={1.2}
               color="#cbd5e1"
             />
-            <Panel position="top-left" className="!m-4">
-              <div className="flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-[0_16px_50px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+            <Panel position="top-left" className="!m-3">
+              <div className="flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 p-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.08)] backdrop-blur-md">
                 <button
                   type="button"
                   onClick={() => setIsPaletteOpen((current) => !current)}
-                  className={`flex h-10 items-center gap-2 rounded-xl border px-3 text-xs font-bold transition ${isPaletteOpen ? "border-cyan-400 bg-cyan-50 text-cyan-700" : "border-slate-200 bg-white text-slate-700 hover:border-cyan-300 hover:text-cyan-700"}`}
+                  className={`flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold transition ${isPaletteOpen ? "border-cyan-400 bg-cyan-50 text-cyan-700 shadow-sm" : "border-slate-200/80 bg-white text-slate-700 hover:border-cyan-300 hover:bg-slate-50 hover:text-cyan-700"}`}
                 >
-                  <Blocks className="h-4 w-4" />
+                  <Blocks className="h-3.5 w-3.5" />
                   Add puzzle
                 </button>
                 <button
                   type="button"
                   onClick={() => setActivePanel("preview")}
-                  className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-700"
+                  className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200/80 bg-white px-2.5 text-xs font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-slate-50 hover:text-blue-700"
                 >
-                  <FlaskConical className="h-4 w-4" />
+                  <FlaskConical className="h-3.5 w-3.5" />
                   AI Training
                 </button>
                 <button
                   type="button"
                   onClick={arrangeFlow}
-                  className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
+                  className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200/80 bg-white px-2.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-slate-50 hover:text-emerald-700"
                 >
-                  <WandSparkles className="h-4 w-4" />
+                  <WandSparkles className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Rapikan Flow</span>
                 </button>
-                <span className="hidden h-6 w-px bg-slate-200 sm:block" />
-                <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-bold text-slate-600">
+                <span className="hidden h-5 w-px bg-slate-200 sm:block" />
+                <span className="rounded-md bg-slate-100/90 border border-slate-200/50 px-2 py-1 text-[10px] font-semibold text-slate-600">
                   {knowledge.documents} docs
                 </span>
-                <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-bold text-slate-600">
+                <span className="rounded-md bg-slate-100/90 border border-slate-200/50 px-2 py-1 text-[10px] font-semibold text-slate-600">
                   {knowledge.faqs} FAQ
                 </span>
-                <span className="hidden rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-bold text-slate-600 md:inline">
+                <span className="hidden rounded-md bg-slate-100/90 border border-slate-200/50 px-2 py-1 text-[10px] font-semibold text-slate-600 md:inline">
                   {workspace.timezone}
                 </span>
               </div>
@@ -851,11 +880,11 @@ export default function ConversationFlowBuilderPage() {
             <MiniMap
               nodeColor="#0a84ff"
               maskColor="rgba(241,245,249,0.72)"
-              className="!hidden !border !border-slate-200 !bg-white !shadow-lg md:!block"
+              className="!hidden !border !border-slate-200/80 !bg-white !rounded-xl !shadow-lg md:!block !overflow-hidden"
             />
             <Controls
               position="top-right"
-              className="!mt-4 !mr-4 !overflow-hidden !rounded-xl !border !border-slate-200 !bg-white !shadow-xl [&_button]:!border-slate-200 [&_button]:!bg-white [&_button]:!fill-slate-700"
+              className="!mt-3 !mr-3 !overflow-hidden !rounded-xl !border !border-slate-200/80 !bg-white !shadow-lg [&_button]:!border-slate-200/60 [&_button]:!bg-white [&_button]:!fill-slate-700"
             />
           </ReactFlow>
         </main>
@@ -959,11 +988,11 @@ export default function ConversationFlowBuilderPage() {
         )}
       </div>
 
-      <footer className="flex items-center justify-between border-t border-white/8 bg-[#0a0a0c] px-4 py-2 text-[9px] text-slate-600">
+      <footer className="flex h-7 shrink-0 items-center justify-between border-t border-white/10 bg-[#090a0f] px-4 text-[10px] font-medium text-slate-500">
         <span>
           {nodes.length} nodes / {edges.length} edges
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex items-center gap-1.5 text-slate-400">
           <Check className="h-3 w-3 text-emerald-400" />
           Preview is sandboxed. Runtime hanya memakai Published graph.
         </span>

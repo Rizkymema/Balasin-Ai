@@ -565,81 +565,83 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* RIGHT CONTENT WORKSPACE */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* TOPBAR */}
-        <header className="h-16 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 z-30 shrink-0">
-          <div className="flex items-center gap-4 min-w-0">
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className={`p-2 -ml-2 rounded text-slate-400 hover:bg-[var(--color-surface-hover)] md:hidden shrink-0 ${isFlowBuilderRoute ? "hidden" : ""}`}
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            <div className="text-sm font-semibold text-[var(--color-muted)] truncate max-w-[200px] sm:max-w-none">
-              {t.workspace}: <span className="text-[var(--color-text)] font-bold">{businessName}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Notification bell */}
-            <button className="relative p-2 rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition duration-200" title={`Notifikasi (${inboxUnreadCount} belum dibaca)`}>
-              <Bell className="h-5 w-5" />
-              {inboxUnreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--color-brand)]" />
-              )}
-            </button>
-
-            {/* Status Indicator */}
-            <div className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-muted)]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
-              {t.systemActive}
-            </div>
-
-            {/* Unified User Profile Dropdown */}
-            <div className="relative">
+        {!isFlowBuilderRoute && (
+          <header className="h-16 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 z-30 shrink-0">
+            <div className="flex items-center gap-4 min-w-0">
               <button
-                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center gap-2 p-1 rounded-full hover:bg-[var(--color-surface-hover)] border border-transparent hover:border-[var(--color-border)] transition duration-200 cursor-pointer"
+                onClick={() => setIsSidebarOpen(true)}
+                className={`p-2 -ml-2 rounded text-slate-400 hover:bg-[var(--color-surface-hover)] md:hidden shrink-0 ${isFlowBuilderRoute ? "hidden" : ""}`}
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-brand)]/10 text-[var(--color-brand)] font-bold text-xs border border-[var(--color-brand)]/20 uppercase">
-                  {userEmail.slice(0, 2)}
-                </div>
-                <ChevronDown className="h-3.5 w-3.5 text-[var(--color-muted)] mr-1 hidden sm:inline" />
+                <Menu className="h-5 w-5" />
               </button>
-              
-              {isProfileDropdownOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setIsProfileDropdownOpen(false)} 
-                  />
-                  <div className="absolute right-0 mt-2 w-56 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-strong)] p-1.5 shadow-xl z-50 animate-in fade-in slide-in-from-top-2">
-                    <div className="px-3 py-2 border-b border-[var(--color-border)]/50 mb-1">
-                      <p className="text-[10px] text-[var(--color-muted)] font-semibold uppercase tracking-wider">Logged in as</p>
-                      <p className="text-xs text-[var(--color-text)] truncate font-bold mt-0.5">{userEmail}</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setIsAccountModalOpen(true);
-                        setIsProfileDropdownOpen(false);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition cursor-pointer text-left"
-                    >
-                      <Settings className="h-4 w-4 text-[var(--color-muted)]" />
-                      Pengaturan Akun
-                    </button>
-                    <div className="h-px bg-[var(--color-border)]/50 my-1.5" />
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition cursor-pointer text-left"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Keluar / Logout
-                    </button>
-                  </div>
-                </>
-              )}
+              <div className="text-sm font-semibold text-[var(--color-muted)] truncate max-w-[200px] sm:max-w-none">
+                {t.workspace}: <span className="text-[var(--color-text)] font-bold">{businessName}</span>
+              </div>
             </div>
-          </div>
-        </header>
+
+            <div className="flex items-center gap-3">
+              {/* Notification bell */}
+              <button className="relative p-2 rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition duration-200" title={`Notifikasi (${inboxUnreadCount} belum dibaca)`}>
+                <Bell className="h-5 w-5" />
+                {inboxUnreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--color-brand)]" />
+                )}
+              </button>
+
+              {/* Status Indicator */}
+              <div className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-muted)]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
+                {t.systemActive}
+              </div>
+
+              {/* Unified User Profile Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                  className="flex items-center gap-2 p-1 rounded-full hover:bg-[var(--color-surface-hover)] border border-transparent hover:border-[var(--color-border)] transition duration-200 cursor-pointer"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-brand)]/10 text-[var(--color-brand)] font-bold text-xs border border-[var(--color-brand)]/20 uppercase">
+                    {userEmail.slice(0, 2)}
+                  </div>
+                  <ChevronDown className="h-3.5 w-3.5 text-[var(--color-muted)] mr-1 hidden sm:inline" />
+                </button>
+                
+                {isProfileDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setIsProfileDropdownOpen(false)} 
+                    />
+                    <div className="absolute right-0 mt-2 w-56 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-strong)] p-1.5 shadow-xl z-50 animate-in fade-in slide-in-from-top-2">
+                      <div className="px-3 py-2 border-b border-[var(--color-border)]/50 mb-1">
+                        <p className="text-[10px] text-[var(--color-muted)] font-semibold uppercase tracking-wider">Logged in as</p>
+                        <p className="text-xs text-[var(--color-text)] truncate font-bold mt-0.5">{userEmail}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setIsAccountModalOpen(true);
+                          setIsProfileDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition cursor-pointer text-left"
+                      >
+                        <Settings className="h-4 w-4 text-[var(--color-muted)]" />
+                        Pengaturan Akun
+                      </button>
+                      <div className="h-px bg-[var(--color-border)]/50 my-1.5" />
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition cursor-pointer text-left"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Keluar / Logout
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </header>
+        )}
 
         {/* PAGE CONTENT CONTAINER */}
         <main
