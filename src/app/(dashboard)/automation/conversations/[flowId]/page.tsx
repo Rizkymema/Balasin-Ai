@@ -105,6 +105,20 @@ const EDGE_COLORS: Record<string, string> = {
   error: "#dc2626",
 };
 
+const MINIMAP_NODE_COLORS: Record<string, string> = {
+  start: "#059669",
+  message: "#2563eb",
+  office_hours: "#d97706",
+  ai_agent: "#0891b2",
+  fallback: "#9333ea",
+  handoff: "#dc2626",
+  end: "#475569",
+};
+
+function getMiniMapNodeColor(node: { type?: string }): string {
+  return MINIMAP_NODE_COLORS[node.type ?? "message"] ?? "#2563eb";
+}
+
 function decorateEdge<
   T extends FlowCanvasEdge | ConversationFlowGraph["edges"][number],
 >(item: T): FlowCanvasEdge {
@@ -878,9 +892,15 @@ export default function ConversationFlowBuilderPage() {
               </div>
             </Panel>
             <MiniMap
-              nodeColor="#0a84ff"
-              maskColor="rgba(241,245,249,0.72)"
-              className="!hidden !border !border-slate-200/80 !bg-white !rounded-xl !shadow-lg md:!block !overflow-hidden"
+              nodeColor={getMiniMapNodeColor}
+              nodeStrokeColor="transparent"
+              nodeBorderRadius={6}
+              maskColor="rgba(15, 23, 42, 0.08)"
+              maskStrokeColor="#0284c7"
+              maskStrokeWidth={2}
+              zoomable
+              pannable
+              className="!hidden md:!block !rounded-2xl !border !border-slate-200/80 !bg-white/95 !shadow-[0_12px_36px_rgba(15,23,42,0.12)] !backdrop-blur-md !overflow-hidden [&_svg]:!bg-slate-50/70 [&_svg]:!rounded-2xl"
             />
             <Controls
               position="top-right"
