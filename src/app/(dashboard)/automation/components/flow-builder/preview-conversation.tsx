@@ -5,6 +5,7 @@ import {
   Bot,
   CheckCheck,
   Clock3,
+  FileText,
   Loader2,
   RotateCcw,
   Send,
