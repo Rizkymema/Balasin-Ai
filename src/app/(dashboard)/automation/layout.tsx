@@ -26,6 +26,10 @@ export default function AutomationLayout({
 }) {
   const pathname = usePathname();
 
+  if (pathname.startsWith("/automation/conversations/")) {
+    return <div className="h-full min-h-0">{children}</div>;
+  }
+
   return (
     <div className="space-y-0">
       {/* Tab Navigation Bar */}

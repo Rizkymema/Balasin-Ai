@@ -4,7 +4,6 @@ import {
   Bot,
   Clock3,
   Flag,
-  GitBranch,
   MessageSquareText,
   ShieldAlert,
   UserRoundCheck,
@@ -63,20 +62,51 @@ export function FlowNodeCard({
           ? data.handoffTarget || "Admin Desk"
           : "");
 
-  return (
-    <div
-      className={`max-w-[260px] min-w-[210px] rounded-2xl border bg-[#121214]/95 shadow-2xl backdrop-blur transition ${
-        selected ? "border-cyan-400 ring-4 ring-cyan-400/10" : "border-white/12"
-      }`}
-    >
-      {resolvedType !== "start" && (
+  if (resolvedType === "start") {
+    return (
+      <div
+        className={`relative rounded-full border bg-slate-800 px-3 py-1.5 text-[10px] font-bold text-white shadow-lg transition ${selected ? "border-cyan-400 ring-4 ring-cyan-400/20" : "border-slate-700"}`}
+      >
+        Start point
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className="!h-4 !w-4 !border-2 !border-white !bg-blue-600"
+        />
+      </div>
+    );
+  }
+
+  if (resolvedType === "end") {
+    return (
+      <div
+        className={`relative flex min-w-[150px] items-center justify-center gap-2 rounded-lg border bg-slate-100 px-4 py-2 text-[10px] font-bold text-slate-600 shadow-sm transition ${selected ? "border-cyan-500 ring-4 ring-cyan-400/15" : "border-slate-300"}`}
+      >
         <Handle
           type="target"
           position={Position.Top}
-          className="!h-3 !w-3 !border-2 !border-black !bg-slate-400"
+          className="!h-3 !w-3 !border-2 !border-white !bg-slate-500"
         />
-      )}
-      <div className="flex items-center gap-2 border-b border-white/8 px-3.5 py-2.5">
+        <Flag className="h-3.5 w-3.5" />
+        {data.label}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`max-w-[250px] min-w-[210px] rounded-xl border bg-white shadow-[0_10px_30px_rgba(15,23,42,0.12)] transition ${
+        selected
+          ? "border-cyan-500 ring-4 ring-cyan-400/15"
+          : "border-slate-300"
+      }`}
+    >
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!h-3 !w-3 !border-2 !border-white !bg-slate-500"
+      />
+      <div className="flex items-center gap-2 border-b border-slate-200 px-3.5 py-2.5">
         <span
           className="flex h-7 w-7 items-center justify-center rounded-lg"
           style={{ backgroundColor: `${style.color}20`, color: style.color }}
@@ -90,17 +120,19 @@ export function FlowNodeCard({
           >
             {style.eyebrow}
           </p>
-          <p className="truncate text-xs font-bold text-white">{data.label}</p>
+          <p className="truncate text-xs font-bold text-slate-900">
+            {data.label}
+          </p>
         </div>
       </div>
       {preview && (
-        <p className="line-clamp-3 px-3.5 py-3 text-[11px] leading-relaxed text-slate-300">
+        <p className="line-clamp-3 px-3.5 py-3 text-[11px] leading-relaxed text-slate-600">
           {preview}
         </p>
       )}
       {outputs ? (
         <div
-          className="grid gap-px border-t border-white/8 bg-white/8"
+          className="grid gap-px border-t border-slate-200 bg-slate-200"
           style={{
             gridTemplateColumns: `repeat(${outputs.length}, minmax(0, 1fr))`,
           }}
@@ -108,14 +140,14 @@ export function FlowNodeCard({
           {outputs.map((output, index) => (
             <div
               key={output.id}
-              className="relative bg-[#121214] px-1 py-2 text-center text-[8px] font-bold text-slate-400"
+              className="relative bg-slate-50 px-1 py-2 text-center text-[8px] font-bold text-slate-500"
             >
               {output.label}
               <Handle
                 id={output.id}
                 type="source"
                 position={Position.Bottom}
-                className="!h-2.5 !w-2.5 !border-2 !border-black"
+                className="!h-2.5 !w-2.5 !border-2 !border-white"
                 style={{
                   left: `${((index + 1) / (outputs.length + 1)) * 100}%`,
                   backgroundColor: style.color,
@@ -124,14 +156,14 @@ export function FlowNodeCard({
             </div>
           ))}
         </div>
-      ) : resolvedType !== "end" ? (
+      ) : (
         <Handle
           type="source"
           position={Position.Bottom}
-          className="!h-3 !w-3 !border-2 !border-black"
+          className="!h-3 !w-3 !border-2 !border-white"
           style={{ backgroundColor: style.color }}
         />
-      ) : null}
+      )}
     </div>
   );
 }

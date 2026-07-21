@@ -12,6 +12,7 @@ import {
   Controls,
   MarkerType,
   MiniMap,
+  Panel,
   ReactFlow,
   type Connection,
   type EdgeChange,
@@ -21,15 +22,16 @@ import {
 import {
   AlertTriangle,
   ArrowLeft,
+  Blocks,
   Check,
   Cloud,
   CloudOff,
   FlaskConical,
-  GitBranch,
   Loader2,
   PanelRight,
   RotateCcw,
   Send,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -180,9 +182,10 @@ export default function ConversationFlowBuilderPage() {
   const [edges, setEdges] = useState<FlowCanvasEdge[]>([]);
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 0.9 });
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [activePanel, setActivePanel] = useState<"inspector" | "preview">(
-    "inspector",
-  );
+  const [activePanel, setActivePanel] = useState<
+    "inspector" | "preview" | null
+  >(null);
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [validation, setValidation] = useState<FlowValidationView | null>(null);
   const [previewMessage, setPreviewMessage] = useState(
     "Kalau upgrade CVT Honda Genio harganya berapa?",
@@ -571,24 +574,26 @@ export default function ConversationFlowBuilderPage() {
   const warningCount = validation?.warnings.length ?? 0;
 
   return (
-    <div className="-mx-6 -mb-6 flex min-h-[calc(100vh-155px)] flex-col overflow-hidden border-y border-white/8 bg-[#050506]">
-      <header className="flex flex-wrap items-center gap-3 border-b border-white/8 bg-[#0a0a0c] px-4 py-3">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#050506]">
+      <header className="z-20 flex min-h-20 shrink-0 flex-wrap items-center gap-3 border-b border-white/8 bg-[#0a0a0c]/95 px-4 py-3 backdrop-blur-xl md:px-6">
         <Link
           href="/automation"
           className="rounded-lg p-2 text-slate-500 transition hover:bg-white/5 hover:text-white"
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <div className="min-w-[220px] flex-1">
+        <div className="min-w-[180px] flex-1">
+          <p className="mb-1 text-[10px] font-bold tracking-[0.08em] text-cyan-400 uppercase">
+            Conversation
+          </p>
           <div className="flex items-center gap-2">
-            <GitBranch className="h-4 w-4 text-cyan-400" />
             <Input
               value={flow.name}
               onChange={(event) => {
                 setFlow({ ...flow, name: event.target.value });
                 markChanged();
               }}
-              className="h-8 max-w-xl border-transparent bg-transparent px-1 text-sm font-bold text-white hover:border-white/8 focus:border-cyan-400"
+              className="h-8 max-w-2xl border-transparent bg-transparent px-0 text-base font-bold text-white hover:border-white/8 focus:border-cyan-400 md:text-lg"
             />
             <span
               className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${flow.status === "Published" ? "bg-emerald-400/10 text-emerald-300" : "bg-amber-400/10 text-amber-300"}`}
@@ -596,8 +601,9 @@ export default function ConversationFlowBuilderPage() {
               {flow.status}
             </span>
           </div>
-          <div className="mt-1 flex items-center gap-3 text-[10px] text-slate-600">
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-[10px] text-slate-500">
             <span>{flow.channel}</span>
+            <span>Last edited {flow.lastUpdate}</span>
             <span>Draft r{flow.draftRevision ?? 0}</span>
             <span className="flex items-center gap-1">
               {saveState === "saving" ? (
@@ -635,8 +641,8 @@ export default function ConversationFlowBuilderPage() {
             disabled={!flow.hasUnpublishedChanges && saveState === "saved"}
             className="h-9 gap-2 px-4 text-xs"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
-            Discard
+            <RotateCcw className="h-3.5 w-3.5 md:hidden" />
+            <span className="hidden md:inline">Discard</span>
           </Button>
           <Button
             variant="secondary"
@@ -644,7 +650,7 @@ export default function ConversationFlowBuilderPage() {
             className="h-9 gap-2 border-cyan-400/20 px-4 text-xs text-cyan-300"
           >
             <FlaskConical className="h-3.5 w-3.5" />
-            Test Flow
+            <span className="hidden sm:inline">Test Flow</span>
           </Button>
           <Button
             onClick={() => void publishFlow()}
@@ -656,7 +662,9 @@ export default function ConversationFlowBuilderPage() {
             ) : (
               <Send className="h-3.5 w-3.5" />
             )}
-            {isPublishing ? "Publishing..." : "Publish"}
+            <span className="hidden sm:inline">
+              {isPublishing ? "Publishing..." : "Publish"}
+            </span>
           </Button>
         </div>
       </header>
@@ -677,20 +685,8 @@ export default function ConversationFlowBuilderPage() {
         </div>
       )}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[210px_minmax(0,1fr)_340px]">
-        <NodePalette onAdd={addNode} />
-        <main className="relative min-h-[620px] bg-[#050506]">
-          <div className="absolute top-4 left-4 z-10 flex gap-2">
-            <span className="rounded-full border border-white/8 bg-black/70 px-3 py-1.5 text-[9px] font-bold text-slate-400">
-              {knowledge.documents} docs
-            </span>
-            <span className="rounded-full border border-white/8 bg-black/70 px-3 py-1.5 text-[9px] font-bold text-slate-400">
-              {knowledge.faqs} FAQ
-            </span>
-            <span className="rounded-full border border-white/8 bg-black/70 px-3 py-1.5 text-[9px] font-bold text-slate-400">
-              {workspace.timezone}
-            </span>
-          </div>
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        <main className="absolute inset-0 bg-[#f4f7fb]">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -721,85 +717,147 @@ export default function ConversationFlowBuilderPage() {
               variant={BackgroundVariant.Dots}
               gap={20}
               size={1.2}
-              color="#1e293b"
+              color="#cbd5e1"
             />
+            <Panel position="top-left" className="!m-4">
+              <div className="flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-[0_16px_50px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+                <button
+                  type="button"
+                  onClick={() => setIsPaletteOpen((current) => !current)}
+                  className={`flex h-10 items-center gap-2 rounded-xl border px-3 text-xs font-bold transition ${isPaletteOpen ? "border-cyan-400 bg-cyan-50 text-cyan-700" : "border-slate-200 bg-white text-slate-700 hover:border-cyan-300 hover:text-cyan-700"}`}
+                >
+                  <Blocks className="h-4 w-4" />
+                  Add puzzle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivePanel("preview")}
+                  className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-700"
+                >
+                  <FlaskConical className="h-4 w-4" />
+                  AI Training
+                </button>
+                <span className="hidden h-6 w-px bg-slate-200 sm:block" />
+                <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-bold text-slate-600">
+                  {knowledge.documents} docs
+                </span>
+                <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-bold text-slate-600">
+                  {knowledge.faqs} FAQ
+                </span>
+                <span className="hidden rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-bold text-slate-600 md:inline">
+                  {workspace.timezone}
+                </span>
+              </div>
+            </Panel>
             <MiniMap
               nodeColor="#0a84ff"
-              maskColor="rgba(0,0,0,0.72)"
-              className="!border !border-white/8 !bg-[#0a0a0c]"
+              maskColor="rgba(241,245,249,0.72)"
+              className="!hidden !border !border-slate-200 !bg-white !shadow-lg md:!block"
             />
-            <Controls className="!overflow-hidden !rounded-xl !border !border-white/8 !bg-[#121214] !shadow-xl [&_button]:!border-white/8 [&_button]:!bg-[#121214] [&_button]:!fill-slate-300" />
+            <Controls
+              position="top-right"
+              className="!mt-4 !mr-4 !overflow-hidden !rounded-xl !border !border-slate-200 !bg-white !shadow-xl [&_button]:!border-slate-200 [&_button]:!bg-white [&_button]:!fill-slate-700"
+            />
           </ReactFlow>
         </main>
 
-        <aside className="min-h-0 border-l border-white/8 bg-[#0a0a0c]">
-          <div className="grid grid-cols-2 border-b border-white/8 p-2">
+        {isPaletteOpen && (
+          <div className="absolute top-20 bottom-4 left-4 z-30 w-[min(280px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0c] shadow-[0_24px_80px_rgba(15,23,42,0.35)] [&>aside]:h-full [&>aside]:border-0">
             <button
               type="button"
-              onClick={() => setActivePanel("inspector")}
-              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold transition ${activePanel === "inspector" ? "bg-white/8 text-white" : "text-slate-500 hover:text-slate-300"}`}
+              onClick={() => setIsPaletteOpen(false)}
+              className="absolute top-3 right-3 z-10 rounded-lg p-1.5 text-slate-500 transition hover:bg-white/8 hover:text-white"
+              aria-label="Tutup node library"
             >
-              <PanelRight className="h-3.5 w-3.5" />
-              Inspector
+              <X className="h-4 w-4" />
             </button>
-            <button
-              type="button"
-              onClick={() => setActivePanel("preview")}
-              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold transition ${activePanel === "preview" ? "bg-cyan-400/10 text-cyan-300" : "text-slate-500 hover:text-slate-300"}`}
-            >
-              <FlaskConical className="h-3.5 w-3.5" />
-              Test
-            </button>
+            <NodePalette
+              onAdd={(type) => {
+                addNode(type);
+                setIsPaletteOpen(false);
+              }}
+            />
           </div>
-          <div className="h-[calc(100%-49px)] min-h-[570px]">
-            {activePanel === "inspector" ? (
-              <div className="flex h-full min-h-0 flex-col">
-                <div className="min-h-0 flex-1">
-                  <NodeInspector
-                    node={selectedNode}
-                    agents={agents}
-                    onChange={updateSelectedNode}
-                    onDelete={deleteSelectedNode}
-                  />
+        )}
+
+        {activePanel && (
+          <aside className="absolute top-4 right-4 bottom-4 z-30 flex min-h-0 w-[min(390px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0c]/98 shadow-[0_24px_80px_rgba(15,23,42,0.38)] backdrop-blur-xl">
+            <div className="grid grid-cols-[1fr_1fr_auto] border-b border-white/8 p-2">
+              <button
+                type="button"
+                onClick={() => setActivePanel("inspector")}
+                className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold transition ${activePanel === "inspector" ? "bg-white/8 text-white" : "text-slate-500 hover:text-slate-300"}`}
+              >
+                <PanelRight className="h-3.5 w-3.5" />
+                Inspector
+              </button>
+              <button
+                type="button"
+                onClick={() => setActivePanel("preview")}
+                className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold transition ${activePanel === "preview" ? "bg-cyan-400/10 text-cyan-300" : "text-slate-500 hover:text-slate-300"}`}
+              >
+                <FlaskConical className="h-3.5 w-3.5" />
+                Test
+              </button>
+              <button
+                type="button"
+                onClick={() => setActivePanel(null)}
+                className="ml-1 flex h-8 w-8 items-center justify-center self-center rounded-lg text-slate-500 transition hover:bg-white/8 hover:text-white"
+                aria-label="Tutup panel"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1">
+              {activePanel === "inspector" ? (
+                <div className="flex h-full min-h-0 flex-col">
+                  <div className="min-h-0 flex-1">
+                    <NodeInspector
+                      node={selectedNode}
+                      agents={agents}
+                      onChange={updateSelectedNode}
+                      onDelete={deleteSelectedNode}
+                    />
+                  </div>
+                  {validation &&
+                    (validation.errors.length > 0 ||
+                      validation.warnings.length > 0) && (
+                      <div className="max-h-44 overflow-y-auto border-t border-white/8 p-3">
+                        <p className="text-[9px] font-black tracking-[0.14em] text-slate-500 uppercase">
+                          Validation
+                        </p>
+                        {[...validation.errors, ...validation.warnings]
+                          .slice(0, 8)
+                          .map((issue, index) => (
+                            <button
+                              key={`${issue.code}-${index}`}
+                              type="button"
+                              onClick={() =>
+                                issue.nodeId && setSelectedNodeId(issue.nodeId)
+                              }
+                              className={`mt-2 block w-full rounded-lg px-2.5 py-2 text-left text-[10px] ${issue.severity === "error" ? "bg-red-400/[0.06] text-red-300" : "bg-amber-400/[0.06] text-amber-300"}`}
+                            >
+                              {issue.message}
+                            </button>
+                          ))}
+                      </div>
+                    )}
                 </div>
-                {validation &&
-                  (validation.errors.length > 0 ||
-                    validation.warnings.length > 0) && (
-                    <div className="max-h-44 overflow-y-auto border-t border-white/8 p-3">
-                      <p className="text-[9px] font-black tracking-[0.14em] text-slate-500 uppercase">
-                        Validation
-                      </p>
-                      {[...validation.errors, ...validation.warnings]
-                        .slice(0, 8)
-                        .map((issue, index) => (
-                          <button
-                            key={`${issue.code}-${index}`}
-                            type="button"
-                            onClick={() =>
-                              issue.nodeId && setSelectedNodeId(issue.nodeId)
-                            }
-                            className={`mt-2 block w-full rounded-lg px-2.5 py-2 text-left text-[10px] ${issue.severity === "error" ? "bg-red-400/[0.06] text-red-300" : "bg-amber-400/[0.06] text-amber-300"}`}
-                          >
-                            {issue.message}
-                          </button>
-                        ))}
-                    </div>
-                  )}
-              </div>
-            ) : (
-              <PreviewConversation
-                message={previewMessage}
-                nowIso={previewNow}
-                result={previewResult}
-                isRunning={isRunningTest}
-                onMessageChange={setPreviewMessage}
-                onNowChange={setPreviewNow}
-                onRun={() => void runPreview()}
-                onReset={() => setPreviewResult(null)}
-              />
-            )}
-          </div>
-        </aside>
+              ) : (
+                <PreviewConversation
+                  message={previewMessage}
+                  nowIso={previewNow}
+                  result={previewResult}
+                  isRunning={isRunningTest}
+                  onMessageChange={setPreviewMessage}
+                  onNowChange={setPreviewNow}
+                  onRun={() => void runPreview()}
+                  onReset={() => setPreviewResult(null)}
+                />
+              )}
+            </div>
+          </aside>
+        )}
       </div>
 
       <footer className="flex items-center justify-between border-t border-white/8 bg-[#0a0a0c] px-4 py-2 text-[9px] text-slate-600">

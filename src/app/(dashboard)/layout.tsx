@@ -79,6 +79,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const isInboxRoute = pathname.startsWith("/inbox");
+  const isFlowBuilderRoute = pathname.startsWith(
+    "/automation/conversations/",
+  );
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [businessName, setBusinessName] = useState("Workspace Baru");
   const [userEmail, setUserEmail] = useState("admin@workspace.local");
@@ -305,9 +308,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   return (
-    <div className={`relative h-screen bg-[var(--color-bg)] text-[var(--color-text)] flex overflow-hidden transition-all duration-300 ${isAiOpen ? "md:pr-96" : ""}`}>
+    <div className={`relative h-screen bg-[var(--color-bg)] text-[var(--color-text)] flex overflow-hidden transition-all duration-300 ${isAiOpen && !isFlowBuilderRoute ? "md:pr-96" : ""}`}>
       {/* MOBILE SIDEBAR DRAWEROVERLAY */}
-      {isSidebarOpen && (
+      {isSidebarOpen && !isFlowBuilderRoute && (
         <div
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
           onClick={() => setIsSidebarOpen(false)}
@@ -315,6 +318,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       {/* SIDEBAR LEFT */}
+      {!isFlowBuilderRoute && (
       <aside
         className={`fixed inset-y-0 left-0 z-45 border-r border-[var(--color-border)] bg-[var(--color-surface-strong)] transition-all duration-300 md:translate-x-0 md:static ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -556,6 +560,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       </aside>
+      )}
 
       {/* RIGHT CONTENT WORKSPACE */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -564,7 +569,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-4 min-w-0">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="p-2 -ml-2 rounded text-slate-400 hover:bg-[var(--color-surface-hover)] md:hidden shrink-0"
+              className={`p-2 -ml-2 rounded text-slate-400 hover:bg-[var(--color-surface-hover)] md:hidden shrink-0 ${isFlowBuilderRoute ? "hidden" : ""}`}
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -639,14 +644,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* PAGE CONTENT CONTAINER */}
         <main
           className={`relative flex-1 ${
-            isInboxRoute
+            isFlowBuilderRoute
+              ? "flex min-h-0 flex-col overflow-hidden p-0"
+              : isInboxRoute
               ? "flex min-h-0 flex-col overflow-y-auto p-3 lg:overflow-hidden lg:p-4"
               : "overflow-y-auto custom-scrollbar p-4 sm:p-6"
           }`}
         >
           <div
             className={
-              isInboxRoute
+              isFlowBuilderRoute
+                ? "flex h-full min-h-0 w-full flex-1 flex-col"
+                : isInboxRoute
                 ? "flex h-full min-h-0 w-full flex-1 flex-col"
                 : pathname.startsWith("/customers")
                 ? "w-full space-y-6"
@@ -678,7 +687,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       {/* Floating AI Assistant Copilot */}
-      <DashboardAIAssistant />
+      {!isFlowBuilderRoute && <DashboardAIAssistant />}
 
       {/* Global Account Settings Modal */}
       <Modal
