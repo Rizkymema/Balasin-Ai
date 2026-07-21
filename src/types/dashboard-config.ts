@@ -77,6 +77,56 @@ export type ConversationFlow = {
   status: "Published" | "Draft" | "Inactive";
   botResponse: number;
   lastUpdate: string;
+  draftGraph?: ConversationFlowGraph;
+  publishedGraph?: ConversationFlowGraph;
+  draftRevision?: number;
+  publishedRevision?: number;
+  lastTestedRevision?: number;
+  hasUnpublishedChanges?: boolean;
+  publishedAt?: string;
+};
+
+export type ConversationFlowNodeType =
+  | "start"
+  | "message"
+  | "office_hours"
+  | "ai_agent"
+  | "fallback"
+  | "handoff"
+  | "end";
+
+export type ConversationFlowNodeData = {
+  label: string;
+  message?: string;
+  trigger?: ConversationFlowTrigger;
+  triggerKeywords?: string[];
+  agentId?: string;
+  useConversationHistory?: boolean;
+  requireKnowledgeBase?: boolean;
+  handoffTarget?: string;
+  handoffReason?: string;
+};
+
+export type ConversationFlowNode = {
+  id: string;
+  type: ConversationFlowNodeType;
+  position: { x: number; y: number };
+  data: ConversationFlowNodeData;
+};
+
+export type ConversationFlowEdge = {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+  label?: string;
+};
+
+export type ConversationFlowGraph = {
+  nodes: ConversationFlowNode[];
+  edges: ConversationFlowEdge[];
+  viewport: { x: number; y: number; zoom: number };
 };
 
 export type AIAgentTrainingSource = {
@@ -107,7 +157,11 @@ export type AIAgent = {
     assignTeam: string;
     fallbackMessage: string;
   };
-  responseMode: "Answer Only" | "Answer + Suggest Menu" | "Answer + Execute Action" | "Answer + Handover if Needed";
+  responseMode:
+    | "Answer Only"
+    | "Answer + Suggest Menu"
+    | "Answer + Execute Action"
+    | "Answer + Handover if Needed";
   channelUsage: string;
   lastUpdate: string;
   status: "Active" | "Draft" | "Inactive";
@@ -158,7 +212,10 @@ export type AutomationAiConfig = {
   aiMessageThreshold: number;
   listenTimeSeconds: number;
   handoverEnabled: boolean;
-  handoverTargetType: "Any available agent" | "Specific team" | "Specific agent";
+  handoverTargetType:
+    | "Any available agent"
+    | "Specific team"
+    | "Specific agent";
   handoverTarget: string;
   handoverMessage: string;
 };
@@ -373,7 +430,6 @@ export type DashboardConfig = {
         pageName?: string;
       }>;
     };
-
   };
   automation: {
     handoffThreshold: number;

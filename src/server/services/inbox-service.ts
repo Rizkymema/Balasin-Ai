@@ -26,6 +26,10 @@ import {
   scheduleAutomationForConversationEvent,
 } from "@/server/services/automation-orchestrator";
 import { getApiIntegrationKnowledgeContext } from "@/server/services/automation-service";
+import {
+  executeConversationFlowAfterAi,
+  getAiDecisionOutcome,
+} from "@/server/services/conversation-flow-service";
 import type {
   ChannelKind,
   ConversationChannelContext,
@@ -57,10 +61,10 @@ function normalizeIdentityValue(value?: string | null) {
 
 function cleanIdentity(val: string): string {
   let cleaned = val.trim().toLowerCase();
-  
+
   // Strip WhatsApp domain suffix if present
   cleaned = cleaned.replace(/@(s\.whatsapp\.net|c\.us)$/i, "");
-  
+
   // If it's a phone number or looks like one, strip all non-digits and normalize country code
   const digits = cleaned.replace(/\D/g, "");
   if (digits.length >= 9) {
@@ -69,7 +73,7 @@ function cleanIdentity(val: string): string {
     }
     return digits;
   }
-  
+
   return cleaned;
 }
 
@@ -130,8 +134,9 @@ function findExistingCustomer(input: {
   const phoneMatch = normalizeIdentityValue(input.message.phone);
   if (phoneMatch) {
     return (
-      input.customers.find((customer) => hasSameIdentity(customer.phone, phoneMatch)) ??
-      null
+      input.customers.find((customer) =>
+        hasSameIdentity(customer.phone, phoneMatch),
+      ) ?? null
     );
   }
 
@@ -149,7 +154,10 @@ function findExistingCustomer(input: {
   return null;
 }
 
-function buildCustomer(channel: ChannelKind, message: NormalizedIncomingMessage): CustomerRecord {
+function buildCustomer(
+  channel: ChannelKind,
+  message: NormalizedIncomingMessage,
+): CustomerRecord {
   return {
     id: randomUUID(),
     name: message.displayName,
@@ -268,7 +276,8 @@ function buildSafeFallbackDecision(config: DashboardConfig): ReplyDecision {
     confidence: 40,
     needsHuman: false,
     status: "ai_active",
-    summary: "Engine AI fallback karena terjadi error internal saat memproses pesan masuk.",
+    summary:
+      "Engine AI fallback karena terjadi error internal saat memproses pesan masuk.",
     reply: `${config.workspace.name || "Tim kami"} sudah menerima pesan Anda. Mohon tunggu sebentar, kami bantu cek dan balas secepatnya ya.`,
     grounded: false,
     source: "fallback",
@@ -301,7 +310,10 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   const current = await getDashboardOperationsRecord();
   const receivedAt = new Date().toISOString();
 
-  const existingConversation = findExistingConversation(current.conversations, input);
+  const existingConversation = findExistingConversation(
+    current.conversations,
+    input,
+  );
   let customer =
     findExistingCustomer({
       customers: current.customers,
@@ -362,8 +374,10 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     agentCanReply &&
     effectiveConfig.aiAgent.autoReplyEnabled &&
     (input.channel !== "WhatsApp" || config.channels.whatsapp.autoReply) &&
-    (input.channel !== "Instagram DM" || config.channels.instagram.autoReplyDm) &&
-    (input.channel !== "Instagram Comment" || config.channels.instagram.commentGuard);
+    (input.channel !== "Instagram DM" ||
+      config.channels.instagram.autoReplyDm) &&
+    (input.channel !== "Instagram Comment" ||
+      config.channels.instagram.commentGuard);
   const aiMessageThreshold = Math.max(
     1,
     effectiveConfig.automation.aiConfig.aiMessageThreshold,
@@ -371,7 +385,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   const currentAiReplyCount =
     conversation.automation?.aiReplyCount ??
     conversation.messages.filter((message) => message.sender === "ai").length;
-  
+
   const isTakeoverActive =
     existingConversation &&
     (existingConversation.status === "assigned_to_admin" ||
@@ -379,6 +393,8 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       existingConversation.status === "ai_paused");
 
   let decision: ReplyDecision;
+  let graphHandoffTarget = automation.graphBeforeAi?.handoffTarget;
+  let graphHandoffReason = automation.graphBeforeAi?.handoffReason;
 
   if (isTakeoverActive) {
     decision = {
@@ -438,6 +454,22 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       source: "fallback",
     };
   } else if (
+    automation.graphBeforeAi?.graphReplyOnly &&
+    automation.immediateReply
+  ) {
+    decision = {
+      intent: "Conversation Flow",
+      confidence: 100,
+      needsHuman: automation.graphBeforeAi.needsHuman,
+      status: automation.graphBeforeAi.needsHuman
+        ? "assigned_to_admin"
+        : "ai_active",
+      summary: "Balasan ditentukan oleh Published Conversation Flow.",
+      reply: automation.immediateReply,
+      grounded: true,
+      source: "workspace",
+    };
+  } else if (
     effectiveConfig.automation.aiConfig.handoverEnabled &&
     currentAiReplyCount >= aiMessageThreshold
   ) {
@@ -468,6 +500,37 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
         effectiveConfig,
         buildConversationReplyContext(conversation, externalBusinessContext),
       );
+
+      if (automation.graph && automation.graphBeforeAi?.aiNodeId) {
+        const outcome = getAiDecisionOutcome(decision);
+        const afterAi = executeConversationFlowAfterAi({
+          graph: automation.graph,
+          config: effectiveConfig,
+          aiNodeId: automation.graphBeforeAi.aiNodeId,
+          outcome,
+          now: new Date(receivedAt),
+        });
+        graphHandoffTarget = afterAi.handoffTarget ?? graphHandoffTarget;
+        graphHandoffReason = afterAi.handoffReason ?? graphHandoffReason;
+        const graphMessages = [
+          ...automation.graphBeforeAi.messages,
+          ...(outcome === "answered" && decision.reply ? [decision.reply] : []),
+          ...afterAi.messages,
+        ].filter(Boolean);
+
+        decision = {
+          ...decision,
+          reply: graphMessages.join("\n\n") || decision.reply,
+          needsHuman: decision.needsHuman || afterAi.needsHuman,
+          status:
+            decision.needsHuman || afterAi.needsHuman
+              ? "assigned_to_admin"
+              : decision.status,
+          summary: afterAi.error
+            ? `${decision.summary} Flow warning: ${afterAi.error}`
+            : decision.summary,
+        };
+      }
     } catch (error) {
       console.error("generateReplyDecision failed", error);
       decision = buildSafeFallbackDecision(effectiveConfig);
@@ -482,7 +545,10 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
         sourceChannel: input.channel,
       });
     } catch (error) {
-      console.error("[inbox-service] failed to record Knowledge Base candidate", error);
+      console.error(
+        "[inbox-service] failed to record Knowledge Base candidate",
+        error,
+      );
     }
   }
 
@@ -498,7 +564,9 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       reply: automation.immediateReply,
     };
   }
-  const finalStatus = isTakeoverActive ? existingConversation.status : (automation.forcedStatus ?? decision.status);
+  const finalStatus = isTakeoverActive
+    ? existingConversation.status
+    : (automation.forcedStatus ?? decision.status);
 
   conversation = appendMessage(
     {
@@ -524,8 +592,9 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       lastInboundAt: receivedAt,
       handoffReason:
         decision.status === "assigned_to_admin"
-          ? automation.handoffReason ??
-            "Percakapan diteruskan ke admin oleh automation runtime."
+          ? (graphHandoffReason ??
+            automation.handoffReason ??
+            "Percakapan diteruskan ke admin oleh automation runtime.")
           : null,
     });
     conversation = appendAutomationLog(conversation, {
@@ -542,7 +611,10 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       lastInboundAt: receivedAt,
     });
   }
-  const detectedSentiment = await analyzeSentiment(input.messageText, effectiveConfig);
+  const detectedSentiment = await analyzeSentiment(
+    input.messageText,
+    effectiveConfig,
+  );
 
   conversation = {
     ...conversation,
@@ -553,20 +625,22 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     sentiment: detectedSentiment,
     assignedTo: isTakeoverActive
       ? existingConversation.assignedTo
-      : (finalStatus === "assigned_to_admin"
-        ? effectiveConfig.automation.aiConfig.handoverTarget || "Admin Desk"
-        : automation.agent?.name ?? effectiveConfig.aiAgent.name),
+      : finalStatus === "assigned_to_admin"
+        ? graphHandoffTarget ||
+          effectiveConfig.automation.aiConfig.handoverTarget ||
+          "Admin Desk"
+        : (automation.agent?.name ?? effectiveConfig.aiAgent.name),
     unreadCount: conversation.unreadCount + 1,
     tags: isTakeoverActive
       ? conversation.tags
       : Array.from(new Set([...conversation.tags, ...automation.tagsToAdd])),
     riskLevel: isTakeoverActive
       ? existingConversation.riskLevel
-      : (finalStatus === "assigned_to_admin" || finalStatus === "spam"
+      : finalStatus === "assigned_to_admin" || finalStatus === "spam"
         ? "high"
         : finalStatus === "waiting_customer"
           ? "medium"
-          : "low"),
+          : "low",
     channelContext: {
       ...conversation.channelContext,
       ...input.channelContext,
@@ -584,10 +658,8 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
         await wait(
           Math.max(
             0,
-            Math.min(
-              effectiveConfig.automation.aiConfig.listenTimeSeconds,
-              5,
-            ) * 1000,
+            Math.min(effectiveConfig.automation.aiConfig.listenTimeSeconds, 5) *
+              1000,
           ),
         );
       } catch {
@@ -628,15 +700,19 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     }
 
     if (!delivery.ok) {
-      conversation = appendMessage(conversation, {
-        sender: "system",
-        text: buildDeliveryFailureNote({
-          channel: input.channel,
-          note: delivery.note,
-          status: delivery.status,
-        }),
-        type: "system",
-      }, effectiveConfig.workspace.timezone);
+      conversation = appendMessage(
+        conversation,
+        {
+          sender: "system",
+          text: buildDeliveryFailureNote({
+            channel: input.channel,
+            note: delivery.note,
+            status: delivery.status,
+          }),
+          type: "system",
+        },
+        effectiveConfig.workspace.timezone,
+      );
     }
   }
 
@@ -688,7 +764,9 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
         payload: {
           conversationId: conversation.id,
         },
-        runAt: new Date(Date.now() + 1000 * 60 * 60 * config.automation.followUpDelayHours).toISOString(),
+        runAt: new Date(
+          Date.now() + 1000 * 60 * 60 * config.automation.followUpDelayHours,
+        ).toISOString(),
       });
     } catch (error) {
       console.error("enqueueJob lead_followup failed", error);
@@ -740,7 +818,9 @@ export async function updateIncomingMessageDeliveryStatus(input: {
   const conversation = current.conversations.find(
     (item) =>
       item.channel === input.channel &&
-      item.messages.some((message) => message.externalId === input.externalMessageId),
+      item.messages.some(
+        (message) => message.externalId === input.externalMessageId,
+      ),
   );
 
   if (!conversation) {

@@ -13,6 +13,12 @@ import type {
   ConversationStatus,
 } from "@/types/operations";
 import { enqueueJob } from "@/server/repositories/job-repository";
+import {
+  executeConversationFlowBeforeAi,
+  getPublishedConversationFlowGraph,
+  type FlowPreAiResult,
+} from "@/server/services/conversation-flow-service";
+import type { ConversationFlowGraph } from "@/types/dashboard-config";
 
 type InboundAutomationInput = {
   channel: ChannelKind;
@@ -29,6 +35,8 @@ type InboundAutomationResolution = {
   forcedStatus?: ConversationStatus;
   handoffReason?: string;
   tagsToAdd: string[];
+  graph?: ConversationFlowGraph;
+  graphBeforeAi?: FlowPreAiResult;
 };
 
 const ADMIN_REQUEST_KEYWORDS = [
@@ -42,7 +50,13 @@ const ADMIN_REQUEST_KEYWORDS = [
   "agent",
 ];
 
-const BOOKING_KEYWORDS = ["booking", "jadwal", "service", "servis", "reservasi"];
+const BOOKING_KEYWORDS = [
+  "booking",
+  "jadwal",
+  "service",
+  "servis",
+  "reservasi",
+];
 const HIGH_RISK_KEYWORDS = [
   "komplain",
   "garansi",
@@ -59,7 +73,9 @@ function normalizeText(input: string) {
 
 function includesAnyKeyword(input: string, keywords: string[]) {
   const normalized = normalizeText(input);
-  return keywords.some((keyword) => normalized.includes(normalizeText(keyword)));
+  return keywords.some((keyword) =>
+    normalized.includes(normalizeText(keyword)),
+  );
 }
 
 function normalizeFlowTrigger(flow: ConversationFlow): ConversationFlowTrigger {
@@ -110,7 +126,10 @@ function toComparableChannel(channel: string) {
   return normalized;
 }
 
-function conversationChannelMatches(flow: ConversationFlow, channel: ChannelKind) {
+function conversationChannelMatches(
+  flow: ConversationFlow,
+  channel: ChannelKind,
+) {
   const flowChannel = toComparableChannel(flow.channel);
   const conversationChannel = toComparableChannel(channel);
 
@@ -155,7 +174,9 @@ function isOutsideBusinessHours(config: DashboardConfig, date = new Date()) {
     return false;
   }
 
-  const ranges = businessHours.match(/\d{1,2}[:.]\d{2}\s*-\s*\d{1,2}[:.]\d{2}/g);
+  const ranges = businessHours.match(
+    /\d{1,2}[:.]\d{2}\s*-\s*\d{1,2}[:.]\d{2}/g,
+  );
   if (!ranges || ranges.length === 0) {
     return false;
   }
@@ -214,7 +235,9 @@ function selectAutomationFlow(
   input: InboundAutomationInput,
 ) {
   const flows = config.automation.conversations.filter(
-    (flow) => flow.status === "Published" && conversationChannelMatches(flow, input.channel),
+    (flow) =>
+      flow.status === "Published" &&
+      conversationChannelMatches(flow, input.channel),
   );
 
   const priority: ConversationFlowTrigger[] = [
@@ -232,7 +255,9 @@ function selectAutomationFlow(
       priority.indexOf(normalizeFlowTrigger(right)),
   );
 
-  return ordered.find((flow) => matchFlowByTrigger(flow, input, config)) ?? null;
+  return (
+    ordered.find((flow) => matchFlowByTrigger(flow, input, config)) ?? null
+  );
 }
 
 function agentMatchesChannel(agent: AIAgent, channel: ChannelKind) {
@@ -243,7 +268,9 @@ function agentMatchesChannel(agent: AIAgent, channel: ChannelKind) {
   const usage = toComparableChannel(agent.channelUsage);
   const target = toComparableChannel(channel);
 
-  return usage === target || usage === "not connected" || usage.includes(target);
+  return (
+    usage === target || usage === "not connected" || usage.includes(target)
+  );
 }
 
 function selectAutomationAgent(
@@ -256,7 +283,9 @@ function selectAutomationAgent(
   );
 
   if (flow?.aiAgentId) {
-    const directMatch = activeAgents.find((agent) => agent.id === flow.aiAgentId);
+    const directMatch = activeAgents.find(
+      (agent) => agent.id === flow.aiAgentId,
+    );
     if (directMatch) {
       return directMatch;
     }
@@ -408,7 +437,22 @@ export function resolveInboundAutomation(
   input: InboundAutomationInput,
 ): InboundAutomationResolution {
   const flow = selectAutomationFlow(config, input);
-  const agent = selectAutomationAgent(config, input.channel, flow);
+  const graph = flow ? getPublishedConversationFlowGraph(flow) : null;
+  const graphBeforeAi = graph
+    ? executeConversationFlowBeforeAi({
+        graph,
+        config,
+        now: new Date(input.nowIso),
+      })
+    : null;
+  const graphAgent = graphBeforeAi?.aiAgentId
+    ? (config.automation.aiAgents.find(
+        (item) =>
+          item.id === graphBeforeAi.aiAgentId && item.status === "Active",
+      ) ?? null)
+    : null;
+  const agent =
+    graphAgent ?? selectAutomationAgent(config, input.channel, flow);
   const effectiveConfig = buildEffectiveReplyConfig(config, agent);
   const tagsToAdd: string[] = [];
 
@@ -420,8 +464,15 @@ export function resolveInboundAutomation(
     tagsToAdd.push("high_risk");
   }
 
-  const forcedStatus = resolveForcedStatus(flow, config);
-  const immediateReply = resolveImmediateReply(flow, config, agent);
+  const legacyForcedStatus = resolveForcedStatus(flow, config);
+  const forcedStatus = graphBeforeAi?.needsHuman
+    ? "assigned_to_admin"
+    : legacyForcedStatus;
+  const immediateReply = graph
+    ? graphBeforeAi?.graphReplyOnly
+      ? graphBeforeAi.messages.join("\n\n")
+      : undefined
+    : resolveImmediateReply(flow, config, agent);
 
   return {
     flow,
@@ -431,9 +482,13 @@ export function resolveInboundAutomation(
     forcedStatus,
     handoffReason:
       forcedStatus === "assigned_to_admin"
-        ? flow?.humanAgentHandoff.condition || "Automation meminta handoff ke admin."
+        ? graphBeforeAi?.handoffReason ||
+          flow?.humanAgentHandoff.condition ||
+          "Automation meminta handoff ke admin."
         : undefined,
     tagsToAdd,
+    graph: graph ?? undefined,
+    graphBeforeAi: graphBeforeAi ?? undefined,
   };
 }
 
@@ -553,7 +608,9 @@ export async function scheduleAutomationForConversationEvent(input: {
         payload: {
           conversationId: input.conversation.id,
         },
-        runAt: new Date(Date.now() + timeoutHours * 60 * 60 * 1000).toISOString(),
+        runAt: new Date(
+          Date.now() + timeoutHours * 60 * 60 * 1000,
+        ).toISOString(),
       }),
     );
   }
@@ -587,7 +644,8 @@ export async function scheduleAutomationForConversationEvent(input: {
     ? activeAgent.allowedActions.sendToApi
     : true;
   const activeApiIntegration = input.config.automation.apiIntegrations.find(
-    (integration) => integration.status === "Active" && integration.endpoint.trim(),
+    (integration) =>
+      integration.status === "Active" && integration.endpoint.trim(),
   );
   if (
     activeApiIntegration &&
