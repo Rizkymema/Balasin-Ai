@@ -8,6 +8,7 @@ import type {
   ConversationFlowNode,
   ConversationFlowNodeType,
   DashboardConfig,
+  FormFieldItem,
 } from "@/types/dashboard-config";
 import type { ReplyDecision } from "@/server/services/reply-engine";
 
@@ -44,7 +45,21 @@ export type FlowPreAiResult = {
   needsHuman: boolean;
   handoffTarget?: string;
   handoffReason?: string;
+  formState?: FlowFormState;
+  completedForm?: FlowCompletedForm;
+  cancelledForm?: boolean;
   error?: string;
+};
+
+export type FlowFormState = {
+  nodeId: string;
+  fieldIndex: number;
+  values: Record<string, string>;
+};
+
+export type FlowCompletedForm = {
+  nodeId: string;
+  values: Record<string, string>;
 };
 
 export type FlowPostAiResult = {
@@ -212,6 +227,82 @@ function getNextEdge(
   }
 
   return outgoing.find((item) => !item.sourceHandle) ?? outgoing[0];
+}
+
+function formatFormFieldPrompt(
+  node: ConversationFlowNode,
+  field: FormFieldItem,
+  fieldIndex: number,
+  fieldCount: number,
+) {
+  const lines: string[] = [];
+  if (fieldIndex === 0) {
+    if (node.data.formTitle?.trim()) lines.push(node.data.formTitle.trim());
+    if (node.data.formDescription?.trim()) {
+      lines.push(node.data.formDescription.trim());
+    }
+  }
+
+  lines.push(
+    `${fieldIndex + 1}/${fieldCount}. ${field.label}${field.required ? " (wajib)" : ""}`,
+  );
+  if (field.options?.length) {
+    lines.push(
+      field.options
+        .map((option, index) => `${index + 1}. ${option}`)
+        .join("\n"),
+    );
+  } else if (field.placeholder?.trim()) {
+    const placeholder = field.placeholder.trim();
+    lines.push(
+      /^contoh\s*:/i.test(placeholder) ? placeholder : `Contoh: ${placeholder}`,
+    );
+  }
+  lines.push("Ketik batal untuk menghentikan pengisian.");
+  return lines.join("\n");
+}
+
+function normalizeFormAnswer(field: FormFieldItem, answer: string) {
+  const value = answer.trim();
+  if (!value && field.required) {
+    return { ok: false, error: `${field.label} wajib diisi.` } as const;
+  }
+  if (!value) return { ok: true, value: "-" } as const;
+
+  if (field.type === "phone") {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length < 9 || digits.length > 15) {
+      return {
+        ok: false,
+        error: "Nomor WhatsApp belum valid. Masukkan 9-15 digit.",
+      } as const;
+    }
+    return { ok: true, value: digits } as const;
+  }
+
+  if (field.type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+    return { ok: false, error: "Format email belum valid." } as const;
+  }
+
+  if (field.type === "select" && field.options?.length) {
+    const optionIndex = Number(value) - 1;
+    const numberedOption = Number.isInteger(optionIndex)
+      ? field.options[optionIndex]
+      : undefined;
+    const namedOption = field.options.find(
+      (option) => option.toLowerCase() === value.toLowerCase(),
+    );
+    const selected = numberedOption ?? namedOption;
+    if (!selected) {
+      return {
+        ok: false,
+        error: "Pilihan belum valid. Balas dengan nomor atau nama pilihan.",
+      } as const;
+    }
+    return { ok: true, value: selected } as const;
+  }
+
+  return { ok: true, value } as const;
 }
 
 function findCycle(graph: ConversationFlowGraph) {
@@ -474,15 +565,23 @@ function executeGraphSegment(input: {
       continue;
     }
     if (current.type === "form_chat") {
-      const formHeader =
-        current.data.formTitle?.trim()
-          ? `[FORM_CHAT:${current.id}] ${current.data.formTitle.trim()}`
-          : current.data.formDescription?.trim() || "Form Chatbot";
-      result.messages.push(formHeader);
-      currentId =
-        getNextEdge(graph, current.id, "submitted")?.target ??
-        getNextEdge(graph, current.id)?.target;
-      continue;
+      const fields = current.data.formFields ?? [];
+      if (fields.length === 0) {
+        currentId =
+          getNextEdge(graph, current.id, "submitted")?.target ??
+          getNextEdge(graph, current.id)?.target;
+        continue;
+      }
+      result.messages.push(
+        formatFormFieldPrompt(current, fields[0], 0, fields.length),
+      );
+      result.formState = {
+        nodeId: current.id,
+        fieldIndex: 0,
+        values: {},
+      };
+      result.graphReplyOnly = !result.aiNodeId;
+      return result;
     }
     if (current.type === "office_hours") {
       const outcome = isOutsideConfiguredBusinessHours(config, input.now)
@@ -544,6 +643,138 @@ export function executeConversationFlowBeforeAi(input: {
     now: input.now ?? new Date(),
     stopAtAi: true,
   });
+}
+
+export function resumeConversationFlowForm(input: {
+  graph: ConversationFlowGraph;
+  config: DashboardConfig;
+  state: FlowFormState;
+  answer: string;
+  now?: Date;
+}): FlowPreAiResult {
+  const formNode = input.graph.nodes.find(
+    (item) => item.id === input.state.nodeId && item.type === "form_chat",
+  );
+  if (!formNode) {
+    return {
+      messages: [],
+      trace: [],
+      graphReplyOnly: true,
+      needsHuman: true,
+      error: "Form aktif tidak ditemukan pada Published flow.",
+    };
+  }
+
+  if (/^(batal|batalkan|cancel)$/i.test(input.answer.trim())) {
+    const cancelledEdge =
+      getNextEdge(input.graph, formNode.id, "cancelled") ??
+      getNextEdge(input.graph, formNode.id);
+    if (!cancelledEdge) {
+      return {
+        messages: ["Pengisian form dibatalkan."],
+        trace: [],
+        graphReplyOnly: true,
+        needsHuman: false,
+        cancelledForm: true,
+      };
+    }
+    const next = executeGraphSegment({
+      graph: input.graph,
+      config: input.config,
+      startNodeId: cancelledEdge.target,
+      now: input.now ?? new Date(),
+      stopAtAi: true,
+    });
+    return {
+      ...next,
+      messages: ["Pengisian form dibatalkan.", ...next.messages],
+      cancelledForm: true,
+    };
+  }
+
+  const fields = formNode.data.formFields ?? [];
+  const field = fields[input.state.fieldIndex];
+  if (!field) {
+    return {
+      messages: [],
+      trace: [],
+      graphReplyOnly: true,
+      needsHuman: true,
+      error: "Posisi field form tidak valid.",
+    };
+  }
+
+  const parsed = normalizeFormAnswer(field, input.answer);
+  if (!parsed.ok) {
+    return {
+      messages: [
+        parsed.error,
+        formatFormFieldPrompt(
+          formNode,
+          field,
+          input.state.fieldIndex,
+          fields.length,
+        ),
+      ],
+      trace: [],
+      graphReplyOnly: true,
+      needsHuman: false,
+      formState: input.state,
+    };
+  }
+
+  const values = { ...input.state.values, [field.id]: parsed.value };
+  const nextFieldIndex = input.state.fieldIndex + 1;
+  if (nextFieldIndex < fields.length) {
+    return {
+      messages: [
+        formatFormFieldPrompt(
+          formNode,
+          fields[nextFieldIndex],
+          nextFieldIndex,
+          fields.length,
+        ),
+      ],
+      trace: [],
+      graphReplyOnly: true,
+      needsHuman: false,
+      formState: {
+        nodeId: formNode.id,
+        fieldIndex: nextFieldIndex,
+        values,
+      },
+    };
+  }
+
+  const submittedEdge =
+    getNextEdge(input.graph, formNode.id, "submitted") ??
+    getNextEdge(input.graph, formNode.id);
+  if (!submittedEdge) {
+    return {
+      messages: [],
+      trace: [],
+      graphReplyOnly: true,
+      needsHuman: true,
+      completedForm: { nodeId: formNode.id, values },
+      error: "Jalur submitted dari Form Chat tidak ditemukan.",
+    };
+  }
+
+  const next = executeGraphSegment({
+    graph: input.graph,
+    config: input.config,
+    startNodeId: submittedEdge.target,
+    now: input.now ?? new Date(),
+    stopAtAi: true,
+  });
+  return {
+    ...next,
+    messages:
+      formNode.data.successMessage?.trim() && next.messages.length === 0
+      ? [formNode.data.successMessage.trim(), ...next.messages]
+      : next.messages,
+    completedForm: { nodeId: formNode.id, values },
+  };
 }
 
 export function getAiDecisionOutcome(decision: ReplyDecision) {

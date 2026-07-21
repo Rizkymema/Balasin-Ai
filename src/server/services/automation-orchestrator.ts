@@ -9,6 +9,7 @@ import type {
 import type {
   AutomationRuntimeEvent,
   ChannelKind,
+  ConversationFlowFormSession,
   ConversationRecord,
   ConversationStatus,
 } from "@/types/operations";
@@ -16,6 +17,7 @@ import { enqueueJob } from "@/server/repositories/job-repository";
 import {
   executeConversationFlowBeforeAi,
   getPublishedConversationFlowGraph,
+  resumeConversationFlowForm,
   type FlowPreAiResult,
 } from "@/server/services/conversation-flow-service";
 import type { ConversationFlowGraph } from "@/types/dashboard-config";
@@ -133,6 +135,14 @@ function conversationChannelMatches(
   const flowChannel = toComparableChannel(flow.channel);
   const conversationChannel = toComparableChannel(channel);
 
+  if (
+    flowChannel === "all" ||
+    flowChannel === "all channels" ||
+    flowChannel === "semua channel"
+  ) {
+    return true;
+  }
+
   if (flowChannel === conversationChannel) {
     return true;
   }
@@ -239,6 +249,13 @@ function selectAutomationFlow(
       flow.status === "Published" &&
       conversationChannelMatches(flow, input.channel),
   );
+
+  const activeFormFlowId =
+    input.existingConversation?.automation?.formSession?.flowId;
+  if (activeFormFlowId) {
+    const activeFormFlow = flows.find((flow) => flow.id === activeFormFlowId);
+    if (activeFormFlow) return activeFormFlow;
+  }
 
   const priority: ConversationFlowTrigger[] = [
     "customer_asks_admin",
@@ -438,12 +455,25 @@ export function resolveInboundAutomation(
 ): InboundAutomationResolution {
   const flow = selectAutomationFlow(config, input);
   const graph = flow ? getPublishedConversationFlowGraph(flow) : null;
+  const activeFormSession = input.existingConversation?.automation?.formSession;
   const graphBeforeAi = graph
-    ? executeConversationFlowBeforeAi({
-        graph,
-        config,
-        now: new Date(input.nowIso),
-      })
+    ? activeFormSession && activeFormSession.flowId === flow?.id
+      ? resumeConversationFlowForm({
+          graph,
+          config,
+          state: {
+            nodeId: activeFormSession.nodeId,
+            fieldIndex: activeFormSession.fieldIndex,
+            values: activeFormSession.values,
+          },
+          answer: input.messageText,
+          now: new Date(input.nowIso),
+        })
+      : executeConversationFlowBeforeAi({
+          graph,
+          config,
+          now: new Date(input.nowIso),
+        })
     : null;
   const graphAgent = graphBeforeAi?.aiAgentId
     ? (config.automation.aiAgents.find(
@@ -546,6 +576,7 @@ export function applyAutomationMetadata(
     incrementAiReplyCount?: boolean;
     resetAiReplyCount?: boolean;
     idleCheckAt?: string | null;
+    formSession?: ConversationFlowFormSession | null;
   },
 ) {
   const current = conversation.automation ?? {
@@ -584,6 +615,10 @@ export function applyAutomationMetadata(
         input.handoffReason === undefined
           ? current.handoffReason
           : input.handoffReason,
+      formSession:
+        input.formSession === undefined
+          ? current.formSession
+          : input.formSession,
       lastEvent: input.event,
       logs: current.logs,
     },

@@ -31,9 +31,11 @@ async function main() {
     markConversationFlowTested,
     publishConversationFlow,
     saveConversationFlowDraft,
+    setConversationFlowActive,
   } = await import("../src/server/repositories/conversation-flow-repository");
   const {
     executeConversationFlowBeforeAi,
+    resumeConversationFlowForm,
     validateConversationFlowGraph,
   } =
     await import("../src/server/services/conversation-flow-service");
@@ -87,6 +89,11 @@ async function main() {
   assert.equal(published.flow.publishedRevision, 1);
   assert.equal(published.flow.initialMessage, "Halo dari draft");
 
+  const inactive = await setConversationFlowActive(flow.id, false);
+  assert.equal(inactive.flow?.status, "Inactive");
+  const reactivated = await setConversationFlowActive(flow.id, true);
+  assert.equal(reactivated.flow?.status, "Published");
+
   const changed = structuredClone(published.flow?.publishedGraph);
   assert.ok(changed);
   const fallback = changed.nodes.find((node) => node.type === "fallback");
@@ -139,11 +146,39 @@ async function main() {
     now: new Date("2026-07-21T12:00:00.000Z"),
   });
   assert.equal(bookingRuntime.graphReplyOnly, true);
-  assert.equal(bookingRuntime.needsHuman, true);
+  assert.equal(bookingRuntime.needsHuman, false);
+  assert.equal(bookingRuntime.formState?.fieldIndex, 0);
   assert.equal(
-    bookingRuntime.messages.some((item) => item.startsWith("[FORM_CHAT:")),
+    bookingRuntime.messages.some((item) =>
+      item.includes("Booking Service Johan Garage"),
+    ),
     true,
   );
+
+  const bookingAnswers = [
+    "Rizky",
+    "081234567890",
+    "Honda Vario 125 2022",
+    "2",
+    "CVT bergetar",
+    "2026-07-25",
+    "3",
+  ];
+  let bookingStep = bookingRuntime;
+  for (const answer of bookingAnswers) {
+    assert.ok(bookingStep.formState);
+    bookingStep = resumeConversationFlowForm({
+      graph: bookingTemplate.draftGraph,
+      config: bookingRuntimeConfig,
+      state: bookingStep.formState,
+      answer,
+      now: new Date("2026-07-21T12:00:00.000Z"),
+    });
+  }
+  assert.equal(bookingStep.completedForm?.values.customer_name, "Rizky");
+  assert.equal(bookingStep.completedForm?.values.service_type, "Servis CVT");
+  assert.equal(bookingStep.completedForm?.values.preferred_time, "13:00");
+  assert.equal(bookingStep.needsHuman, true);
 
   console.log(
     JSON.stringify({
@@ -152,11 +187,13 @@ async function main() {
       revisionConflict: true,
       tested: true,
       published: true,
+      statusToggle: true,
       discarded: true,
       nodes: discarded?.draftGraph?.nodes.length,
       edges: discarded?.draftGraph?.edges.length,
       bookingTemplate: true,
       bookingFields: bookingForm?.data.formFields?.length,
+      bookingCompleted: Boolean(bookingStep.completedForm),
     }),
   );
 }

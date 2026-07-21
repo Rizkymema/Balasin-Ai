@@ -31,6 +31,7 @@ import {
   getAiDecisionOutcome,
 } from "@/server/services/conversation-flow-service";
 import type {
+  BookingRecord,
   ChannelKind,
   ConversationChannelContext,
   ConversationMessage,
@@ -39,6 +40,31 @@ import type {
   CustomerRecord,
   MessageDeliveryStatus,
 } from "@/types/operations";
+
+function buildBookingFromCompletedFlow(input: {
+  flowName: string;
+  customer: CustomerRecord;
+  channel: ChannelKind;
+  values: Record<string, string>;
+}): BookingRecord {
+  const values = input.values;
+  const customerName = values.customer_name || input.customer.name;
+  const vehicle = values.vehicle_type || "Kendaraan belum diisi";
+  const complaint = values.complaint || "-";
+  const whatsapp = values.whatsapp_number || input.customer.phone || "-";
+
+  return {
+    id: randomUUID(),
+    customerId: input.customer.id,
+    customer: customerName,
+    service: values.service_type || input.flowName,
+    date: values.preferred_date || "Menunggu konfirmasi",
+    slot: values.preferred_time || "Menunggu konfirmasi",
+    channel: input.channel,
+    status: "Pending Confirmation",
+    note: `Motor: ${vehicle}\nKeluhan: ${complaint}\nWhatsApp: ${whatsapp}`,
+  };
+}
 
 export type NormalizedIncomingMessage = {
   channel: ChannelKind;
@@ -567,6 +593,25 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   const finalStatus = isTakeoverActive
     ? existingConversation.status
     : (automation.forcedStatus ?? decision.status);
+  const previousFormSession = existingConversation?.automation?.formSession;
+  const nextFormSession =
+    automation.flow && automation.graphBeforeAi?.formState
+      ? {
+          flowId: automation.flow.id,
+          nodeId: automation.graphBeforeAi.formState.nodeId,
+          fieldIndex: automation.graphBeforeAi.formState.fieldIndex,
+          values: automation.graphBeforeAi.formState.values,
+          startedAt:
+            previousFormSession?.flowId === automation.flow.id
+              ? previousFormSession.startedAt
+              : receivedAt,
+          updatedAt: receivedAt,
+        }
+      : automation.graphBeforeAi?.completedForm ||
+          automation.graphBeforeAi?.cancelledForm ||
+          (previousFormSession && !automation.flow)
+        ? null
+        : undefined;
 
   conversation = appendMessage(
     {
@@ -596,6 +641,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
             automation.handoffReason ??
             "Percakapan diteruskan ke admin oleh automation runtime.")
           : null,
+      formSession: nextFormSession,
     });
     conversation = appendAutomationLog(conversation, {
       event: "message_received",
@@ -727,7 +773,9 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   customer = {
     ...customer,
     leadStatus:
-      finalStatus === "assigned_to_admin"
+      automation.graphBeforeAi?.completedForm
+        ? "Booking"
+        : finalStatus === "assigned_to_admin"
         ? "Complaint"
         : finalStatus === "waiting_customer"
           ? "Booking"
@@ -743,6 +791,28 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     item.id === customer.id ? customer : item,
   );
 
+  if (
+    automation.flow?.normalizedTrigger === "booking_intent" &&
+    automation.graphBeforeAi?.completedForm
+  ) {
+    current.bookings.unshift(
+      buildBookingFromCompletedFlow({
+        flowName: automation.flow.name,
+        customer,
+        channel: input.channel,
+        values: automation.graphBeforeAi.completedForm.values,
+      }),
+    );
+    conversation = appendAutomationLog(conversation, {
+      event: "booking_created",
+      summary: `Booking dibuat dari Conversation Flow "${automation.flow.name}" dan menunggu konfirmasi admin.`,
+      status: "applied",
+    });
+    current.conversations = current.conversations.map((item) =>
+      item.id === conversation.id ? conversation : item,
+    );
+  }
+
   if (finalStatus === "assigned_to_admin") {
     try {
       await enqueueJob({
@@ -757,7 +827,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     }
   }
 
-  if (finalStatus === "waiting_customer") {
+  if (finalStatus === "waiting_customer" && !previousFormSession) {
     try {
       await enqueueJob({
         type: "lead_followup",

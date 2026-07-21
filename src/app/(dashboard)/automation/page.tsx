@@ -33,6 +33,7 @@ export default function AutomationPage() {
     null,
   );
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
+  const [togglingFlowId, setTogglingFlowId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!config) return;
@@ -174,22 +175,41 @@ export default function AutomationPage() {
     }));
   };
 
-  const handleToggleStatus = (flow: ConversationFlow) => {
+  const handleToggleStatus = async (flow: ConversationFlow) => {
     if (flow.status === "Draft") {
       router.push(`/automation/conversations/${flow.id}`);
       return;
     }
 
-    const newStatus: ConversationFlow["status"] =
-      flow.status === "Inactive" ? "Published" : "Inactive";
-    const nextConversations = conversations.map((f) =>
-      f.id === flow.id ? { ...f, status: newStatus } : f,
-    );
-    setConversations(nextConversations);
-    patchConfig((current) => ({
-      ...current,
-      automation: { ...current.automation, conversations: nextConversations },
-    }));
+    setTogglingFlowId(flow.id);
+    try {
+      const response = await fetch(`/api/automation/flows/${flow.id}/status`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: flow.status === "Inactive" }),
+      });
+      const payload = (await response.json()) as {
+        data?: { flow?: ConversationFlow };
+        error?: string;
+      };
+      if (!response.ok || !payload.data?.flow) {
+        throw new Error(payload.error || "Status flow gagal diubah.");
+      }
+      setConversations((current) =>
+        current.map((item) =>
+          item.id === flow.id ? payload.data!.flow! : item,
+        ),
+      );
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Status flow gagal diubah.",
+      );
+    } finally {
+      setTogglingFlowId(null);
+    }
   };
 
   const confirmDelete = () => {
@@ -318,6 +338,7 @@ export default function AutomationPage() {
               }
               onDuplicate={handleDuplicate}
               onToggleStatus={handleToggleStatus}
+              togglingFlowId={togglingFlowId}
               onDelete={(flow) => setDeletingFlow(flow)}
             />
 

@@ -148,6 +148,44 @@ export async function publishConversationFlow(flowId: string) {
   return { flow, validation };
 }
 
+export async function setConversationFlowActive(
+  flowId: string,
+  active: boolean,
+) {
+  let validation = null as ReturnType<
+    typeof validateConversationFlowGraph
+  > | null;
+  let error: string | null = null;
+  const flow = await updateFlow(flowId, (existing, config) => {
+    if (!active) {
+      return {
+        ...existing,
+        status: "Inactive",
+        lastUpdate: formatLastUpdate(),
+      };
+    }
+
+    if (!existing.publishedGraph) {
+      error = "Flow belum pernah dipublish. Test dan Publish flow terlebih dahulu.";
+      return existing;
+    }
+
+    validation = validateConversationFlowGraph(existing.publishedGraph, config);
+    if (!validation.valid) {
+      error = "Versi Published flow sudah tidak valid dan tidak dapat diaktifkan.";
+      return existing;
+    }
+
+    return {
+      ...existing,
+      status: "Published",
+      lastUpdate: formatLastUpdate(),
+    };
+  });
+
+  return { flow, validation, error };
+}
+
 export async function discardConversationFlowDraft(flowId: string) {
   return updateFlow(flowId, (existing) => {
     const graph =

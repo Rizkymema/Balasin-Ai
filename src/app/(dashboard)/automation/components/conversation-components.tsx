@@ -90,12 +90,14 @@ export function ConversationTable({
   onEdit,
   onDuplicate,
   onToggleStatus,
+  togglingFlowId,
   onDelete,
 }: {
   conversations: ConversationFlow[];
   onEdit: (flow: ConversationFlow) => void;
   onDuplicate: (flow: ConversationFlow) => void;
   onToggleStatus: (flow: ConversationFlow) => void;
+  togglingFlowId?: string | null;
   onDelete: (flow: ConversationFlow) => void;
 }) {
   return (
@@ -124,7 +126,46 @@ export function ConversationTable({
               <td className="px-5 py-4 text-slate-400">{flow.channel}</td>
               <td className="px-5 py-4 text-slate-400">{flow.lastUpdate}</td>
               <td className="px-5 py-4">
-                <StatusBadge status={flow.status} />
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={flow.status} />
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={flow.status === "Published"}
+                    aria-label={`${flow.status === "Published" ? "Nonaktifkan" : "Aktifkan"} ${flow.name}`}
+                    title={
+                      flow.status === "Draft"
+                        ? "Test dan Publish flow sebelum mengaktifkannya"
+                        : flow.status === "Published"
+                          ? "Matikan flow"
+                          : "Aktifkan flow"
+                    }
+                    disabled={
+                      flow.status === "Draft" || togglingFlowId === flow.id
+                    }
+                    onClick={() => onToggleStatus(flow)}
+                    className="inline-flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    <span
+                      className={`relative h-5 w-9 rounded-full border transition-colors ${
+                        flow.status === "Published"
+                          ? "border-emerald-400/40 bg-emerald-500/30"
+                          : "border-slate-600 bg-slate-800"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                          flow.status === "Published"
+                            ? "translate-x-[17px]"
+                            : "translate-x-0.5"
+                        } ${togglingFlowId === flow.id ? "animate-pulse" : ""}`}
+                      />
+                    </span>
+                    <span className="text-[10px] font-bold tracking-wide text-slate-400">
+                      {flow.status === "Published" ? "ON" : "OFF"}
+                    </span>
+                  </button>
+                </div>
               </td>
               <td className="px-5 py-4 text-right">
                 <Dropdown

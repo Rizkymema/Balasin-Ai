@@ -72,6 +72,15 @@ export type AutomationRuntimeLog = {
   status: "applied" | "queued" | "skipped" | "failed";
 };
 
+export type ConversationFlowFormSession = {
+  flowId: string;
+  nodeId: string;
+  fieldIndex: number;
+  values: Record<string, string>;
+  startedAt: string;
+  updatedAt: string;
+};
+
 export type ConversationAutomationState = {
   activeFlowId: string | null;
   activeFlowName: string | null;
@@ -85,6 +94,7 @@ export type ConversationAutomationState = {
   handoffReason: string | null;
   lastEvent: AutomationRuntimeEvent | null;
   logs: AutomationRuntimeLog[];
+  formSession?: ConversationFlowFormSession | null;
 };
 
 export type ConversationRecord = {
