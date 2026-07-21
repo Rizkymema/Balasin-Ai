@@ -9,6 +9,7 @@ import {
   applyNodeChanges,
   Background,
   BackgroundVariant,
+  ConnectionLineType,
   Controls,
   MarkerType,
   MiniMap,
@@ -17,6 +18,7 @@ import {
   type Connection,
   type EdgeChange,
   type NodeChange,
+  type ReactFlowInstance,
   type Viewport,
 } from "@xyflow/react";
 import {
@@ -31,6 +33,7 @@ import {
   PanelRight,
   RotateCcw,
   Send,
+  WandSparkles,
   X,
 } from "lucide-react";
 
@@ -90,14 +93,37 @@ function toCanvasNodes(graph: ConversationFlowGraph): FlowCanvasNode[] {
 }
 
 function toCanvasEdges(graph: ConversationFlowGraph): FlowCanvasEdge[] {
-  return graph.edges.map((item) => ({
+  return graph.edges.map((item) => decorateEdge(item));
+}
+
+const EDGE_COLORS: Record<string, string> = {
+  inside: "#10b981",
+  outside: "#f59e0b",
+  answered: "#2563eb",
+  needs_human: "#ef4444",
+  not_found: "#f97316",
+  error: "#dc2626",
+};
+
+function decorateEdge<
+  T extends FlowCanvasEdge | ConversationFlowGraph["edges"][number],
+>(item: T): FlowCanvasEdge {
+  const color = EDGE_COLORS[item.sourceHandle ?? ""] ?? "#94a3b8";
+  return {
     ...item,
     type: "smoothstep",
-    markerEnd: { type: MarkerType.ArrowClosed, color: "#64748b" },
-    style: { stroke: "#64748b", strokeWidth: 1.5 },
-    labelStyle: { fill: "#94a3b8", fontSize: 9, fontWeight: 700 },
-    labelBgStyle: { fill: "#0a0a0c", fillOpacity: 0.9 },
-  }));
+    markerEnd: { type: MarkerType.ArrowClosed, color },
+    style: { stroke: color, strokeWidth: 2 },
+    labelStyle: { fill: "#475569", fontSize: 9, fontWeight: 800 },
+    labelBgStyle: {
+      fill: "#ffffff",
+      fillOpacity: 0.96,
+      stroke: "#e2e8f0",
+      strokeWidth: 1,
+    },
+    labelBgPadding: [7, 4],
+    labelBgBorderRadius: 6,
+  };
 }
 
 function toGraph(
@@ -207,6 +233,9 @@ export default function ConversationFlowBuilderPage() {
   const dirtyVersionRef = useRef(0);
   const savedVersionRef = useRef(0);
   const savingRef = useRef(false);
+  const flowInstanceRef = useRef<
+    ReactFlowInstance<FlowCanvasNode, FlowCanvasEdge> | undefined
+  >(undefined);
 
   const buildGraph = useCallback(
     () => toGraph(nodes, edges, viewport),
@@ -358,14 +387,15 @@ export default function ConversationFlowBuilderPage() {
 
   const onConnect = useCallback(
     (connection: Connection) => {
+      const color = EDGE_COLORS[connection.sourceHandle ?? ""] ?? "#2563eb";
       setEdges((current) =>
         addEdge(
           {
             ...connection,
             id: `edge-${crypto.randomUUID()}`,
             type: "smoothstep",
-            markerEnd: { type: MarkerType.ArrowClosed, color: "#64748b" },
-            style: { stroke: "#64748b", strokeWidth: 1.5 },
+            markerEnd: { type: MarkerType.ArrowClosed, color },
+            style: { stroke: color, strokeWidth: 2 },
           },
           current,
         ),
@@ -374,6 +404,59 @@ export default function ConversationFlowBuilderPage() {
     },
     [markChanged],
   );
+
+  const arrangeFlow = useCallback(() => {
+    if (nodes.length === 0) return;
+
+    const start = nodes.find((item) => item.type === "start") ?? nodes[0];
+    const levelByNode = new Map<string, number>([[start.id, 0]]);
+    const queue = [start.id];
+
+    while (queue.length > 0) {
+      const sourceId = queue.shift();
+      if (!sourceId) continue;
+      const nextLevel = (levelByNode.get(sourceId) ?? 0) + 1;
+      for (const edge of edges.filter((item) => item.source === sourceId)) {
+        if (levelByNode.has(edge.target)) continue;
+        levelByNode.set(edge.target, nextLevel);
+        queue.push(edge.target);
+      }
+    }
+
+    const highestLevel = Math.max(0, ...levelByNode.values());
+    for (const item of nodes) {
+      if (!levelByNode.has(item.id)) {
+        levelByNode.set(item.id, highestLevel + 1);
+      }
+    }
+
+    const levels = new Map<number, FlowCanvasNode[]>();
+    for (const item of nodes) {
+      const level = levelByNode.get(item.id) ?? highestLevel + 1;
+      levels.set(level, [...(levels.get(level) ?? []), item]);
+    }
+
+    setNodes((current) =>
+      current.map((item) => {
+        const level = levelByNode.get(item.id) ?? 0;
+        const siblings = levels.get(level) ?? [item];
+        const index = siblings.findIndex(
+          (candidate) => candidate.id === item.id,
+        );
+        return {
+          ...item,
+          position: {
+            x: 520 + (index - (siblings.length - 1) / 2) * 300,
+            y: 80 + level * 190,
+          },
+        };
+      }),
+    );
+    markChanged();
+    requestAnimationFrame(() => {
+      void flowInstanceRef.current?.fitView({ padding: 0.18, duration: 500 });
+    });
+  }, [edges, markChanged, nodes]);
 
   const isValidConnection = useCallback(
     (connection: Connection | FlowCanvasEdge) => {
@@ -694,6 +777,9 @@ export default function ConversationFlowBuilderPage() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onInit={(instance) => {
+              flowInstanceRef.current = instance;
+            }}
             isValidConnection={isValidConnection}
             onNodeClick={(_event, item) => {
               setSelectedNodeId(item.id);
@@ -708,8 +794,13 @@ export default function ConversationFlowBuilderPage() {
             minZoom={0.25}
             maxZoom={2}
             fitView
+            fitViewOptions={{ padding: 0.18 }}
             snapToGrid
             snapGrid={[20, 20]}
+            connectionLineType={ConnectionLineType.SmoothStep}
+            connectionLineStyle={{ stroke: "#2563eb", strokeWidth: 2.25 }}
+            connectionRadius={24}
+            elevateEdgesOnSelect
             deleteKeyCode={["Backspace", "Delete"]}
             proOptions={{ hideAttribution: true }}
           >
@@ -736,6 +827,14 @@ export default function ConversationFlowBuilderPage() {
                 >
                   <FlaskConical className="h-4 w-4" />
                   AI Training
+                </button>
+                <button
+                  type="button"
+                  onClick={arrangeFlow}
+                  className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
+                >
+                  <WandSparkles className="h-4 w-4" />
+                  <span className="hidden sm:inline">Rapikan Flow</span>
                 </button>
                 <span className="hidden h-6 w-px bg-slate-200 sm:block" />
                 <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-bold text-slate-600">

@@ -65,7 +65,7 @@ export function FlowNodeCard({
   if (resolvedType === "start") {
     return (
       <div
-        className={`relative rounded-full border bg-slate-800 px-3 py-1.5 text-[10px] font-bold text-white shadow-lg transition ${selected ? "border-cyan-400 ring-4 ring-cyan-400/20" : "border-slate-700"}`}
+        className={`relative rounded-full border bg-blue-600 px-3 py-1.5 text-[10px] font-bold text-white shadow-lg transition ${selected ? "border-cyan-300 ring-4 ring-cyan-400/20" : "border-blue-500"}`}
       >
         Start point
         <Handle
