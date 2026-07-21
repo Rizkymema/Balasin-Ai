@@ -22,7 +22,7 @@ type Props = {
   isRunning: boolean;
   onMessageChange: (value: string) => void;
   onNowChange: (value: string) => void;
-  onRun: () => void;
+  onRun: (customMessage?: string) => void;
   onReset: () => void;
 };
 
@@ -45,12 +45,14 @@ export function PreviewConversation({
     container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   }, [isRunning, result]);
 
-  const sendMessage = () => {
-    const nextMessage = message.trim();
+  const sendMessage = (customText?: string) => {
+    const nextMessage = (customText ?? message).trim();
     if (!nextMessage || isRunning) return;
     setLastSentMessage(nextMessage);
-    onReset();
-    onRun();
+    if (customText) {
+      onMessageChange(customText);
+    }
+    onRun(nextMessage);
   };
 
   const resetChat = () => {
@@ -87,28 +89,28 @@ export function PreviewConversation({
 
       <div
         ref={messagesRef}
-        className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_center,rgba(30,41,59,0.42)_1px,transparent_1px)] bg-[length:22px_22px] px-4 py-5"
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_center,rgba(30,41,59,0.42)_1px,transparent_1px)] bg-[length:22px_22px] px-4 py-4"
       >
-        <div className="mx-auto w-fit rounded-full border border-white/8 bg-[#111821]/90 px-3 py-1 text-[9px] font-bold text-slate-500 shadow-sm">
-          Preview percakapan hari ini
+        <div className="mx-auto w-fit rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-[9px] font-bold text-cyan-300 shadow-sm flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+          Live Node Inspector Sync Active
         </div>
 
         {!result && !isRunning && (
-          <div className="mx-auto max-w-[250px] rounded-2xl border border-white/8 bg-[#111821]/90 p-4 text-center shadow-xl">
+          <div className="mx-auto max-w-[260px] rounded-2xl border border-white/8 bg-[#111821]/90 p-4 text-center shadow-xl">
             <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-cyan-400/10 text-cyan-300">
               <Bot className="h-5 w-5" />
             </span>
             <p className="mt-3 text-xs font-bold text-white">
-              Mulai test percakapan
+              Test Percakapan Flow
             </p>
-            <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
-              Ketik pertanyaan seperti pelanggan biasa. Pesan hanya diproses di
-              sandbox dan tidak dikirim ke channel asli.
+            <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
+              Pesan dan pengaturan yang Anda atur di <strong>Node Inspector</strong> otomatis diproses di sandbox ini.
             </p>
           </div>
         )}
 
-        {(lastSentMessage || result) && (
+        {(lastSentMessage || (result && message)) && (
           <ChatBubble sender="customer" text={lastSentMessage || message} />
         )}
 
@@ -134,7 +136,7 @@ export function PreviewConversation({
         {result && (
           <details className="rounded-xl border border-white/8 bg-[#111821]/90 text-[10px] shadow-lg">
             <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 font-bold text-slate-400">
-              <span>Detail eksekusi flow</span>
+              <span>Detail eksekusi flow ({result.trace.length} langkah)</span>
               {result.decision && (
                 <span
                   className={`rounded-full px-2 py-0.5 text-[8px] ${result.decision.grounded ? "bg-emerald-400/10 text-emerald-300" : "bg-amber-400/10 text-amber-300"}`}
@@ -153,17 +155,54 @@ export function PreviewConversation({
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-400/10 font-mono text-cyan-300">
                     {index + 1}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-slate-300">
+                  <span className="min-w-0 flex-1 truncate text-slate-300 font-semibold">
                     {step.label}
                   </span>
                   {step.outcome && (
-                    <span className="text-slate-600">{step.outcome}</span>
+                    <span className="text-slate-400 text-[9px] bg-white/5 px-2 py-0.5 rounded">{step.outcome}</span>
                   )}
                 </div>
               ))}
             </div>
           </details>
         )}
+      </div>
+
+      {/* Quick Scenario Chips */}
+      <div className="shrink-0 border-t border-white/8 bg-[#0f151d] px-3 py-2">
+        <p className="mb-1.5 text-[9px] font-bold uppercase tracking-wider text-slate-500">
+          Uji Skenario Node Inspector:
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => sendMessage("Halo")}
+            className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-semibold text-cyan-300 transition hover:bg-cyan-500/20 active:scale-95"
+          >
+            👋 Start / Greeting
+          </button>
+          <button
+            type="button"
+            onClick={() => sendMessage("Kalau upgrade CVT Honda Genio harganya berapa?")}
+            className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-[10px] font-semibold text-blue-300 transition hover:bg-blue-500/20 active:scale-95"
+          >
+            🔧 Servis & Harga
+          </button>
+          <button
+            type="button"
+            onClick={() => sendMessage("Jam berapa bengkel buka hari ini?")}
+            className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-300 transition hover:bg-amber-500/20 active:scale-95"
+          >
+            🕒 Jam Kerja
+          </button>
+          <button
+            type="button"
+            onClick={() => sendMessage("Saya mau bicara dengan admin")}
+            className="rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[10px] font-semibold text-red-300 transition hover:bg-red-500/20 active:scale-95"
+          >
+            👨‍💼 Handoff Admin
+          </button>
+        </div>
       </div>
 
       <footer className="shrink-0 border-t border-white/8 bg-[#111821] p-3">

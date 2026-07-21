@@ -528,41 +528,52 @@ export default function ConversationFlowBuilderPage() {
     markChanged();
   };
 
-  const runPreview = async () => {
-    if (!flow) return;
-    setIsRunningTest(true);
-    setError("");
-    try {
-      const response = await fetch(`/api/automation/flows/${flow.id}/test`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: previewMessage,
-          nowIso: new Date(previewNow).toISOString(),
-          graph: buildGraph(),
-        }),
-      });
-      const payload = (await response.json()) as ApiEnvelope<FlowPreviewResult>;
-      if (!response.ok || !payload.data) {
-        throw new Error(
-          payload.details
-            ?.map((item) => item.message)
-            .filter(Boolean)
-            .join(" ") ||
-            payload.error ||
-            "Preview gagal dijalankan.",
+  const runPreview = useCallback(
+    async (overrideMsg?: string) => {
+      if (!flow) return;
+      const msgToSend = (overrideMsg ?? previewMessage).trim();
+      if (!msgToSend) return;
+      setIsRunningTest(true);
+      setError("");
+      try {
+        const response = await fetch(`/api/automation/flows/${flow.id}/test`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: msgToSend,
+            nowIso: new Date(previewNow).toISOString(),
+            graph: buildGraph(),
+          }),
+        });
+        const payload = (await response.json()) as ApiEnvelope<FlowPreviewResult>;
+        if (!response.ok || !payload.data) {
+          throw new Error(
+            payload.details
+              ?.map((item) => item.message)
+              .filter(Boolean)
+              .join(" ") ||
+              payload.error ||
+              "Preview gagal dijalankan.",
+          );
+        }
+        setPreviewResult(payload.data);
+      } catch (caught) {
+        setError(
+          caught instanceof Error ? caught.message : "Preview gagal dijalankan.",
         );
+      } finally {
+        setIsRunningTest(false);
       }
-      setPreviewResult(payload.data);
-    } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "Preview gagal dijalankan.",
-      );
-    } finally {
-      setIsRunningTest(false);
+    },
+    [buildGraph, flow, previewMessage, previewNow],
+  );
+
+  useEffect(() => {
+    if (activePanel === "preview" && !previewResult && !isRunningTest && flow) {
+      void runPreview("Halo");
     }
-  };
+  }, [activePanel, flow, isRunningTest, previewResult, runPreview]);
 
   const publishFlow = async () => {
     if (!flow) return;
@@ -999,7 +1010,7 @@ export default function ConversationFlowBuilderPage() {
                   isRunning={isRunningTest}
                   onMessageChange={setPreviewMessage}
                   onNowChange={setPreviewNow}
-                  onRun={() => void runPreview()}
+                  onRun={(customMsg) => void runPreview(customMsg)}
                   onReset={() => setPreviewResult(null)}
                 />
               )}
