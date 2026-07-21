@@ -921,15 +921,16 @@ function scoreCandidate(messageText: string, candidateText: string) {
     return 1;
   }
 
+  const messageTokens = Array.from(new Set(tokenize(messageText)));
+  const candidateTokens = Array.from(new Set(tokenize(candidateText)));
+
   if (
-    normalizedCandidate.includes(normalizedMessage) ||
-    normalizedMessage.includes(normalizedCandidate)
+    (normalizedCandidate.includes(normalizedMessage) ||
+      normalizedMessage.includes(normalizedCandidate)) &&
+    Math.min(messageTokens.length, candidateTokens.length) >= 2
   ) {
     return 0.95;
   }
-
-  const messageTokens = Array.from(new Set(tokenize(messageText)));
-  const candidateTokens = Array.from(new Set(tokenize(candidateText)));
 
   if (messageTokens.length === 0 || candidateTokens.length === 0) {
     return 0;
@@ -1086,6 +1087,21 @@ function isInactiveKnowledgeChunk(chunk: KnowledgeChunk) {
     contentLower.includes("status: inactive") ||
     contentLower.includes("status: non aktif")
   );
+}
+
+function isClassifierAnalysisText(content: string) {
+  const normalized = content.trim();
+  const classifierLabels = [
+    /(?:^|\|)\s*jenis\s*:\s*\**(?:dm|komen|komentar)\b/i,
+    /isi\s+pesan\s*\/\s*komentar\s*:/i,
+    /(?:^|\|)\s*indikasi\s*:/i,
+  ];
+
+  return classifierLabels.filter((pattern) => pattern.test(normalized)).length >= 2;
+}
+
+function isNonAnswerKnowledgeChunk(chunk: KnowledgeChunk) {
+  return isClassifierAnalysisText(chunk.content);
 }
 
 function extractTriggersFromContent(content: string): string[] {
@@ -1473,7 +1489,11 @@ async function findBestGoogleSheetMatch(
   messageText: string,
 ): Promise<{ reply: string; confidence: number; summary: string } | null> {
   const chunks = await getKnowledgeChunks();
-  const sheetChunks = chunks.filter((c) => c.metadata?.sourceType === "google_sheet");
+  const sheetChunks = chunks.filter(
+    (chunk) =>
+      chunk.metadata?.sourceType === "google_sheet" &&
+      !isNonAnswerKnowledgeChunk(chunk),
+  );
   if (sheetChunks.length === 0) {
     return null;
   }
@@ -1750,7 +1770,7 @@ async function findBestDocumentMatch(messageText: string) {
 async function buildRelevantDocumentContext(messageText: string) {
   const chunks = await getKnowledgeChunks();
   const activeChunks = chunks.filter((c) => {
-    if (isNoisyWebsiteChunk(c)) {
+    if (isNoisyWebsiteChunk(c) || isNonAnswerKnowledgeChunk(c)) {
       return false;
     }
 
@@ -2037,6 +2057,13 @@ ${messageText}
       return null;
     }
 
+    if (isClassifierAnalysisText(reply)) {
+      console.error(
+        "[reply-engine] rejected classifier-shaped provider output from customer reply path",
+      );
+      return null;
+    }
+
     return {
       reply,
       grounded: hasStrongKnowledgeContext,
@@ -2119,6 +2146,32 @@ export async function generateReplyDecision(
       status: "spam",
       summary: "Pesan terdeteksi sebagai spam dan tidak diteruskan ke alur aktif.",
       grounded: false,
+    };
+  }
+
+  if (opener.hadOpener && !opener.stripped) {
+    return {
+      intent: "Sapaan",
+      confidence: 90,
+      needsHuman: false,
+      status: "ai_active",
+      summary: "Customer membuka percakapan dengan izin bertanya dan sistem membalas sebagai sapaan aman.",
+      reply: applyStyleInstructions(buildGreetingReply(config), config),
+      grounded: true,
+      source: "workspace",
+    };
+  }
+
+  if (isGreetingMessage(messageText, config)) {
+    return {
+      intent: "Sapaan",
+      confidence: 92,
+      needsHuman: false,
+      status: "ai_active",
+      summary: "Customer mengirim sapaan umum dan sistem membalas dengan greeting aman.",
+      reply: applyStyleInstructions(buildGreetingReply(config), config),
+      grounded: true,
+      source: "workspace",
     };
   }
 
@@ -2395,32 +2448,6 @@ export async function generateReplyDecision(
       ),
       grounded: false,
       source: "fallback",
-    };
-  }
-
-  if (opener.hadOpener && !opener.stripped) {
-    return {
-      intent: "Sapaan",
-      confidence: 90,
-      needsHuman: false,
-      status: "ai_active",
-      summary: "Customer membuka percakapan dengan izin bertanya dan sistem membalas sebagai sapaan aman.",
-      reply: applyStyleInstructions(buildGreetingReply(config), config),
-      grounded: true,
-      source: "workspace",
-    };
-  }
-
-  if (isGreetingMessage(messageText, config)) {
-    return {
-      intent: "Sapaan",
-      confidence: 92,
-      needsHuman: false,
-      status: "ai_active",
-      summary: "Customer mengirim sapaan umum dan sistem membalas dengan greeting aman.",
-      reply: applyStyleInstructions(buildGreetingReply(config), config),
-      grounded: true,
-      source: "workspace",
     };
   }
 
