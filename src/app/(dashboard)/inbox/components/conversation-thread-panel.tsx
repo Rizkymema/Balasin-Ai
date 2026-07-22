@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   Smile,
   Sparkles,
+  Smartphone,
   StickyNote,
   Ticket,
   Trash2,
@@ -50,6 +51,7 @@ type ReplyAttachment = {
 type ConversationThreadPanelProps = {
   conversation: ConversationRecord | null;
   config: DashboardConfig;
+  whatsappAccountLabel?: string;
   replyText: string;
   onReplyTextChange: (value: string) => void;
   replyAttachment: ReplyAttachment;
@@ -128,6 +130,7 @@ function formatMediaFileSize(sizeBytes: number) {
 export function ConversationThreadPanel({
   conversation,
   config,
+  whatsappAccountLabel,
   replyText,
   onReplyTextChange,
   replyAttachment,
@@ -364,8 +367,20 @@ export function ConversationThreadPanel({
               <h2 className="truncate text-sm font-semibold text-slate-100">
                 {conversation.name}
               </h2>
-              <p className="mt-0.5 text-[11px] text-slate-500">
-                Created{" "}
+              <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] text-slate-500">
+                {conversation.channel === "WhatsApp" && whatsappAccountLabel ? (
+                  <>
+                    <span className="inline-flex min-w-0 items-center gap-1 text-emerald-300/80">
+                      <Smartphone className="h-3 w-3 shrink-0" />
+                      <span className="max-w-36 truncate">
+                        {whatsappAccountLabel}
+                      </span>
+                    </span>
+                    <span className="h-1 w-1 shrink-0 rounded-full bg-slate-600" />
+                  </>
+                ) : null}
+                <span className="truncate">
+                  Created{" "}
                 {conversation.timestamp
                   ? (() => {
                       try {
@@ -384,7 +399,8 @@ export function ConversationThreadPanel({
                       }
                     })()
                   : "—"}
-              </p>
+                </span>
+              </div>
             </div>
           </div>
 

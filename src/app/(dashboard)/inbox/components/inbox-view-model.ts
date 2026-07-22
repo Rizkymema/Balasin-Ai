@@ -45,9 +45,24 @@ export type InboxSortId =
   | "priority"
   | "longest_wait";
 
+export type InboxWhatsAppAccountFilter =
+  | "all"
+  | "unassigned"
+  | `meta:${string}`
+  | `qr:${string}`;
+
+export type InboxWhatsAppAccountOption = {
+  value: InboxWhatsAppAccountFilter;
+  label: string;
+  detail: string;
+  status?: "draft" | "testing" | "connected" | "disconnected" | "connecting";
+  conversationCount: number;
+};
+
 export type InboxFilterState = {
   quickFilter: InboxQuickFilterId;
   channel: "all" | ConversationRecord["channel"];
+  whatsappAccount: InboxWhatsAppAccountFilter;
   status: "all" | ConversationStatus;
   assignment: "all" | string;
   search: string;
@@ -87,6 +102,144 @@ export type ChannelMeta = {
   icon: LucideIcon;
   toneClassName: string;
 };
+
+export function getConversationWhatsAppAccountKey(
+  conversation: ConversationRecord,
+): InboxWhatsAppAccountFilter | null {
+  if (conversation.channel !== "WhatsApp") {
+    return null;
+  }
+
+  const gatewayInstance =
+    conversation.channelContext?.whatsappGatewayInstance?.trim();
+  if (gatewayInstance) {
+    return `qr:${gatewayInstance}`;
+  }
+
+  const phoneNumberId =
+    conversation.channelContext?.whatsappPhoneNumberId?.trim();
+  if (phoneNumberId) {
+    return `meta:${phoneNumberId}`;
+  }
+
+  return "unassigned";
+}
+
+export function getInboxWhatsAppAccountOptions(
+  config: DashboardConfig,
+  conversations: ConversationRecord[],
+): InboxWhatsAppAccountOption[] {
+  const options = new Map<InboxWhatsAppAccountFilter, InboxWhatsAppAccountOption>();
+  const conversationCounts = new Map<InboxWhatsAppAccountFilter, number>();
+
+  for (const conversation of conversations) {
+    const key = getConversationWhatsAppAccountKey(conversation);
+    if (!key) {
+      continue;
+    }
+
+    conversationCounts.set(key, (conversationCounts.get(key) ?? 0) + 1);
+  }
+
+  const addOption = (
+    option: Omit<InboxWhatsAppAccountOption, "conversationCount">,
+  ) => {
+    options.set(option.value, {
+      ...option,
+      conversationCount: conversationCounts.get(option.value) ?? 0,
+    });
+  };
+
+  const primaryMetaId = config.channels.whatsapp.phoneNumberId.trim();
+  if (primaryMetaId) {
+    addOption({
+      value: `meta:${primaryMetaId}`,
+      label: config.channels.whatsapp.businessLabel.trim() || "WhatsApp Meta",
+      detail: "WhatsApp Cloud API",
+      status: config.channels.whatsapp.status,
+    });
+  }
+
+  for (const account of config.channels.whatsapp.accounts ?? []) {
+    const phoneNumberId = account.phoneNumberId.trim();
+    if (!phoneNumberId) {
+      continue;
+    }
+
+    addOption({
+      value: `meta:${phoneNumberId}`,
+      label:
+        account.businessLabel.trim() ||
+        account.phoneNumber.trim() ||
+        "WhatsApp Meta",
+      detail: account.phoneNumber.trim() || "WhatsApp Cloud API",
+      status: account.status,
+    });
+  }
+
+  for (const session of config.channels.whatsapp.qrSessions ?? []) {
+    const instanceName = session.instanceName.trim();
+    if (!instanceName) {
+      continue;
+    }
+
+    addOption({
+      value: `qr:${instanceName}`,
+      label:
+        session.label.trim() || session.phoneNumber?.trim() || "WhatsApp QR",
+      detail: session.phoneNumber?.trim() || instanceName,
+      status: session.status,
+    });
+  }
+
+  for (const [key] of conversationCounts) {
+    if (options.has(key)) {
+      continue;
+    }
+
+    const rawId = key.includes(":") ? key.slice(key.indexOf(":") + 1) : "";
+    addOption({
+      value: key,
+      label:
+        key === "unassigned"
+          ? "WhatsApp lama"
+          : key.startsWith("qr:")
+            ? "WhatsApp QR"
+            : "WhatsApp Meta",
+      detail:
+        key === "unassigned"
+          ? "Akun asal belum tercatat"
+          : rawId,
+    });
+  }
+
+  const statusPriority: Record<string, number> = {
+    connected: 0,
+    connecting: 1,
+    testing: 2,
+    disconnected: 3,
+    draft: 4,
+  };
+  const accountOptions = Array.from(options.values()).sort((left, right) => {
+    const statusDelta =
+      (statusPriority[left.status ?? "draft"] ?? 5) -
+      (statusPriority[right.status ?? "draft"] ?? 5);
+    return statusDelta || left.label.localeCompare(right.label, "id-ID");
+  });
+  const whatsappConversationCount = conversations.filter(
+    (conversation) => conversation.channel === "WhatsApp",
+  ).length;
+
+  return [
+    {
+      value: "all",
+      label: "Semua akun WhatsApp",
+      detail: "Gabungan seluruh nomor terintegrasi",
+      conversationCount: whatsappConversationCount,
+    },
+    ...accountOptions,
+  ];
+}
 
 export type PriorityMeta = {
   label: "Normal" | "High" | "Urgent";
@@ -528,6 +681,10 @@ export function filterInboxConversations(
   const next = conversations.filter((conversation) => {
     const channelMatch =
       filters.channel === "all" || conversation.channel === filters.channel;
+    const whatsappAccountMatch =
+      filters.whatsappAccount === "all" ||
+      getConversationWhatsAppAccountKey(conversation) ===
+        filters.whatsappAccount;
     const statusMatch =
       filters.status === "all" || conversation.status === filters.status;
     const assignmentMatch =
@@ -538,6 +695,7 @@ export function filterInboxConversations(
       matchesQuickFilter(conversation, filters.quickFilter, aiAgentName) &&
       matchesSearch(conversation, filters.search) &&
       channelMatch &&
+      whatsappAccountMatch &&
       statusMatch &&
       assignmentMatch
     );
@@ -705,4 +863,3 @@ export function getMessageActorLabel(message: ConversationMessage) {
       return "Message";
   }
 }
-

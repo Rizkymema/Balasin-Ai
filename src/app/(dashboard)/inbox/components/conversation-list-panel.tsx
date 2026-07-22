@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import {
   CheckCheck,
@@ -11,6 +12,7 @@ import {
   Filter,
   CheckCircle2,
   RefreshCcw,
+  Smartphone,
 } from "lucide-react";
 
 import { EmptyState } from "@/components/ui/empty-state";
@@ -22,8 +24,11 @@ import type { ConversationRecord, ConversationStatus } from "@/types/operations"
 import {
   type InboxQuickFilterId,
   type InboxSummary,
+  type InboxWhatsAppAccountFilter,
+  type InboxWhatsAppAccountOption,
   formatSlaLabel,
   getChannelMeta,
+  getConversationWhatsAppAccountKey,
   getConversationStatusMeta,
 } from "./inbox-view-model";
 
@@ -38,6 +43,11 @@ type ConversationListPanelProps = {
   channelFilter: "all" | ConversationRecord["channel"];
   onChannelFilterChange: (value: "all" | ConversationRecord["channel"]) => void;
   channelOptions: Array<"all" | ConversationRecord["channel"]>;
+  whatsappAccountFilter: InboxWhatsAppAccountFilter;
+  onWhatsAppAccountFilterChange: (
+    value: InboxWhatsAppAccountFilter,
+  ) => void;
+  whatsappAccountOptions: InboxWhatsAppAccountOption[];
   statusFilter: "all" | ConversationStatus;
   onStatusFilterChange: (value: "all" | ConversationStatus) => void;
   assignmentFilter: "all" | string;
@@ -132,6 +142,9 @@ export function ConversationListPanel({
   channelFilter,
   onChannelFilterChange,
   channelOptions,
+  whatsappAccountFilter,
+  onWhatsAppAccountFilterChange,
+  whatsappAccountOptions,
   statusFilter,
   onStatusFilterChange,
   assignmentFilter,
@@ -145,6 +158,10 @@ export function ConversationListPanel({
   businessName,
 }: ConversationListPanelProps) {
   const [showFilters, setShowFilters] = useState(false);
+  const activeWhatsAppAccount =
+    whatsappAccountOptions.find(
+      (option) => option.value === whatsappAccountFilter,
+    ) ?? whatsappAccountOptions[0];
 
   const getHeaderTitle = () => {
     switch (quickFilter) {
@@ -200,6 +217,52 @@ export function ConversationListPanel({
             >
               <Filter className="h-4 w-4" />
             </button>
+          </div>
+        </div>
+
+        <div className="px-4.5 pb-3">
+          <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/[0.05] p-2.5">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
+                <Smartphone className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <label
+                  htmlFor="inbox-whatsapp-account"
+                  className="mb-1 block text-[9px] font-extrabold uppercase tracking-[0.14em] text-emerald-300/80"
+                >
+                  Akun WhatsApp Inbox
+                </label>
+                <Select
+                  id="inbox-whatsapp-account"
+                  value={whatsappAccountFilter}
+                  onChange={(event) =>
+                    onWhatsAppAccountFilterChange(
+                      event.target.value as InboxWhatsAppAccountFilter,
+                    )
+                  }
+                  className="h-8 w-full rounded-lg border-white/[0.08] bg-[#0a0e1c] text-[10px] font-semibold text-slate-200"
+                >
+                  {whatsappAccountOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label} ({option.conversationCount})
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <Link
+                href="/channels"
+                className="shrink-0 rounded-md px-1.5 py-1 text-[9px] font-bold text-[#00d2ff] transition hover:bg-[#00d2ff]/10 hover:text-cyan-200"
+              >
+                Kelola
+              </Link>
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-2 border-t border-white/[0.05] pt-2 text-[9px] text-slate-500">
+              <span className="truncate" title={activeWhatsAppAccount?.detail}>
+                {activeWhatsAppAccount?.detail || "Belum ada akun terintegrasi"}
+              </span>
+              <span className="shrink-0">Balasan memakai nomor asal chat</span>
+            </div>
           </div>
         </div>
 
@@ -296,6 +359,11 @@ export function ConversationListPanel({
               const unread = conversation.unreadCount > 0;
               const channelMeta = getChannelMeta(conversation);
               const ChannelIcon = channelMeta.icon;
+              const whatsappAccount = whatsappAccountOptions.find(
+                (option) =>
+                  option.value ===
+                  getConversationWhatsAppAccountKey(conversation),
+              );
               const isAssigned = conversation.assignedTo !== "AI Agent" && conversation.assignedTo !== "AI";
 
               return (
@@ -360,7 +428,9 @@ export function ConversationListPanel({
                       <div className="mt-3 flex items-center justify-between text-[10px]">
                         <div className="flex items-center gap-1.5">
                           <span className="text-slate-500 font-bold tracking-wide">
-                            {businessName || "Workspace"}
+                            {conversation.channel === "WhatsApp" && whatsappAccount
+                              ? whatsappAccount.label
+                              : businessName || "Workspace"}
                           </span>
                           <span className={cn(
                             "px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-wide uppercase border shrink-0",

@@ -12,6 +12,7 @@
     "build": "next build",
     "start": "next start",
     "test:conversation-flow": "tsx scripts/smoke-conversation-flow.ts",
+    "test:inbox-whatsapp-switch": "tsx scripts/smoke-inbox-whatsapp-switch.ts",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
     "format": "prettier --write .",

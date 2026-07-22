@@ -27,6 +27,8 @@ import {
   filterInboxConversations,
   getAssignmentOptions,
   getConversationContext,
+  getConversationWhatsAppAccountKey,
+  getInboxWhatsAppAccountOptions,
 } from "./inbox-view-model";
 
 type ToastState = {
@@ -77,6 +79,7 @@ export function InboxWorkspace() {
   const [filters, setFilters] = useState<InboxFilterState>({
     quickFilter: "all",
     channel: "all",
+    whatsappAccount: "all",
     status: "all",
     assignment: "all",
     search: "",
@@ -98,6 +101,10 @@ export function InboxWorkspace() {
       ["all", ...new Set(data.conversations.map((conversation) => conversation.channel))] as
         Array<"all" | ConversationRecord["channel"]>,
     [data.conversations],
+  );
+  const whatsappAccountOptions = useMemo(
+    () => getInboxWhatsAppAccountOptions(config, data.conversations),
+    [config, data.conversations],
   );
 
   const activeAiAgent = useMemo(
@@ -126,6 +133,13 @@ export function InboxWorkspace() {
     null;
   const activeContext = activeConversation
     ? getConversationContext(data, activeConversation)
+    : null;
+  const activeConversationWhatsAppAccount = activeConversation
+    ? whatsappAccountOptions.find(
+        (option) =>
+          option.value ===
+          getConversationWhatsAppAccountKey(activeConversation),
+      )
     : null;
 
   useRealtimeInbox({
@@ -216,6 +230,27 @@ export function InboxWorkspace() {
     value: InboxFilterState[Key],
   ) => {
     setFilters((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleChannelFilterChange = (
+    value: "all" | ConversationRecord["channel"],
+  ) => {
+    setFilters((current) => ({
+      ...current,
+      channel: value,
+      whatsappAccount:
+        value === "WhatsApp" ? current.whatsappAccount : "all",
+    }));
+  };
+
+  const handleWhatsAppAccountFilterChange = (
+    value: InboxFilterState["whatsappAccount"],
+  ) => {
+    setFilters((current) => ({
+      ...current,
+      channel: "WhatsApp",
+      whatsappAccount: value,
+    }));
   };
 
   const runConversationAction = async (
@@ -512,8 +547,11 @@ export function InboxWorkspace() {
                 setFilterValue("quickFilter", value)
               }
               channelFilter={filters.channel}
-              onChannelFilterChange={(value) => setFilterValue("channel", value)}
+              onChannelFilterChange={handleChannelFilterChange}
               channelOptions={channelOptions}
+              whatsappAccountFilter={filters.whatsappAccount}
+              onWhatsAppAccountFilterChange={handleWhatsAppAccountFilterChange}
+              whatsappAccountOptions={whatsappAccountOptions}
               statusFilter={filters.status}
               onStatusFilterChange={(value) => setFilterValue("status", value)}
               assignmentFilter={filters.assignment}
@@ -546,6 +584,9 @@ export function InboxWorkspace() {
                 <ConversationThreadPanel
                   conversation={activeConversation}
                   config={config}
+                  whatsappAccountLabel={
+                    activeConversationWhatsAppAccount?.label
+                  }
                   replyText={replyText}
                   onReplyTextChange={setReplyText}
                   replyAttachment={replyAttachment}
