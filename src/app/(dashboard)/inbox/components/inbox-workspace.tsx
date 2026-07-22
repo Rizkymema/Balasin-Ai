@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Bot, Database, MessageSquare, PanelRight, RefreshCcw, Settings2, Sparkles, X } from "lucide-react";
+import { Bot, Database, MessageSquare, PanelRight, RefreshCcw, Settings2, Sparkles, X, Trash2 } from "lucide-react";
 
 import {
   inferOutboundMediaKind,
@@ -75,6 +75,7 @@ export function InboxWorkspace() {
   const [replyAttachment, setReplyAttachment] = useState<PendingReplyAttachment | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showSearchInList, setShowSearchInList] = useState(false);
   const [filters, setFilters] = useState<InboxFilterState>({
     quickFilter: "all",
@@ -471,17 +472,18 @@ export function InboxWorkspace() {
     );
   };
 
-  const handleDeleteConversation = async () => {
+  const handleDeleteConversation = () => {
     if (!activeConversation) {
       return;
     }
+    setShowDeleteModal(true);
+  };
 
-    const confirmed = window.confirm(
-      `Hapus chat ${activeConversation.name} dari dashboard inbox?`,
-    );
-    if (!confirmed) {
+  const confirmDeleteConversation = async () => {
+    if (!activeConversation) {
       return;
     }
+    setShowDeleteModal(false);
 
     await runConversationAction(
       `/api/inbox/conversations/${activeConversation.id}`,
@@ -673,6 +675,54 @@ export function InboxWorkspace() {
           onClose={() => setToast(null)}
         />
       ) : null}
+
+      {showDeleteModal && activeConversation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm transition-opacity duration-300 p-4">
+          <div className="relative w-full max-w-sm transform overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c101f] p-6 text-left align-middle shadow-2xl transition-all">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="absolute right-4 top-4 rounded-lg p-1 text-slate-400 hover:bg-white/[0.05] hover:text-white transition"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex flex-col items-center text-center mt-2">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 text-red-500 border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              
+              <h3 className="text-lg font-bold leading-6 text-slate-100">
+                Hapus Percakapan?
+              </h3>
+              
+              <p className="mt-3 text-sm leading-relaxed text-slate-400">
+                Apakah Anda yakin ingin menghapus chat dengan{" "}
+                <span className="font-semibold text-red-400 bg-red-500/5 border border-red-500/10 px-1.5 py-0.5 rounded">
+                  {activeConversation.name}
+                </span>{" "}
+                dari dashboard inbox? Tindakan ini tidak dapat dibatalkan.
+              </p>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-white/[0.05] hover:text-white transition active:scale-95"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmDeleteConversation()}
+                className="flex-1 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 shadow-[0_4px_12px_rgba(239,68,68,0.2)] hover:shadow-[0_6px_16px_rgba(239,68,68,0.35)] transition active:scale-95"
+              >
+                Hapus Chat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );
