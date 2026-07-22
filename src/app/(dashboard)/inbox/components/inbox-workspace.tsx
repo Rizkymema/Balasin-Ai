@@ -141,6 +141,16 @@ export function InboxWorkspace() {
   });
 
   useEffect(() => {
+    const conversationId = new URLSearchParams(window.location.search).get(
+      "conversation",
+    );
+    if (conversationId) {
+      setSelectedId(conversationId);
+      setMobileView("detail");
+    }
+  }, []);
+
+  useEffect(() => {
     if (
       selectedId &&
       filteredConversations.length > 0 &&

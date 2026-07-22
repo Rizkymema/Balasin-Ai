@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -33,6 +33,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dropdown } from "@/components/ui/dropdown";
 import { getTranslation } from "@/lib/translations";
+import {
+  deriveDashboardNotifications,
+} from "@/lib/notifications";
+import type { DashboardOperationsData } from "@/types/operations";
 import { DashboardAIAssistant } from "@/components/dashboard-ai-assistant";
 
 const NAV_ITEMS = [
@@ -85,9 +89,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [businessName, setBusinessName] = useState("Workspace Baru");
   const [userEmail, setUserEmail] = useState("admin@workspace.local");
-  const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
+  const [notificationOperations, setNotificationOperations] =
+    useState<DashboardOperationsData | null>(null);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [instantHandoffEnabled, setInstantHandoffEnabled] = useState(true);
   const [language, setLanguage] = useState("id");
   const t = getTranslation(language);
+
+  const dashboardNotifications = useMemo(
+    () =>
+      notificationOperations
+        ? deriveDashboardNotifications(notificationOperations, {
+            includeHandoff: instantHandoffEnabled,
+          })
+        : [],
+    [instantHandoffEnabled, notificationOperations],
+  );
+  const notificationCount = dashboardNotifications.length;
+  const inboxUnreadCount = useMemo(
+    () =>
+      notificationOperations?.conversations.filter(
+        (conversation) => conversation.unreadCount > 0,
+      ).length ?? 0,
+    [notificationOperations],
+  );
 
   const [userName, setUserName] = useState("Admin Johan Garage");
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
@@ -189,6 +214,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               name?: string;
               language?: string;
             };
+            team?: {
+              notifications?: {
+                instantHandoff?: boolean;
+              };
+            };
           };
         };
 
@@ -199,6 +229,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           if (payload.data.workspace.language) {
             setLanguage(payload.data.workspace.language);
           }
+        }
+        if (mounted && payload.data?.team?.notifications) {
+          setInstantHandoffEnabled(
+            payload.data.team.notifications.instantHandoff !== false,
+          );
         }
       } catch {}
     };
@@ -220,13 +255,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
         const payload = await res.json() as {
           ok: boolean;
-          data?: { conversations?: Array<{ unreadCount?: number }> };
+          data?: DashboardOperationsData;
         };
-        if (mounted && Array.isArray(payload.data?.conversations)) {
-          const count = payload.data.conversations.filter(
-            (c) => (c.unreadCount ?? 0) > 0
-          ).length;
-          setInboxUnreadCount(count);
+        if (mounted && payload.data) {
+          setNotificationOperations(payload.data);
         }
       } catch {}
     };
@@ -581,12 +613,91 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div className="flex items-center gap-3">
               {/* Notification bell */}
-              <button className="relative p-2 rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition duration-200" title={`Notifikasi (${inboxUnreadCount} belum dibaca)`}>
-                <Bell className="h-5 w-5" />
-                {inboxUnreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--color-brand)]" />
+              <div className="relative">
+                <button
+                  onClick={() => setIsNotificationOpen((current) => !current)}
+                  className="relative rounded-lg p-2 text-[var(--color-muted)] transition duration-200 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+                  title={`Notifikasi (${notificationCount} perlu ditindaklanjuti)`}
+                  aria-label="Buka notifikasi"
+                  aria-expanded={isNotificationOpen}
+                >
+                  <Bell className="h-5 w-5" />
+                  {notificationCount > 0 && (
+                    <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-brand)] px-1 text-[9px] font-bold text-slate-950">
+                      {notificationCount > 99 ? "99+" : notificationCount}
+                    </span>
+                  )}
+                </button>
+
+                {isNotificationOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsNotificationOpen(false)}
+                    />
+                    <div className="absolute right-0 z-50 mt-2 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-strong)] shadow-2xl">
+                      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+                        <div>
+                          <p className="text-sm font-bold text-[var(--color-text)]">
+                            Notifikasi
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-[var(--color-muted)]">
+                            Inbox dan aktivitas yang perlu ditindaklanjuti
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-[var(--color-brand)]/10 px-2 py-1 text-[10px] font-bold text-[var(--color-brand)]">
+                          {notificationCount} aktif
+                        </span>
+                      </div>
+
+                      <div className="max-h-[min(28rem,60vh)] overflow-y-auto p-2">
+                        {dashboardNotifications.length === 0 ? (
+                          <div className="px-4 py-10 text-center">
+                            <Bell className="mx-auto h-7 w-7 text-[var(--color-muted)]/60" />
+                            <p className="mt-3 text-sm font-semibold text-[var(--color-text)]">
+                              Tidak ada notifikasi baru
+                            </p>
+                            <p className="mt-1 text-xs text-[var(--color-muted)]">
+                              Pesan baru, handoff, booking, dan tiket akan muncul di sini.
+                            </p>
+                          </div>
+                        ) : (
+                          dashboardNotifications.map((notification) => (
+                            <Link
+                              key={notification.id}
+                              href={notification.href}
+                              onClick={() => setIsNotificationOpen(false)}
+                              className="group flex gap-3 rounded-xl px-3 py-3 transition hover:bg-[var(--color-surface-hover)]"
+                            >
+                              <span
+                                className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${notification.priority === "high" ? "bg-rose-400" : "bg-[var(--color-brand)]"}`}
+                              />
+                              <span className="min-w-0">
+                                <span className="block text-xs font-bold text-[var(--color-text)] group-hover:text-[var(--color-brand)]">
+                                  {notification.title}
+                                </span>
+                                <span className="mt-1 block line-clamp-2 text-[11px] leading-4 text-[var(--color-muted)]">
+                                  {notification.message}
+                                </span>
+                              </span>
+                            </Link>
+                          ))
+                        )}
+                      </div>
+
+                      <div className="border-t border-[var(--color-border)] p-2">
+                        <Link
+                          href="/inbox"
+                          onClick={() => setIsNotificationOpen(false)}
+                          className="block rounded-lg px-3 py-2 text-center text-xs font-bold text-[var(--color-brand)] transition hover:bg-[var(--color-brand)]/10"
+                        >
+                          Buka Unified Inbox
+                        </Link>
+                      </div>
+                    </div>
+                  </>
                 )}
-              </button>
+              </div>
 
               {/* Status Indicator */}
               <div className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-muted)]">
