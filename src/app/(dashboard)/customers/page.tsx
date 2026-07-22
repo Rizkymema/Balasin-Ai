@@ -1,11 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Users2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
 import { useDashboardOperations } from "@/hooks/use-dashboard-operations";
 import { createOperatorTimestamp, createRecordId } from "@/lib/dashboard-records";
 import type {
@@ -116,6 +113,42 @@ export default function CustomersPage() {
 
     setSelectedId(nextCustomer.id);
     setFilters(initialFilters);
+  };
+
+  const handleImportContacts = (
+    drafts: Array<
+      Omit<CustomerRecord, "id" | "lastContact" | "totalConversation" | "activeTicketCount">
+    >,
+  ) => {
+    const importedCustomers = drafts.map((draft) => ({
+      ...draft,
+      id: createRecordId("cust"),
+      lastContact: createOperatorTimestamp(),
+      totalConversation: 0,
+      activeTicketCount: 0,
+    }));
+
+    void patchData((current) => ({
+      ...current,
+      customers: [...importedCustomers, ...current.customers],
+    }));
+    setSelectedId(importedCustomers[0]?.id ?? "");
+    setFilters(initialFilters);
+  };
+
+  const handleBulkDeleteContacts = (ids: string[]) => {
+    const selectedIds = new Set(ids);
+    void patchData((current) => ({
+      ...current,
+      customers: current.customers.filter((customer) => !selectedIds.has(customer.id)),
+      conversations: current.conversations.filter(
+        (conversation) => !selectedIds.has(conversation.customerId),
+      ),
+      bookings: current.bookings.filter((booking) => !selectedIds.has(booking.customerId)),
+      tickets: current.tickets.filter((ticket) => !selectedIds.has(ticket.customerId)),
+      crmDeals: current.crmDeals.filter((deal) => !selectedIds.has(deal.contactId)),
+      crmTasks: current.crmTasks.filter((task) => !selectedIds.has(task.contactId)),
+    }));
   };
 
   const handleDeleteContact = () => {
@@ -318,37 +351,12 @@ export default function CustomersPage() {
     );
   }
 
-  if (allRows.length === 0) {
-    return (
-      <div className="space-y-6">
-        <Card className="p-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[24px] overflow-hidden">
-          <EmptyState
-            icon={<Users2 className="h-10 w-10 text-[var(--color-brand)]" />}
-            title="Belum ada contact tersimpan"
-            description="Tambahkan contact pertama agar inbox, booking, ticket, segment, deal, dan task memiliki sumber data CRM yang sama."
-            action={
-              <Button className="h-11 rounded-xl px-4 bg-[var(--color-brand)] text-slate-950 hover:bg-[var(--color-brand-hover)]" onClick={() => setIsCreateOpen(true)}>
-                Tambah Contact
-              </Button>
-            }
-            className="min-h-[440px]"
-          />
-        </Card>
-
-        <CreateContactModal
-          isOpen={isCreateOpen}
-          onClose={() => setIsCreateOpen(false)}
-          onCreate={handleCreateContact}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="w-full">
         <ContactsTablePanel
           rows={filteredRows}
+          allRows={allRows}
           selectedId={selectedRow?.id ?? ""}
           onSelect={setSelectedId}
           filters={filters}
@@ -358,6 +366,8 @@ export default function CustomersPage() {
           ownerOptions={ownerOptions}
           quickFilters={quickFilters}
           onCreateContact={() => setIsCreateOpen(true)}
+          onBulkDelete={handleBulkDeleteContacts}
+          onImportContacts={handleImportContacts}
         />
       </div>
 

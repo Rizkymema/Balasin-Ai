@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, type ChangeEvent } from "react";
 import {
   CalendarClock,
   Eye,
@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/table";
 import { Dropdown } from "@/components/ui/dropdown";
 import { cn } from "@/lib/utils";
-import type { ChannelKind } from "@/types/operations";
+import type { ChannelKind, CustomerRecord, LeadStatus } from "@/types/operations";
 
 import {
   type CrmContactRow,
@@ -45,6 +45,7 @@ import {
 
 type ContactsTablePanelProps = {
   rows: CrmContactRow[];
+  allRows: CrmContactRow[];
   selectedId: string;
   onSelect: (id: string) => void;
   filters: CrmFilters;
@@ -54,6 +55,12 @@ type ContactsTablePanelProps = {
   ownerOptions: string[];
   quickFilters: CrmQuickFilterSummary[];
   onCreateContact: () => void;
+  onBulkDelete: (ids: string[]) => void;
+  onImportContacts: (
+    drafts: Array<
+      Omit<CustomerRecord, "id" | "lastContact" | "totalConversation" | "activeTicketCount">
+    >,
+  ) => void;
 };
 
 // Custom Premium Social SVGs
@@ -85,6 +92,7 @@ const WebsiteChatIcon = () => (
 
 export function ContactsTablePanel({
   rows,
+  allRows,
   selectedId,
   onSelect,
   filters,
@@ -94,11 +102,14 @@ export function ContactsTablePanel({
   ownerOptions,
   quickFilters,
   onCreateContact,
+  onBulkDelete,
+  onImportContacts,
 }: ContactsTablePanelProps) {
   // Pagination & Checkbox states
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   // Reset page and selection when filters change
   useEffect(() => {
@@ -149,16 +160,175 @@ export function ContactsTablePanel({
   };
 
   // Bulk actions handlers
+  const downloadCsv = (contacts: CrmContactRow[]) => {
+    const headers = [
+      "name",
+      "channel",
+      "leadStatus",
+      "assignedTo",
+      "revenueHint",
+      "segment",
+      "phone",
+      "email",
+      "username",
+      "tags",
+      "note",
+    ];
+    const escapeCell = (value: unknown) => {
+      const normalized = String(value ?? "").replace(/"/g, '""');
+      return `"${normalized}"`;
+    };
+    const csv = [
+      headers.join(","),
+      ...contacts.map(({ customer }) =>
+        [
+          customer.name,
+          customer.channel,
+          customer.leadStatus,
+          customer.assignedTo,
+          customer.revenueHint,
+          customer.segment,
+          customer.phone,
+          customer.email,
+          customer.username,
+          customer.tags.join(", "),
+          customer.note,
+        ]
+          .map(escapeCell)
+          .join(","),
+      ),
+    ].join("\r\n");
+    const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `contacts-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleBulkExport = () => {
-    alert(`Mengekspor ${selectedRowIds.size} kontak terpilih ke format CSV...`);
+    downloadCsv(rows.filter((row) => selectedRowIds.has(row.id)));
     setSelectedRowIds(new Set());
   };
 
   const handleBulkDelete = () => {
-    if (confirm(`Apakah Anda yakin ingin menghapus ${selectedRowIds.size} kontak terpilih?`)) {
-      alert(`Menghapus ${selectedRowIds.size} kontak terpilih... (Simulasi data)`);
+    const ids = [...selectedRowIds];
+    if (ids.length > 0 && confirm(`Apakah Anda yakin ingin menghapus ${ids.length} kontak terpilih?`)) {
+      onBulkDelete(ids);
       setSelectedRowIds(new Set());
     }
+  };
+
+  const parseCsv = (value: string) => {
+    const records: string[][] = [];
+    let record: string[] = [];
+    let cell = "";
+    let quoted = false;
+
+    for (let index = 0; index < value.length; index += 1) {
+      const character = value[index];
+      const nextCharacter = value[index + 1];
+      if (character === '"' && quoted && nextCharacter === '"') {
+        cell += '"';
+        index += 1;
+      } else if (character === '"') {
+        quoted = !quoted;
+      } else if (character === "," && !quoted) {
+        record.push(cell.trim());
+        cell = "";
+      } else if ((character === "\n" || character === "\r") && !quoted) {
+        if (character === "\r" && nextCharacter === "\n") {
+          index += 1;
+        }
+        record.push(cell.trim());
+        if (record.some(Boolean)) {
+          records.push(record);
+        }
+        record = [];
+        cell = "";
+      } else {
+        cell += character;
+      }
+    }
+
+    record.push(cell.trim());
+    if (record.some(Boolean)) {
+      records.push(record);
+    }
+    return records;
+  };
+
+  const handleImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) {
+      return;
+    }
+
+    const records = parseCsv(await file.text());
+    const [rawHeader, ...rowsToImport] = records;
+    const header = rawHeader?.map((name) => name.replace(/^\uFEFF/, "").trim());
+    if (!header || rowsToImport.length === 0) {
+      alert("File CSV kosong atau hanya berisi header.");
+      return;
+    }
+
+    const indexes = new Map(header.map((name, index) => [name.toLowerCase(), index]));
+    const read = (row: string[], key: string) => row[indexes.get(key) ?? -1] ?? "";
+    const validChannels: ChannelKind[] = [
+      "WhatsApp",
+      "Website Chat",
+      "Instagram DM",
+      "Instagram Comment",
+    ];
+    const validLeadStatuses: LeadStatus[] = [
+      "New Lead",
+      "Interested",
+      "Hot Lead",
+      "Asked Price",
+      "Booking",
+      "Paid",
+      "Complaint",
+      "Spam",
+    ];
+    const drafts = rowsToImport
+      .map((row) => {
+        const name = read(row, "name").trim();
+        const channel = read(row, "channel");
+        const leadStatus = read(row, "leadstatus");
+        if (!name) {
+          return null;
+        }
+        return {
+          name,
+          channel: validChannels.includes(channel as ChannelKind)
+            ? (channel as ChannelKind)
+            : "Website Chat",
+          leadStatus: validLeadStatuses.includes(leadStatus as LeadStatus)
+            ? (leadStatus as LeadStatus)
+            : "New Lead",
+          assignedTo: read(row, "assignedto") || "AI Agent",
+          revenueHint: read(row, "revenuehint") || "Rp0",
+          segment: read(row, "segment") || "General",
+          phone: read(row, "phone"),
+          email: read(row, "email"),
+          username: read(row, "username"),
+          tags: read(row, "tags")
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter(Boolean),
+          note: read(row, "note"),
+        } satisfies Omit<CustomerRecord, "id" | "lastContact" | "totalConversation" | "activeTicketCount">;
+      })
+      .filter((draft): draft is NonNullable<typeof draft> => Boolean(draft));
+
+    if (drafts.length === 0) {
+      alert("Tidak ada baris kontak valid. Pastikan kolom name terisi.");
+      return;
+    }
+
+    onImportContacts(drafts);
   };
 
   const handleMergeContact = (row: CrmContactRow) => {
@@ -196,12 +366,12 @@ export function ContactsTablePanel({
   const globalActionItems = [
     {
       label: "Ekspor Semua Kontak (.csv)",
-      onClick: () => alert("Mengekspor seluruh database kontak ke CSV..."),
+      onClick: () => downloadCsv(allRows),
       icon: <Download className="h-4 w-4" />,
     },
     {
       label: "Impor Kontak (.csv)",
-      onClick: () => alert("Membuka dialog unggah file CSV..."),
+      onClick: () => importInputRef.current?.click(),
       icon: <Upload className="h-4 w-4" />,
     },
   ];
@@ -216,6 +386,13 @@ export function ContactsTablePanel({
             Kelola database pelanggan, saluran pesan, dan waktu pembaruan interaksi.
           </p>
         </div>
+        <input
+          ref={importInputRef}
+          type="file"
+          accept=".csv,text/csv"
+          className="hidden"
+          onChange={(event) => void handleImportFile(event)}
+        />
 
         <div className="flex items-center gap-2.5">
           <Button
