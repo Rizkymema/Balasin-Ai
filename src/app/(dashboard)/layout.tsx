@@ -770,7 +770,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 ? "flex h-full min-h-0 w-full flex-1 flex-col"
                 : isInboxRoute
                 ? "flex h-full min-h-0 w-full flex-1 flex-col"
-                : "w-full space-y-5"
+                : "w-full max-w-7xl mx-auto space-y-5"
             }
           >
             {children}

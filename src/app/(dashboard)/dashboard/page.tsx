@@ -383,29 +383,29 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards Grid */}
-      <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${stats.length === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
 
           return (
-            <Card key={stat.label} className="relative overflow-hidden p-4 bg-[var(--color-surface)] hover:border-[var(--color-border-hover)] transition duration-200">
+            <Card key={stat.label} className="relative overflow-hidden p-4 h-[120px] bg-[var(--color-surface)] hover:border-[var(--color-border-hover)] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10 transition-all duration-200 flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-[9px] font-extrabold uppercase tracking-widest text-[var(--color-muted)]">
                   {stat.label}
                 </span>
-                <div className={`flex h-7 w-7 items-center justify-center rounded border ${stat.color}`}>
-                  <Icon className="h-3.5 w-3.5" />
+                <div className={`flex h-6.5 w-6.5 items-center justify-center rounded border ${stat.color}`}>
+                  <Icon className="h-3 w-3" />
                 </div>
               </div>
-              <div className="mt-2.5 flex items-baseline gap-2">
+              <div className="flex items-baseline justify-between mt-1">
                 <span className="font-sans text-2xl font-extrabold text-white tracking-tight">
                   {stat.value}
                 </span>
-                <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-bold ${stat.badgeColor}`}>
+                <span className={`rounded-md border px-1.5 py-0.5 text-[8px] font-bold ${stat.badgeColor}`}>
                   {stat.badgeText}
                 </span>
               </div>
-              <p className="mt-1 text-[10px] text-[var(--color-muted)] truncate" title={stat.note}>
+              <p className="text-[10px] text-[var(--color-muted)] truncate" title={stat.note}>
                 {stat.note}
               </p>
             </Card>
@@ -414,12 +414,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content Layout Grid */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
         {/* Left Column: Control Center & Checklist */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-3 space-y-4">
           {/* Operational Control Center */}
           <Card className="p-4 md:p-5 bg-[var(--color-surface)]">
-            <div className="border-b border-[var(--color-border)] pb-3 mb-4">
+            <div className="border-b border-[var(--color-border)] pb-2 mb-3">
               <h3 className="text-sm font-bold tracking-tight text-white">
                 Pusat Kendali Operasional
               </h3>
@@ -428,29 +428,29 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3.5">
               {controlCenterCards.map((card) => {
                 const Icon = card.icon;
                 return (
                   <Link
                     key={card.title}
                     href={card.href}
-                    className="flex flex-col justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-strong)]/30 p-3.5 transition-all duration-200 hover:border-[var(--color-border-hover)] hover:bg-[var(--color-surface-hover)]/30 group"
+                    className="flex flex-col justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-strong)]/35 p-3 transition-all duration-300 hover:border-[var(--color-border-hover)] hover:bg-[var(--color-surface-hover)]/30 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/25 group"
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <div className="flex h-6 w-6 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[var(--color-brand)]">
-                          <Icon className="h-3 w-3" />
+                        <div className="flex h-5.5 w-5.5 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[var(--color-brand)]">
+                          <Icon className="h-2.5 w-2.5" />
                         </div>
                         <h4 className="text-xs font-bold text-white tracking-tight group-hover:text-[var(--color-brand)] transition-colors duration-150">
                           {card.title}
                         </h4>
                       </div>
-                      <p className="mt-2 text-[11px] leading-normal text-[var(--color-muted)]">
+                      <p className="mt-1.5 text-[10.5px] leading-relaxed text-[var(--color-muted)]">
                         {card.detail}
                       </p>
                     </div>
-                    <div className="mt-3 flex items-center gap-1.5 text-[10px] font-bold text-[var(--color-brand)] group-hover:text-[var(--color-brand-hover)] transition-colors duration-150">
+                    <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-[var(--color-brand)] group-hover:text-[var(--color-brand-hover)] transition-colors duration-150">
                       Buka Modul
                       <ArrowRight className="h-3 w-3 transform group-hover:translate-x-0.5 transition-transform duration-150" />
                     </div>
@@ -462,15 +462,15 @@ export default function DashboardPage() {
 
           {/* Setup Checklist Progress */}
           <Card className="p-4 md:p-5 bg-[var(--color-surface)] border border-[var(--color-border)]">
-            <div className="border-b border-[var(--color-border)] pb-3 mb-4">
+            <div className="border-b border-[var(--color-border)] pb-2 mb-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
                   <h3 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
-                    <Zap className="h-4.5 w-4.5 text-[var(--color-brand)] animate-pulse" />
+                    <Zap className="h-4 w-4 text-[var(--color-brand)] animate-pulse" />
                     Panduan Cepat Mulai Balesin AI
                   </h3>
                   <p className="mt-0.5 text-[11px] text-[var(--color-muted)]">
-                    Ikuti 5 langkah mudah berikut untuk mengaktifkan asisten AI pintar di bengkel Anda.
+                    Ikuti 5 langkah mudah berikut untuk mengaktifkan asisten AI pintar di bisnis Anda.
                   </p>
                 </div>
                 <Badge className="border-[var(--color-brand)]/20 bg-[var(--color-brand)]/5 text-[var(--color-brand)] font-bold px-2 py-0.5 text-[10px] shrink-0 self-start sm:self-center">
@@ -498,10 +498,10 @@ export default function DashboardPage() {
               {[
                 {
                   step: 1,
-                  title: "Lengkapi Profil & Jam Buka Bengkel",
-                  desc: "Isi alamat resmi, jam operasional (Sabtu-Kamis), dan deskripsi bengkel Anda agar AI memiliki informasi dasar yang akurat.",
+                  title: "Lengkapi Profil & Jam Buka Bisnis",
+                  desc: "Isi alamat resmi, jam operasional, dan deskripsi bisnis Anda agar AI memiliki informasi dasar yang akurat.",
                   complete: setupChecklist[0].complete,
-                  actionText: "Atur Profil Bengkel",
+                  actionText: "Atur Profil Bisnis",
                   onClick: () => setActiveEditModal("profile"),
                 },
                 {
@@ -606,8 +606,8 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Right Column: API Credentials Info & Workspace Snapshot */}
-        <div className="space-y-4">
+        {/* Right Column: API Credentials Info & Workspace Snapshot (Sticky Sidebar) */}
+        <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-4 h-fit">
           {/* Security & Env Configuration Card */}
           <Card className="p-4 md:p-5 bg-[var(--color-surface)] border border-[var(--color-border)]">
             <div className="flex items-center gap-2 border-b border-[var(--color-border)] pb-2.5 mb-3">
