@@ -599,6 +599,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       ? {
           flowId: automation.flow.id,
           nodeId: automation.graphBeforeAi.formState.nodeId,
+          mode: automation.graphBeforeAi.formState.mode,
           fieldIndex: automation.graphBeforeAi.formState.fieldIndex,
           values: automation.graphBeforeAi.formState.values,
           startedAt:

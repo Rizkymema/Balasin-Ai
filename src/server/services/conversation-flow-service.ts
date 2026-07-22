@@ -9,6 +9,7 @@ import type {
   ConversationFlowNodeType,
   DashboardConfig,
   FormFieldItem,
+  FormFillMode,
 } from "@/types/dashboard-config";
 import type { ReplyDecision } from "@/server/services/reply-engine";
 
@@ -53,6 +54,7 @@ export type FlowPreAiResult = {
 
 export type FlowFormState = {
   nodeId: string;
+  mode: FormFillMode;
   fieldIndex: number;
   values: Record<string, string>;
 };
@@ -260,6 +262,159 @@ function formatFormFieldPrompt(
   }
   lines.push("Ketik batal untuk menghentikan pengisian.");
   return lines.join("\n");
+}
+
+function getFormFillMode(node: ConversationFlowNode) {
+  return node.data.formFillMode ?? "single_message";
+}
+
+function buildFormFieldExample(field: FormFieldItem, index: number) {
+  if (field.options?.length) {
+    return field.options[0] ?? `Pilihan ${index + 1}`;
+  }
+
+  if (field.placeholder?.trim()) {
+    return field.placeholder.trim().replace(/^contoh\s*:\s*/i, "");
+  }
+
+  switch (field.type) {
+    case "phone":
+      return "081234567890";
+    case "email":
+      return "nama@email.com";
+    case "date":
+      return "2026-07-25";
+    case "textarea":
+      return "Jelaskan kebutuhan Anda";
+    default:
+      return `Isi ${field.label}`;
+  }
+}
+
+function formatBulkFormPrompt(
+  node: ConversationFlowNode,
+  fields: FormFieldItem[],
+  existingValues: Record<string, string> = {},
+  errors: string[] = [],
+) {
+  const lines: string[] = [];
+  if (node.data.formTitle?.trim()) lines.push(node.data.formTitle.trim());
+  if (node.data.formDescription?.trim()) {
+    lines.push(node.data.formDescription.trim());
+  }
+
+  if (errors.length > 0) {
+    lines.push("Beberapa data masih perlu diperbaiki:");
+    lines.push(...errors.map((error) => `- ${error}`));
+  } else {
+    lines.push(
+      "Silakan isi semua data berikut dalam SATU pesan. Balas per baris dengan format:",
+    );
+  }
+
+  lines.push("");
+
+  for (const [index, field] of fields.entries()) {
+    const example = existingValues[field.id] || buildFormFieldExample(field, index);
+    lines.push(`${field.label}: ${example}`);
+  }
+
+  const selectFields = fields.filter(
+    (field) => field.type === "select" && field.options?.length,
+  );
+  if (selectFields.length > 0) {
+    lines.push("");
+    for (const field of selectFields) {
+      lines.push(`Pilihan untuk ${field.label}:`);
+      lines.push(
+        ...field.options!.map((option, index) => `- ${index + 1}. ${option}`),
+      );
+    }
+  }
+
+  lines.push("");
+  lines.push("Ketik batal untuk menghentikan pengisian.");
+  return lines.join("\n");
+}
+
+function normalizeFieldKey(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/^\d+[\).\s-]*/, "")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/[_/\\-]+/g, " ")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseBulkFormAnswer(input: {
+  fields: FormFieldItem[];
+  answer: string;
+  existingValues?: Record<string, string>;
+}) {
+  const values = { ...(input.existingValues ?? {}) };
+  const errors: string[] = [];
+  const lines = input.answer
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const pendingFields = input.fields.filter((field) => !values[field.id]);
+  const labeledValues = new Map<string, string>();
+  const unlabeledValues: string[] = [];
+
+  for (const line of lines) {
+    const match = line.match(/^(.+?)\s*[:=]\s*(.+)$/);
+    if (match) {
+      labeledValues.set(normalizeFieldKey(match[1]), match[2].trim());
+      continue;
+    }
+    unlabeledValues.push(line);
+  }
+
+  if (labeledValues.size === 0 && unlabeledValues.length > 0) {
+    pendingFields.forEach((field, index) => {
+      const candidate = unlabeledValues[index];
+      if (candidate) {
+        labeledValues.set(normalizeFieldKey(field.label), candidate);
+      }
+    });
+  }
+
+  for (const field of input.fields) {
+    const aliases = [
+      normalizeFieldKey(field.label),
+      normalizeFieldKey(field.id),
+    ];
+    const rawValue = aliases
+      .map((alias) => labeledValues.get(alias))
+      .find(Boolean);
+
+    if (rawValue == null) continue;
+
+    const parsed = normalizeFormAnswer(field, rawValue);
+    if (!parsed.ok) {
+      errors.push(parsed.error);
+      continue;
+    }
+    values[field.id] = parsed.value;
+  }
+
+  for (const field of input.fields) {
+    if (field.required === false) continue;
+    if (!values[field.id]) {
+      errors.push(`${field.label} wajib diisi dengan format "${field.label}: ..."`);
+    }
+  }
+
+  return {
+    values,
+    errors,
+    complete:
+      errors.length === 0 &&
+      input.fields.every((field) => field.required === false || Boolean(values[field.id])),
+  };
 }
 
 function normalizeFormAnswer(field: FormFieldItem, answer: string) {
@@ -572,11 +727,15 @@ function executeGraphSegment(input: {
           getNextEdge(graph, current.id)?.target;
         continue;
       }
+      const formFillMode = getFormFillMode(current);
       result.messages.push(
-        formatFormFieldPrompt(current, fields[0], 0, fields.length),
+        formFillMode === "step_by_step"
+          ? formatFormFieldPrompt(current, fields[0], 0, fields.length)
+          : formatBulkFormPrompt(current, fields),
       );
       result.formState = {
         nodeId: current.id,
+        mode: formFillMode,
         fieldIndex: 0,
         values: {},
       };
@@ -693,6 +852,63 @@ export function resumeConversationFlowForm(input: {
   }
 
   const fields = formNode.data.formFields ?? [];
+  const mode = input.state.mode ?? getFormFillMode(formNode);
+
+  if (mode === "single_message") {
+    const parsed = parseBulkFormAnswer({
+      fields,
+      answer: input.answer,
+      existingValues: input.state.values,
+    });
+
+    if (!parsed.complete) {
+      return {
+        messages: [
+          formatBulkFormPrompt(formNode, fields, parsed.values, parsed.errors),
+        ],
+        trace: [],
+        graphReplyOnly: true,
+        needsHuman: false,
+        formState: {
+          nodeId: formNode.id,
+          mode,
+          fieldIndex: 0,
+          values: parsed.values,
+        },
+      };
+    }
+
+    const submittedEdge =
+      getNextEdge(input.graph, formNode.id, "submitted") ??
+      getNextEdge(input.graph, formNode.id);
+    if (!submittedEdge) {
+      return {
+        messages: [],
+        trace: [],
+        graphReplyOnly: true,
+        needsHuman: true,
+        completedForm: { nodeId: formNode.id, values: parsed.values },
+        error: "Jalur submitted dari Form Chat tidak ditemukan.",
+      };
+    }
+
+    const next = executeGraphSegment({
+      graph: input.graph,
+      config: input.config,
+      startNodeId: submittedEdge.target,
+      now: input.now ?? new Date(),
+      stopAtAi: true,
+    });
+    return {
+      ...next,
+      messages:
+        formNode.data.successMessage?.trim() && next.messages.length === 0
+          ? [formNode.data.successMessage.trim(), ...next.messages]
+          : next.messages,
+      completedForm: { nodeId: formNode.id, values: parsed.values },
+    };
+  }
+
   const field = fields[input.state.fieldIndex];
   if (!field) {
     return {
@@ -719,7 +935,7 @@ export function resumeConversationFlowForm(input: {
       trace: [],
       graphReplyOnly: true,
       needsHuman: false,
-      formState: input.state,
+      formState: { ...input.state, mode },
     };
   }
 
@@ -740,6 +956,7 @@ export function resumeConversationFlowForm(input: {
       needsHuman: false,
       formState: {
         nodeId: formNode.id,
+        mode,
         fieldIndex: nextFieldIndex,
         values,
       },

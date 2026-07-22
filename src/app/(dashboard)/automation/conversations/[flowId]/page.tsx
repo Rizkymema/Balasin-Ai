@@ -186,6 +186,7 @@ function newNode(
       formTitle: "Form Booking & Konsultasi",
       formDescription:
         "Silakan isi data diri Anda di bawah ini agar tim kami dapat menghubungi Anda.",
+      formFillMode: "single_message",
       submitButtonLabel: "Kirim Form Data",
       successMessage:
         "Terima kasih! Form Anda telah kami terima dan tim kami akan segera menghubungi Anda.",

@@ -146,6 +146,25 @@ export function NodeInspector({ node, agents, onChange, onDelete }: Props) {
               />
             </Field>
 
+            <Field
+              label="Mode Pengisian Form"
+              hint="Pilih apakah pelanggan mengisi semua field sekaligus atau dijawab satu per satu."
+            >
+              <select
+                value={node.data.formFillMode ?? "single_message"}
+                onChange={(event) =>
+                  update({
+                    formFillMode: event.target
+                      .value as ConversationFlowNodeData["formFillMode"],
+                  })
+                }
+                className="h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-white outline-none focus:border-cyan-400"
+              >
+                <option value="single_message">Isi semua sekaligus</option>
+                <option value="step_by_step">Isi satu per satu</option>
+              </select>
+            </Field>
+
             <div className="space-y-3 rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-3">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-violet-300 flex items-center gap-1.5">

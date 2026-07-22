@@ -104,6 +104,8 @@ export type FormFieldType =
   | "date"
   | "textarea";
 
+export type FormFillMode = "single_message" | "step_by_step";
+
 export type FormFieldItem = {
   id: string;
   label: string;
@@ -125,6 +127,7 @@ export type ConversationFlowNodeData = {
   handoffReason?: string;
   formTitle?: string;
   formDescription?: string;
+  formFillMode?: FormFillMode;
   formFields?: FormFieldItem[];
   submitButtonLabel?: string;
   successMessage?: string;

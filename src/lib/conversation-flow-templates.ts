@@ -63,6 +63,7 @@ export function createBookingServiceFlowTemplate(input: {
         formTitle: "Booking Service Johan Garage",
         formDescription:
           "Isi data berikut agar admin dapat memeriksa kebutuhan servis dan ketersediaan jadwal.",
+        formFillMode: "single_message",
         submitButtonLabel: "Kirim Permintaan Booking",
         successMessage:
           "Data booking sudah diterima. Admin akan memeriksa slot dan menghubungi Anda untuk konfirmasi.",

@@ -63,7 +63,14 @@ export function FlowNodeCard({
   const preview =
     data.message ||
     (resolvedType === "form_chat"
-      ? `📋 ${data.formFields?.length ?? 0} Field: ${data.formFields?.map((f) => f.label).join(", ") || "Belum ada field"}`
+      ? `Mode: ${
+          data.formFillMode === "step_by_step"
+            ? "Satu per satu"
+            : "Isi sekaligus"
+        }\n${data.formFields?.length ?? 0} Field: ${
+          data.formFields?.map((field) => field.label).join(", ") ||
+          "Belum ada field"
+        }`
       : resolvedType === "ai_agent"
         ? data.agentId
           ? "Agent khusus terhubung"

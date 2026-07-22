@@ -1,3 +1,5 @@
+import type { FormFillMode } from "@/types/dashboard-config";
+
 export type ChannelKind =
   | "WhatsApp"
   | "Website Chat"
@@ -75,6 +77,7 @@ export type AutomationRuntimeLog = {
 export type ConversationFlowFormSession = {
   flowId: string;
   nodeId: string;
+  mode: FormFillMode;
   fieldIndex: number;
   values: Record<string, string>;
   startedAt: string;

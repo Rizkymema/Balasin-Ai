@@ -461,11 +461,12 @@ export function resolveInboundAutomation(
       ? resumeConversationFlowForm({
           graph,
           config,
-          state: {
-            nodeId: activeFormSession.nodeId,
-            fieldIndex: activeFormSession.fieldIndex,
-            values: activeFormSession.values,
-          },
+        state: {
+          nodeId: activeFormSession.nodeId,
+          mode: activeFormSession.mode,
+          fieldIndex: activeFormSession.fieldIndex,
+          values: activeFormSession.values,
+        },
           answer: input.messageText,
           now: new Date(input.nowIso),
         })

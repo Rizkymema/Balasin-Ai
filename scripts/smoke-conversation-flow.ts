@@ -147,34 +147,30 @@ async function main() {
   });
   assert.equal(bookingRuntime.graphReplyOnly, true);
   assert.equal(bookingRuntime.needsHuman, false);
+  assert.equal(bookingRuntime.formState?.mode, "single_message");
   assert.equal(bookingRuntime.formState?.fieldIndex, 0);
   assert.equal(
     bookingRuntime.messages.some((item) =>
-      item.includes("Booking Service Johan Garage"),
+      item.includes("SATU pesan"),
     ),
     true,
   );
 
-  const bookingAnswers = [
-    "Rizky",
-    "081234567890",
-    "Honda Vario 125 2022",
-    "2",
-    "CVT bergetar",
-    "2026-07-25",
-    "3",
-  ];
-  let bookingStep = bookingRuntime;
-  for (const answer of bookingAnswers) {
-    assert.ok(bookingStep.formState);
-    bookingStep = resumeConversationFlowForm({
-      graph: bookingTemplate.draftGraph,
-      config: bookingRuntimeConfig,
-      state: bookingStep.formState,
-      answer,
-      now: new Date("2026-07-21T12:00:00.000Z"),
-    });
-  }
+  const bookingStep = resumeConversationFlowForm({
+    graph: bookingTemplate.draftGraph,
+    config: bookingRuntimeConfig,
+    state: bookingRuntime.formState!,
+    answer: [
+      "Nama Lengkap: Rizky",
+      "Nomor WhatsApp: 081234567890",
+      "Tipe Motor: Honda Vario 125 2022",
+      "Jenis Layanan: 2",
+      "Keluhan / Kebutuhan: CVT bergetar",
+      "Tanggal Booking: 2026-07-25",
+      "Pilihan Jam: 3",
+    ].join("\n"),
+    now: new Date("2026-07-21T12:00:00.000Z"),
+  });
   assert.equal(bookingStep.completedForm?.values.customer_name, "Rizky");
   assert.equal(bookingStep.completedForm?.values.service_type, "Servis CVT");
   assert.equal(bookingStep.completedForm?.values.preferred_time, "13:00");
