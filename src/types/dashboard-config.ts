@@ -37,6 +37,18 @@ export type TeamMember = {
 
 export type ChannelStatus = "draft" | "testing" | "connected" | "disconnected";
 
+export type WhatsAppQrSession = {
+  id: string;
+  instanceName: string;
+  label: string;
+  status: "connecting" | "connected" | "disconnected";
+  phoneNumber?: string;
+  ownerJid?: string;
+  createdAt: string;
+  lastCheckedAt?: string;
+  lastConnectedAt?: string;
+};
+
 export type AutomationRule = {
   id: string;
   name: string;
@@ -424,6 +436,7 @@ export type DashboardConfig = {
       verifyToken: string;
       webhookUrl: string;
       autoReply: boolean;
+      qrSessions?: WhatsAppQrSession[];
       accounts?: Array<{
         id: string; // phone number ID
         businessLabel: string;

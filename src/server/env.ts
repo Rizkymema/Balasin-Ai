@@ -39,5 +39,10 @@ export const serverEnv = {
   webchatWebhookSecret: process.env.WEBCHAT_WEBHOOK_SECRET?.trim() ?? "",
   whatsappApiVersion: process.env.WHATSAPP_API_VERSION ?? "v21.0",
   whatsappBaseUrl: process.env.WHATSAPP_BASE_URL ?? "https://graph.facebook.com",
+  whatsappQrApiUrl: process.env.WHATSAPP_QR_API_URL?.trim() ?? "",
+  whatsappQrApiKey: process.env.WHATSAPP_QR_API_KEY?.trim() ?? "",
+  whatsappQrInstancePrefix:
+    process.env.WHATSAPP_QR_INSTANCE_PREFIX?.trim() || "balesin-wa",
+  whatsappQrWebhookSecret: process.env.WHATSAPP_QR_WEBHOOK_SECRET?.trim() ?? "",
   publicAppUrl: resolveAppUrl(),
 };

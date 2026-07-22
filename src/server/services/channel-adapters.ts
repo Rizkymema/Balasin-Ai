@@ -4,6 +4,7 @@ import {
   saveDashboardConfigRecord,
 } from "@/server/repositories/dashboard-repository";
 import { serverEnv } from "@/server/env";
+import { sendWhatsAppQrText } from "@/server/services/whatsapp-qr-gateway";
 import type { PreparedOutboundMediaUpload } from "@/server/services/outbound-media";
 import type { DashboardConfig } from "@/types/dashboard-config";
 import type { ChannelKind } from "@/types/operations";
@@ -13,6 +14,7 @@ type SendMessageInput = {
   recipientId?: string;
   message: string;
   phoneNumberIdOverride?: string;
+  whatsappGatewayInstanceOverride?: string;
   instagramAccountIdOverride?: string;
   accessTokenOverride?: string;
   mediaAttachment?: PreparedOutboundMediaUpload;
@@ -481,6 +483,55 @@ export async function sendChannelMessage(input: SendMessageInput) {
   }
 
   if (input.channel === "WhatsApp") {
+    const gatewayInstance = input.whatsappGatewayInstanceOverride?.trim();
+    if (gatewayInstance) {
+      if (!input.recipientId) {
+        return {
+          ok: false,
+          provider: "whatsapp-qr",
+          status: 422,
+          note: "Nomor tujuan WhatsApp QR tidak tersedia.",
+        };
+      }
+
+      if (input.mediaAttachment) {
+        return {
+          ok: false,
+          provider: "whatsapp-qr",
+          status: 422,
+          note: "WhatsApp QR saat ini hanya mendukung balasan teks.",
+        };
+      }
+
+      try {
+        const response = await sendWhatsAppQrText({
+          instanceName: gatewayInstance,
+          recipientId: input.recipientId,
+          message: trimmedMessage,
+        });
+        const body = response && !Array.isArray(response)
+          ? response as Record<string, unknown>
+          : {};
+        const key = body.key && typeof body.key === "object"
+          ? body.key as Record<string, unknown>
+          : null;
+        return {
+          ok: true,
+          provider: "whatsapp-qr",
+          status: 200,
+          body,
+          messageId: String(body.messageId ?? body.id ?? key?.id ?? "") || undefined,
+        };
+      } catch (error) {
+        return {
+          ok: false,
+          provider: "whatsapp-qr",
+          status: 502,
+          note: error instanceof Error ? error.message : "Gagal mengirim lewat WhatsApp QR.",
+        };
+      }
+    }
+
     const phoneNumberId =
       input.phoneNumberIdOverride?.trim() ||
       config.channels.whatsapp.phoneNumberId.trim();
@@ -830,7 +881,17 @@ export async function sendChannelMessage(input: SendMessageInput) {
 export async function sendWhatsAppReadTypingIndicator(input: {
   incomingMessageId: string;
   phoneNumberIdOverride?: string;
+  whatsappGatewayInstanceOverride?: string;
 }) {
+  if (input.whatsappGatewayInstanceOverride?.trim()) {
+    return {
+      ok: true,
+      provider: "whatsapp-qr",
+      status: 200,
+      note: "Read indicator dikelola oleh Evolution API.",
+    };
+  }
+
   const config = await getDashboardConfigRecord();
   const phoneNumberId =
     input.phoneNumberIdOverride?.trim() ||
@@ -1019,4 +1080,3 @@ export async function replyInstagramComment(input: {
     };
   }
 }
-

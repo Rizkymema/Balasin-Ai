@@ -162,6 +162,7 @@ export const defaultDashboardConfig: DashboardConfig = {
       verifyToken: "verify123",
       webhookUrl: "",
       autoReply: true,
+      qrSessions: [],
     },
     instagram: {
       enabled: false,
@@ -272,6 +273,10 @@ export function mergeDashboardConfig(
       whatsapp: { 
         ...base.channels.whatsapp, 
         ...incoming.channels?.whatsapp,
+        qrSessions:
+          incoming.channels?.whatsapp?.qrSessions ??
+          base.channels.whatsapp.qrSessions ??
+          [],
         accessToken: normalizeSecretLikeValue(
           incoming.channels?.whatsapp?.accessToken ??
             base.channels.whatsapp.accessToken,

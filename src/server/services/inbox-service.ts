@@ -712,6 +712,8 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
         await sendWhatsAppReadTypingIndicator({
           incomingMessageId: input.externalMessageId,
           phoneNumberIdOverride: input.channelContext?.whatsappPhoneNumberId,
+          whatsappGatewayInstanceOverride:
+            input.channelContext?.whatsappGatewayInstance,
         });
         await wait(
           Math.max(
@@ -730,6 +732,8 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       recipientId: input.phone ?? input.externalUserId,
       message: decision.reply,
       phoneNumberIdOverride: input.channelContext?.whatsappPhoneNumberId,
+      whatsappGatewayInstanceOverride:
+        input.channelContext?.whatsappGatewayInstance,
       instagramAccountIdOverride: input.channelContext?.instagramAccountId,
       externalMessageId: input.externalMessageId,
     });

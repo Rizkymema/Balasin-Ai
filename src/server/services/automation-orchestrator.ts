@@ -140,9 +140,12 @@ export function isChannelAutomationEnabled(
   switch (channel) {
     case "WhatsApp":
       return (
-        config.channels.whatsapp.enabled &&
         config.channels.whatsapp.autoReply &&
-        AUTOMATION_READY_CHANNEL_STATUSES.has(config.channels.whatsapp.status)
+        ((config.channels.whatsapp.enabled &&
+          AUTOMATION_READY_CHANNEL_STATUSES.has(config.channels.whatsapp.status)) ||
+          config.channels.whatsapp.qrSessions?.some(
+            (session) => session.status === "connected",
+          ) === true)
       );
     case "Instagram DM":
       return (

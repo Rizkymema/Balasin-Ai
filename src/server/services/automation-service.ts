@@ -299,6 +299,8 @@ async function processLeadFollowup(payload: Record<string, unknown>) {
     message:
       "Halo, kami follow-up ya. Jika masih ingin lanjut, cukup balas detail kebutuhan atau jadwal yang diinginkan.",
     phoneNumberIdOverride: target.channelContext?.whatsappPhoneNumberId,
+    whatsappGatewayInstanceOverride:
+      target.channelContext?.whatsappGatewayInstance,
     instagramAccountIdOverride: target.channelContext?.instagramAccountId,
   });
 
@@ -354,6 +356,8 @@ async function processBookingReminder(payload: Record<string, unknown>) {
     recipientId: customer?.phone ?? customer?.username ?? booking.customerId,
     message: `Reminder booking ${booking.service} pada ${booking.date} jam ${booking.slot}.`,
     phoneNumberIdOverride: conv?.channelContext?.whatsappPhoneNumberId,
+    whatsappGatewayInstanceOverride:
+      conv?.channelContext?.whatsappGatewayInstance,
     instagramAccountIdOverride: conv?.channelContext?.instagramAccountId,
   });
 
@@ -376,6 +380,8 @@ async function processBroadcastSend(payload: Record<string, unknown>) {
       recipientId: customer.phone ?? customer.username ?? customer.id,
       message: broadcast.template,
       phoneNumberIdOverride: conv?.channelContext?.whatsappPhoneNumberId,
+      whatsappGatewayInstanceOverride:
+        conv?.channelContext?.whatsappGatewayInstance,
       instagramAccountIdOverride: conv?.channelContext?.instagramAccountId,
     });
   }
@@ -445,6 +451,8 @@ async function processConversationIdleCheck(payload: Record<string, unknown>) {
       recipientId: conversation.phone ?? conversation.username ?? conversation.customerId,
       message: config.automation.idleAction.idleMessage,
       phoneNumberIdOverride: conversation.channelContext?.whatsappPhoneNumberId,
+      whatsappGatewayInstanceOverride:
+        conversation.channelContext?.whatsappGatewayInstance,
       instagramAccountIdOverride: conversation.channelContext?.instagramAccountId,
     });
   }

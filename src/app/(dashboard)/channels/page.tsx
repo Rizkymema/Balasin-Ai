@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 
 import { useMetaConnect } from "@/hooks/use-meta-connect";
+import { WhatsAppQrConnector } from "./components/whatsapp-qr-connector";
 
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import { resolveDashboardPublicAppUrl } from "@/lib/runtime-url";
@@ -1439,6 +1440,8 @@ struct ChatView: View {
                   </Button>
                 )}
               </div>
+
+              <WhatsAppQrConnector />
 
               {/* === CONNECTED STATE === */}
               {hasConnectedWhatsApp ? (

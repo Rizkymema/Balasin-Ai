@@ -53,6 +53,7 @@ export type ConversationChannelContext = {
   externalUserId?: string;
   whatsappPhoneNumberId?: string;
   whatsappDisplayPhoneNumber?: string;
+  whatsappGatewayInstance?: string;
   instagramUserId?: string;
   instagramAccountId?: string;
 };

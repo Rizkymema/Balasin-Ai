@@ -292,6 +292,8 @@ export async function sendInboxReply(input: {
     recipientId,
     message: input.message,
     phoneNumberIdOverride: conversation.channelContext?.whatsappPhoneNumberId,
+    whatsappGatewayInstanceOverride:
+      conversation.channelContext?.whatsappGatewayInstance,
     instagramAccountIdOverride: conversation.channelContext?.instagramAccountId,
     mediaAttachment: input.mediaAttachment,
     mediaPublicUrl: storedMedia?.publicUrl,
