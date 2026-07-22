@@ -84,6 +84,7 @@ export async function createWhatsAppQrInstance(instanceName: string) {
       instanceName,
       token: crypto.randomUUID(),
       qrcode: true,
+      integration: "WHATSAPP-BAILEYS",
     }),
   });
 }
@@ -106,10 +107,12 @@ export async function configureWhatsAppQrWebhook(instanceName: string) {
     {
       method: "POST",
       body: JSON.stringify({
-        enabled: true,
-        url: getWhatsAppQrWebhookUrl(),
-        byEvents: true,
-        events: ["messages.upsert", "connection.update"],
+        webhook: {
+          enabled: true,
+          url: getWhatsAppQrWebhookUrl(),
+          byEvents: true,
+          events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
+        },
       }),
     },
   );
