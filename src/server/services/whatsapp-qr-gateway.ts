@@ -110,7 +110,9 @@ export async function configureWhatsAppQrWebhook(instanceName: string) {
         webhook: {
           enabled: true,
           url: getWhatsAppQrWebhookUrl(),
-          byEvents: true,
+          // Evolution appends the event name after the full URL when this is true.
+          // That corrupts query-string webhook secrets, so route events by payload.
+          byEvents: false,
           events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
         },
       }),
