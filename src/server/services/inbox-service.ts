@@ -22,6 +22,7 @@ import {
 import {
   applyAutomationMetadata,
   appendAutomationLog,
+  isChannelAutomationEnabled,
   resolveInboundAutomation,
   scheduleAutomationForConversationEvent,
 } from "@/server/services/automation-orchestrator";
@@ -395,15 +396,16 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     existingConversation,
   });
   const effectiveConfig = automation.effectiveConfig;
-  const agentCanReply = automation.agent?.allowedActions.replyMessage !== false;
+  const agentRequiresExplicitSelection = Boolean(
+    automation.graphBeforeAi?.aiNodeId,
+  );
+  const agentCanReply = agentRequiresExplicitSelection
+    ? automation.agent?.allowedActions.replyMessage === true
+    : automation.agent?.allowedActions.replyMessage !== false;
   const autoReplyEnabled =
     agentCanReply &&
     effectiveConfig.aiAgent.autoReplyEnabled &&
-    (input.channel !== "WhatsApp" || config.channels.whatsapp.autoReply) &&
-    (input.channel !== "Instagram DM" ||
-      config.channels.instagram.autoReplyDm) &&
-    (input.channel !== "Instagram Comment" ||
-      config.channels.instagram.commentGuard);
+    isChannelAutomationEnabled(config, input.channel);
   const aiMessageThreshold = Math.max(
     1,
     effectiveConfig.automation.aiConfig.aiMessageThreshold,
@@ -475,7 +477,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
           : "ai_paused",
       summary:
         "Auto reply sedang nonaktif, sehingga percakapan disimpan ke inbox tanpa balasan otomatis.",
-      reply: automation.immediateReply,
+      reply: "",
       grounded: false,
       source: "fallback",
     };
@@ -563,6 +565,15 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     }
   }
 
+  // Enforce runtime settings after every decision so a flow greeting, form
+  // prompt, fallback, or provider response cannot bypass the toggles.
+  if (!autoReplyEnabled || isTakeoverActive || decision.status === "spam") {
+    decision = {
+      ...decision,
+      reply: "",
+    };
+  }
+
   if (decision.knowledgeGap) {
     try {
       await recordKnowledgeGap({
@@ -579,7 +590,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
   }
 
   if (
-    agentCanReply &&
+    autoReplyEnabled &&
     !decision.reply &&
     automation.immediateReply &&
     decision.status !== "spam" &&

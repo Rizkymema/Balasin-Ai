@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import type { ConversationFlow } from "../src/types/dashboard-config";
+import type { AIAgent, ConversationFlow } from "../src/types/dashboard-config";
 
 const storageDirectory = mkdtempSync(join(tmpdir(), "balesin-flow-test-"));
 let closeDatabase = () => {};
@@ -37,8 +37,11 @@ async function main() {
     executeConversationFlowBeforeAi,
     resumeConversationFlowForm,
     validateConversationFlowGraph,
-  } =
-    await import("../src/server/services/conversation-flow-service");
+  } = await import("../src/server/services/conversation-flow-service");
+  const {
+    isChannelAutomationEnabled,
+    resolveInboundAutomation,
+  } = await import("../src/server/services/automation-orchestrator");
 
   const flow = {
     id: "flow-smoke",
@@ -55,6 +58,35 @@ async function main() {
   } satisfies ConversationFlow;
 
   const config = structuredClone(defaultDashboardConfig);
+  const selectedAgent = {
+    id: "agent-selected",
+    name: "Agent Flow Terpilih",
+    description: "Agent yang hanya dipakai oleh flow ini.",
+    prompt: "Jawab berdasarkan Knowledge Base.",
+    toneOfVoice: "Profesional",
+    trainingSources: [],
+    allowedActions: {
+      replyMessage: true,
+      createLead: false,
+      createBooking: false,
+      updateTicket: false,
+      sendToApi: false,
+      handoverToHuman: true,
+    },
+    handover: {
+      enabled: true,
+      assignTeam: "Admin Desk",
+      fallbackMessage: "Saya teruskan ke admin.",
+    },
+    responseMode: "Answer + Handover if Needed",
+    channelUsage: "WhatsApp",
+    lastUpdate: new Date().toISOString(),
+    status: "Active",
+  } satisfies AIAgent;
+  config.automation.aiAgents = [selectedAgent];
+  config.channels.whatsapp.enabled = true;
+  config.channels.whatsapp.status = "connected";
+  config.channels.whatsapp.autoReply = true;
   config.automation.conversations = [flow];
   await saveDashboardConfigRecord(config);
 
@@ -88,6 +120,63 @@ async function main() {
   assert.equal(published.flow.status, "Published");
   assert.equal(published.flow.publishedRevision, 1);
   assert.equal(published.flow.initialMessage, "Halo dari draft");
+
+  const publishedGraph = structuredClone(published.flow.publishedGraph);
+  assert.ok(publishedGraph);
+  const publishedAiNode = publishedGraph.nodes.find(
+    (node) => node.type === "ai_agent",
+  );
+  assert.ok(publishedAiNode);
+  publishedAiNode.data.agentId = selectedAgent.id;
+
+  assert.equal(isChannelAutomationEnabled(config, "WhatsApp"), true);
+  config.channels.whatsapp.autoReply = false;
+  assert.equal(isChannelAutomationEnabled(config, "WhatsApp"), false);
+  config.channels.whatsapp.autoReply = true;
+
+  const runtimeConfig = structuredClone(config);
+  runtimeConfig.automation.conversations = [
+    {
+      ...published.flow,
+      publishedGraph,
+      status: "Published",
+    },
+  ];
+  const selectedAutomation = resolveInboundAutomation(runtimeConfig, {
+    channel: "WhatsApp",
+    messageText: "halo",
+    nowIso: "2026-07-21T12:00:00.000Z",
+    existingConversation: null,
+  });
+  assert.equal(selectedAutomation.agent?.id, selectedAgent.id);
+
+  const unselectedGraph = structuredClone(publishedGraph);
+  const unselectedAiNode = unselectedGraph.nodes.find(
+    (node) => node.type === "ai_agent",
+  );
+  assert.ok(unselectedAiNode);
+  delete unselectedAiNode.data.agentId;
+  const unselectedAutomation = resolveInboundAutomation(
+    {
+      ...runtimeConfig,
+      automation: {
+        ...runtimeConfig.automation,
+        conversations: [
+          {
+            ...runtimeConfig.automation.conversations[0],
+            publishedGraph: unselectedGraph,
+          },
+        ],
+      },
+    },
+    {
+      channel: "WhatsApp",
+      messageText: "halo",
+      nowIso: "2026-07-21T12:00:00.000Z",
+      existingConversation: null,
+    },
+  );
+  assert.equal(unselectedAutomation.agent, null);
 
   const inactive = await setConversationFlowActive(flow.id, false);
   assert.equal(inactive.flow?.status, "Inactive");
@@ -190,6 +279,9 @@ async function main() {
       bookingTemplate: true,
       bookingFields: bookingForm?.data.formFields?.length,
       bookingCompleted: Boolean(bookingStep.completedForm),
+      channelSettings: true,
+      explicitFlowAgent: true,
+      unselectedAgentBlocked: true,
     }),
   );
 }

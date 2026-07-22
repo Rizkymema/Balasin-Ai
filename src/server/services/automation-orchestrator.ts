@@ -128,6 +128,44 @@ function toComparableChannel(channel: string) {
   return normalized;
 }
 
+const AUTOMATION_READY_CHANNEL_STATUSES = new Set([
+  "connected",
+  "testing",
+]);
+
+export function isChannelAutomationEnabled(
+  config: DashboardConfig,
+  channel: ChannelKind,
+) {
+  switch (channel) {
+    case "WhatsApp":
+      return (
+        config.channels.whatsapp.enabled &&
+        config.channels.whatsapp.autoReply &&
+        AUTOMATION_READY_CHANNEL_STATUSES.has(config.channels.whatsapp.status)
+      );
+    case "Instagram DM":
+      return (
+        config.channels.instagram.enabled &&
+        config.channels.instagram.autoReplyDm &&
+        AUTOMATION_READY_CHANNEL_STATUSES.has(config.channels.instagram.status)
+      );
+    case "Instagram Comment":
+      return (
+        config.channels.instagram.enabled &&
+        config.channels.instagram.commentGuard &&
+        AUTOMATION_READY_CHANNEL_STATUSES.has(config.channels.instagram.status)
+      );
+    case "Website Chat":
+      return (
+        config.channels.webchat.enabled &&
+        AUTOMATION_READY_CHANNEL_STATUSES.has(config.channels.webchat.status)
+      );
+    default:
+      return false;
+  }
+}
+
 function conversationChannelMatches(
   flow: ConversationFlow,
   channel: ChannelKind,
@@ -294,25 +332,29 @@ function selectAutomationAgent(
   config: DashboardConfig,
   channel: ChannelKind,
   flow: ConversationFlow | null,
+  graphAgentId?: string,
 ) {
   const activeAgents = config.automation.aiAgents.filter(
     (agent) => agent.status === "Active",
   );
 
-  if (flow?.aiAgentId) {
+  const selectedAgentId = graphAgentId ?? flow?.aiAgentId;
+  if (selectedAgentId) {
     const directMatch = activeAgents.find(
-      (agent) => agent.id === flow.aiAgentId,
+      (agent) => agent.id === selectedAgentId,
     );
     if (directMatch) {
       return directMatch;
     }
   }
 
-  return (
-    activeAgents.find((agent) => agentMatchesChannel(agent, channel)) ??
-    activeAgents[0] ??
-    null
-  );
+  // A visual flow must explicitly select its agent. Otherwise an unrelated
+  // Active agent could silently take over every incoming conversation.
+  if (flow?.publishedGraph) {
+    return null;
+  }
+
+  return activeAgents.find((agent) => agentMatchesChannel(agent, channel)) ?? null;
 }
 
 function mapToneValue(agent: AIAgent) {
@@ -483,7 +525,13 @@ export function resolveInboundAutomation(
       ) ?? null)
     : null;
   const agent =
-    graphAgent ?? selectAutomationAgent(config, input.channel, flow);
+    graphAgent ??
+    selectAutomationAgent(
+      config,
+      input.channel,
+      flow,
+      graphBeforeAi?.aiAgentId,
+    );
   const effectiveConfig = buildEffectiveReplyConfig(config, agent);
   const tagsToAdd: string[] = [];
 
