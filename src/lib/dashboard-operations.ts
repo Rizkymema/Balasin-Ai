@@ -582,6 +582,69 @@ export function deriveAnalyticsSummary(
   };
 }
 
+export type AnalyticsRange = "24h" | "7d" | "30d";
+
+export type AnalyticsTrendPoint = {
+  label: string;
+  count: number;
+};
+
+function getAnalyticsRangeConfig(range: AnalyticsRange) {
+  switch (range) {
+    case "24h":
+      return { bucketCount: 12, durationMs: 24 * 60 * 60 * 1000 };
+    case "30d":
+      return { bucketCount: 30, durationMs: 30 * 24 * 60 * 60 * 1000 };
+    case "7d":
+    default:
+      return { bucketCount: 7, durationMs: 7 * 24 * 60 * 60 * 1000 };
+  }
+}
+
+function formatTrendLabel(timestamp: number, range: AnalyticsRange) {
+  return new Intl.DateTimeFormat("id-ID", {
+    ...(range === "24h"
+      ? { hour: "2-digit", minute: "2-digit" }
+      : { day: "2-digit", month: "short" }),
+  }).format(new Date(timestamp));
+}
+
+export function deriveAnalyticsTrend(
+  data: DashboardOperationsData,
+  range: AnalyticsRange,
+  now = new Date(),
+): AnalyticsTrendPoint[] {
+  const config = getAnalyticsRangeConfig(range);
+  const endAt = now.getTime();
+  const startAt = endAt - config.durationMs;
+  const bucketDuration = config.durationMs / config.bucketCount;
+  const counts = Array.from({ length: config.bucketCount }, () => 0);
+
+  for (const conversation of data.conversations) {
+    for (const message of conversation.messages) {
+      const timestamp = Date.parse(message.timestamp);
+      if (
+        Number.isNaN(timestamp) ||
+        timestamp < startAt ||
+        timestamp > endAt
+      ) {
+        continue;
+      }
+
+      const bucketIndex = Math.min(
+        config.bucketCount - 1,
+        Math.floor((timestamp - startAt) / bucketDuration),
+      );
+      counts[bucketIndex] += 1;
+    }
+  }
+
+  return counts.map((count, index) => ({
+    label: formatTrendLabel(startAt + index * bucketDuration, range),
+    count,
+  }));
+}
+
 export function mapConversationStatusToLeadStatus(
   status: ConversationStatus,
 ): LeadStatus {

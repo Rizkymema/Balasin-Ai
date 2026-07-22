@@ -8,6 +8,7 @@ import {
   Clock,
   Download,
   MessageSquare,
+  RefreshCw,
   TrendingUp,
   User,
   Wifi,
@@ -15,15 +16,50 @@ import {
 
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import { useDashboardOperations } from "@/hooks/use-dashboard-operations";
-import { deriveAnalyticsSummary } from "@/lib/dashboard-operations";
+import { useRealtimeInbox } from "@/hooks/use-realtime-inbox";
+import {
+  deriveAnalyticsSummary,
+  deriveAnalyticsTrend,
+  type AnalyticsRange,
+} from "@/lib/dashboard-operations";
 import { Card } from "@/components/ui/card";
 
 export default function AnalyticsPage() {
   const { config } = useDashboardConfig();
-  const { data } = useDashboardOperations();
-  const [timeRange, setTimeRange] = useState("7d");
+  const {
+    data,
+    isLoading,
+    error,
+    applyLocalPatch,
+    refreshData,
+  } = useDashboardOperations();
+  const [timeRange, setTimeRange] = useState<AnalyticsRange>("7d");
+
+  useRealtimeInbox({
+    applyLocalPatch,
+    refreshData,
+    pollIntervalMs: 5000,
+  });
 
   const summary = useMemo(() => deriveAnalyticsSummary(data), [data]);
+  const trend = useMemo(
+    () => deriveAnalyticsTrend(data, timeRange),
+    [data, timeRange],
+  );
+  const trendMax = Math.max(...trend.map((item) => item.count), 1);
+  const trendPoints = trend.map((item, index) => {
+    const x = 50 + (510 * index) / Math.max(trend.length - 1, 1);
+    const y = 200 - (item.count / trendMax) * 150;
+    return { ...item, x, y };
+  });
+  const trendLine = trendPoints.map((item) => `${item.x},${item.y}`).join(" ");
+  const trendArea = `${trendLine} 560,200 50,200`;
+  const updatedAt = data.lastUpdatedAt
+    ? new Intl.DateTimeFormat("id-ID", {
+        dateStyle: "short",
+        timeStyle: "medium",
+      }).format(new Date(data.lastUpdatedAt))
+    : "belum ada sinkronisasi";
 
   const cards = [
     {
@@ -81,15 +117,25 @@ export default function AnalyticsPage() {
             Analytics sekarang membaca data operasional yang sama dengan inbox, customer,
             booking, AI, ticket, broadcast, dan channel dashboard.
           </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px]">
+            <span className="flex items-center gap-1.5 text-emerald-300">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+              Live update aktif
+            </span>
+            <span className="text-slate-500">Sinkron terakhir: {updatedAt}</span>
+            {error && <span className="text-rose-300">{error}</span>}
+          </div>
         </div>
 
         <div className="flex items-center gap-3 self-start">
           <div className="rounded-lg border border-white/8 bg-white/4 p-1">
-            {[
-              { key: "24h", label: "Hari Ini" },
-              { key: "7d", label: "7 Hari" },
-              { key: "30d", label: "30 Hari" },
-            ].map((item) => (
+            {(
+              [
+                { key: "24h", label: "Hari Ini" },
+                { key: "7d", label: "7 Hari" },
+                { key: "30d", label: "30 Hari" },
+              ] satisfies Array<{ key: AnalyticsRange; label: string }>
+            ).map((item) => (
               <button
                 key={item.key}
                 onClick={() => setTimeRange(item.key)}
@@ -107,6 +153,16 @@ export default function AnalyticsPage() {
           <button className="flex h-9 items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-4 text-xs font-semibold text-white transition duration-200 hover:bg-white/8">
             <Download className="h-4 w-4" />
             Ekspor CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => void refreshData()}
+            disabled={isLoading}
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-3 text-xs font-semibold text-cyan-300 transition duration-200 hover:bg-cyan-400/20 disabled:cursor-wait disabled:opacity-60"
+            title="Sinkronkan data analytics sekarang"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+            Sinkronkan
           </button>
         </div>
       </div>
@@ -151,29 +207,39 @@ export default function AnalyticsPage() {
               <line x1="30" y1="200" x2="580" y2="200" stroke="rgba(255,255,255,0.08)" />
 
               <text x="15" y="35" fill="currentColor" className="text-[9px] font-bold text-slate-500" textAnchor="end">
-                {summary.totalMessages}
+                {trendMax}
               </text>
               <text x="15" y="95" fill="currentColor" className="text-[9px] font-bold text-slate-500" textAnchor="end">
-                {Math.round(summary.totalMessages * 0.6)}
+                {Math.round(trendMax * 0.6)}
               </text>
               <text x="15" y="155" fill="currentColor" className="text-[9px] font-bold text-slate-500" textAnchor="end">
-                {Math.round(summary.totalMessages * 0.3)}
+                {Math.round(trendMax * 0.3)}
               </text>
               <text x="15" y="205" fill="currentColor" className="text-[9px] font-bold text-slate-500" textAnchor="end">
                 0
               </text>
 
-              <path
-                d="M 50 180 Q 135 120 220 160 T 390 100 T 560 60"
+              <polyline
+                points={trendLine}
                 fill="none"
                 stroke="#22d3ee"
                 strokeWidth="2.5"
                 strokeLinecap="round"
+                strokeLinejoin="round"
               />
-              <path
-                d="M 50 180 Q 135 120 220 160 T 390 100 T 560 60 L 560 200 L 50 200 Z"
-                fill="url(#analyticsGradient)"
-              />
+              <polygon points={trendArea} fill="url(#analyticsGradient)" />
+
+              {trendPoints.map((item) => (
+                <circle
+                  key={item.label}
+                  cx={item.x}
+                  cy={item.y}
+                  r="3.5"
+                  fill="#020611"
+                  stroke="#22d3ee"
+                  strokeWidth="2"
+                />
+              ))}
 
               <defs>
                 <linearGradient id="analyticsGradient" x1="0" y1="0" x2="0" y2="1">
@@ -182,7 +248,20 @@ export default function AnalyticsPage() {
                 </linearGradient>
               </defs>
 
-              <circle cx="560" cy="60" r="4.5" fill="#020611" stroke="#22d3ee" strokeWidth="2.5" />
+              {trendPoints
+                .filter((_, index) => index === 0 || index === trendPoints.length - 1 || index % Math.ceil(trendPoints.length / 4) === 0)
+                .map((item) => (
+                  <text
+                    key={`label-${item.label}`}
+                    x={item.x}
+                    y="216"
+                    fill="currentColor"
+                    className="text-[8px] font-bold text-slate-500"
+                    textAnchor="middle"
+                  >
+                    {item.label}
+                  </text>
+                ))}
             </svg>
           </div>
         </div>
