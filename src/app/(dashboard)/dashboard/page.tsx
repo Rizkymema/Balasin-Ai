@@ -235,6 +235,7 @@ export default function DashboardPage() {
       badgeColor: "bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-[var(--color-warning)]/20",
       badgeText: `${automationCoverage}% Auto-Rule`,
     },
+    /*
     {
       label: "KATALOG & LAYANAN",
       value: `${data.products.length + data.services.length}`,
@@ -244,7 +245,8 @@ export default function DashboardPage() {
       badgeColor: "bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/20",
       badgeText: `${data.products.length} Produk`,
     },
-  ];
+    */
+  ].filter(Boolean);
 
   const controlCenterCards = [
     {
@@ -259,12 +261,14 @@ export default function DashboardPage() {
       href: "/inbox",
       icon: MessageSquare,
     },
+    /*
     {
       title: "Katalog & Layanan",
       detail: "Kelola daftar produk, paket servis operasional, sparepart, dan sinkronisasi reservasi.",
       href: "/products-services",
       icon: Package2,
     },
+    */
     {
       title: "Integrasi Channel",
       detail: "Hubungkan akun WhatsApp, Instagram, Live Chat, dan pantau status koneksi saluran media sosial.",
@@ -283,7 +287,7 @@ export default function DashboardPage() {
       href: "/broadcast",
       icon: SendHorizontal,
     },
-  ];
+  ].filter(Boolean);
 
   const setupChecklist = [
     {
@@ -311,12 +315,14 @@ export default function DashboardPage() {
         config.knowledgeBase.websiteUrls.length > 0,
       note: `${config.knowledgeBase.websiteUrls.length} URL | ${config.knowledgeBase.documents.length} dokumen`,
     },
+    /*
     {
       title: "Katalog Produk & Servis",
       href: "/products-services",
       complete: data.products.length > 0 && data.services.length > 0,
       note: `${data.products.length} produk | ${data.services.length} layanan`,
     },
+    */
     {
       title: "Integrasi Channel",
       href: "/channels",
@@ -377,7 +383,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards Grid */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${stats.length === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
         {stats.map((stat) => {
           const Icon = stat.icon;
 
@@ -509,7 +515,7 @@ export default function DashboardPage() {
                 {
                   step: 3,
                   title: "Buat Custom Instructions & Persona AI",
-                  desc: "Atur identitas asisten AI (seperti Johan Garage, nada santai anak motor/mekanik, sapaan 'pren', dan aturan dilarang mengarang harga).",
+                  desc: "Atur identitas asisten AI (seperti nama asisten, gaya komunikasi formal/santai, sapaan khas, dan aturan dilarang mengarang harga).",
                   complete: Boolean(config.aiAgent.replyInstructions?.trim()),
                   actionText: "Tulis Instruksi AI",
                   onClick: () => setActiveEditModal("instructions"),
@@ -704,11 +710,11 @@ export default function DashboardPage() {
       >
         <form onSubmit={handleSaveProfile} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nama Bengkel / Bisnis</label>
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nama Bisnis / Perusahaan</label>
             <Input
               value={profileName}
               onChange={(e) => setProfileName(e.target.value)}
-              placeholder="Contoh: Johan Garage"
+              placeholder="Contoh: Balesin Corp"
               required
             />
           </div>
@@ -717,7 +723,7 @@ export default function DashboardPage() {
             <Input
               value={profileIndustry}
               onChange={(e) => setProfileIndustry(e.target.value)}
-              placeholder="Contoh: Bengkel Motor"
+              placeholder="Contoh: Toko Online / Jasa Konsultasi"
               required
             />
           </div>
@@ -868,7 +874,7 @@ export default function DashboardPage() {
       >
         <form onSubmit={handleSaveInstructions} className="space-y-4">
           <p className="text-xs text-[var(--color-muted)] leading-relaxed">
-            Tulis persona, gaya bahasa, dan batasan agar AI dapat melayani pelanggan dengan tepat sesuai standar bengkel Anda.
+            Tulis persona, gaya bahasa, dan batasan agar AI dapat melayani pelanggan dengan tepat sesuai standar bisnis Anda.
           </p>
 
           <div className="space-y-1.5">
@@ -876,7 +882,7 @@ export default function DashboardPage() {
             <Textarea
               value={personaText}
               onChange={(e) => setPersonaText(e.target.value)}
-              placeholder="Contoh: Nama bot adalah Johan Garage Assistant. Sopan, ramah, dan sigap..."
+              placeholder="Contoh: Nama bot adalah Balesin Assistant. Sopan, ramah, sigap, dan siap membantu menjawab pertanyaan seputar layanan kami..."
               rows={4}
               required
             />

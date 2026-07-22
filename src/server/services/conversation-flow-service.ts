@@ -121,7 +121,7 @@ export function createDefaultConversationFlowGraph(
     {
       message:
         flow?.initialMessage ||
-        "Halo! Selamat datang di Johan Garage. Silakan sampaikan kebutuhan Anda.",
+        "Halo! Selamat datang di layanan kami. Silakan sampaikan kebutuhan Anda.",
     },
   );
   const officeHours = node("office_hours", "Office Hours", { x: 260, y: 300 });
@@ -159,7 +159,7 @@ export function createDefaultConversationFlowGraph(
     "Handoff Admin",
     { x: 500, y: 820 },
     {
-      message: "Pesan Anda sudah diteruskan ke admin Johan Garage.",
+      message: "Pesan Anda sudah diteruskan ke admin.",
       handoffTarget: "Admin Desk",
       handoffReason:
         flow?.humanAgentHandoff?.condition ||

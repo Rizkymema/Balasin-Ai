@@ -43,8 +43,8 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/inbox", label: "Unified Inbox", icon: MessageSquare },
   { href: "/customers", label: "Contacts / CRM", icon: Users2 },
-  { href: "/products-services", label: "Products & Services", icon: Package2 },
-  { href: "/booking", label: "Booking", icon: CalendarRange },
+  // { href: "/products-services", label: "Products & Services", icon: Package2 },
+  // { href: "/booking", label: "Booking", icon: CalendarRange },
   { href: "/broadcast", label: "Broadcast / Campaign", icon: SendHorizontal },
   { href: "/channels", label: "Channels", icon: Wifi },
   { href: "/analytics", label: "Reports", icon: BarChart2 },
@@ -358,7 +358,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
-          <div className={`h-16 flex items-center border-b border-[var(--color-border)] ${isMainSidebarCollapsed ? "justify-center px-4" : "justify-between px-6"}`}>
+          <div className={`h-14 flex items-center border-b border-[var(--color-border)] ${isMainSidebarCollapsed ? "justify-center px-4" : "justify-between px-6"}`}>
             <Link href="/dashboard" className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-brand)] shrink-0">
                 <Building2 className="h-4.5 w-4.5" />
@@ -404,7 +404,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
                   </>
                 ) : (
-                  <div className="flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 hover:bg-[var(--color-surface-hover)] transition duration-200 cursor-pointer">
+                  <div className="flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 hover:bg-[var(--color-surface-hover)] transition duration-200 cursor-pointer">
                     <div className="flex items-center gap-2 max-w-[170px]">
                       <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] text-[var(--color-brand)] border border-[var(--color-brand)]/20 text-xs font-bold font-heading">
                         {businessName.substring(0, 2).toUpperCase()}
@@ -430,7 +430,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto custom-scrollbar">
+          <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto custom-scrollbar">
             {/* Main nav items BEFORE automation (Dashboard, Inbox, Contacts, Products, Booking) */}
             {NAV_ITEMS.slice(0, 5).map((item) => {
               const Icon = item.icon;
@@ -450,7 +450,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     setIsSidebarOpen(false);
                     handleMouseLeave();
                   }}
-                  className={`group relative flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition duration-150 ${
+                  className={`group relative flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition duration-150 ${
                     isActive
                       ? "bg-[var(--color-surface)] border border-[var(--color-brand)]/25 text-[var(--color-brand)]"
                       : "text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white"
@@ -488,7 +488,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     onMouseEnter={(e) => handleMouseEnter(e, t.automation)}
                     onMouseLeave={handleMouseLeave}
                     onClick={() => { setIsSidebarOpen(false); handleMouseLeave(); }}
-                    className={`group relative flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition duration-150 ${
+                    className={`group relative flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition duration-150 ${
                       isAutomationActive
                         ? "bg-[var(--color-surface)] border border-[var(--color-brand)]/25 text-[var(--color-brand)]"
                         : "text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white"
@@ -517,7 +517,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             key={sub.href}
                             href={sub.href}
                             onClick={() => setIsSidebarOpen(false)}
-                            className={`flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold transition duration-150 ${
+                            className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition duration-150 ${
                               subActive
                                 ? "text-[var(--color-brand)] bg-[var(--color-surface)]"
                                 : "text-slate-500 hover:text-slate-200 hover:bg-white/[0.04]"
@@ -556,7 +556,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     setIsSidebarOpen(false);
                     handleMouseLeave();
                   }}
-                  className={`group relative flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition duration-150 ${
+                  className={`group relative flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition duration-150 ${
                     isActive
                       ? "bg-[var(--color-surface)] border border-[var(--color-brand)]/25 text-[var(--color-brand)]"
                       : "text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white"
@@ -598,7 +598,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* TOPBAR */}
         {!isFlowBuilderRoute && (
-          <header className="h-16 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 z-30 shrink-0">
+          <header className="h-14 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 z-30 shrink-0">
             <div className="flex items-center gap-4 min-w-0">
               <button
                 onClick={() => setIsSidebarOpen(true)}
@@ -761,7 +761,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               ? "flex min-h-0 flex-col overflow-hidden p-0"
               : isInboxRoute
               ? "flex min-h-0 flex-col overflow-y-auto p-3 lg:overflow-hidden lg:p-4"
-              : "overflow-y-auto custom-scrollbar p-4 sm:p-6"
+              : "overflow-y-auto custom-scrollbar p-4 md:p-5"
           }`}
         >
           <div
@@ -770,9 +770,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 ? "flex h-full min-h-0 w-full flex-1 flex-col"
                 : isInboxRoute
                 ? "flex h-full min-h-0 w-full flex-1 flex-col"
-                : pathname.startsWith("/customers")
-                ? "w-full space-y-6"
-                : "mx-auto max-w-7xl space-y-6"
+                : "w-full space-y-5"
             }
           >
             {children}

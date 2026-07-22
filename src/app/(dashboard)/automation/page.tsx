@@ -340,6 +340,10 @@ export default function AutomationPage() {
               onToggleStatus={handleToggleStatus}
               togglingFlowId={togglingFlowId}
               onDelete={(flow) => setDeletingFlow(flow)}
+              onEditSettings={(flow) => {
+                setEditingFlow(flow);
+                setIsCreateModalOpen(true);
+              }}
             />
 
             {/* Pagination Placeholder */}

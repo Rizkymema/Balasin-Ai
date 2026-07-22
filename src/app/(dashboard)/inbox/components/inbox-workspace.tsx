@@ -531,6 +531,7 @@ export function InboxWorkspace() {
                 setMobileView("detail");
               }}
               onRefresh={() => void refreshData()}
+              businessName={config.workspace.name}
             />
           </div>
 

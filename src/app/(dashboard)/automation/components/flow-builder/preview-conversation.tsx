@@ -25,6 +25,7 @@ type Props = {
   onNowChange: (value: string) => void;
   onRun: (customMessage?: string) => void;
   onReset: () => void;
+  businessName?: string;
 };
 
 export function PreviewConversation({
@@ -36,6 +37,7 @@ export function PreviewConversation({
   onNowChange,
   onRun,
   onReset,
+  businessName,
 }: Props) {
   const [lastSentMessage, setLastSentMessage] = useState("");
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -70,7 +72,7 @@ export function PreviewConversation({
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-bold text-white">
-            Johan Garage AI
+            {businessName ? `${businessName} AI` : "Workspace AI"}
           </p>
           <p className="flex items-center gap-1.5 text-[10px] text-emerald-400">
             <ShieldCheck className="h-3 w-3" />
@@ -189,14 +191,14 @@ export function PreviewConversation({
           </button>
           <button
             type="button"
-            onClick={() => sendMessage("Kalau upgrade CVT Honda Genio harganya berapa?")}
+            onClick={() => sendMessage("Berapa harga layanan Anda?")}
             className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-[10px] font-semibold text-blue-300 transition hover:bg-blue-500/20 active:scale-95"
           >
-            🔧 Servis & Harga
+            🔧 Tanya Harga Layanan
           </button>
           <button
             type="button"
-            onClick={() => sendMessage("Jam berapa bengkel buka hari ini?")}
+            onClick={() => sendMessage("Jam berapa kantor buka hari ini?")}
             className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-300 transition hover:bg-amber-500/20 active:scale-95"
           >
             🕒 Jam Kerja
@@ -329,7 +331,7 @@ function InteractiveFormWidget({
   const [formData, setFormData] = useState({
     name: "Budi Santoso",
     phone: "081298765432",
-    service: "Upgrade CVT",
+    service: "Konsultasi Umum",
   });
   const [isDone, setIsDone] = useState(false);
 
@@ -379,10 +381,10 @@ function InteractiveFormWidget({
             onChange={(e) => setFormData({ ...formData, service: e.target.value })}
             className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1 text-xs text-white outline-none focus:border-violet-400"
           >
-            <option value="Upgrade CVT">Upgrade CVT</option>
-            <option value="Servis Berkala / Tune Up">Servis Berkala / Tune Up</option>
-            <option value="Ganti Oli">Ganti Oli</option>
-            <option value="Konsultasi">Konsultasi</option>
+            <option value="Konsultasi Umum">Konsultasi Umum</option>
+            <option value="Pemesanan Layanan">Pemesanan Layanan</option>
+            <option value="Tanya Harga">Tanya Harga</option>
+            <option value="Lainnya">Lainnya</option>
           </select>
         </div>
       </div>

@@ -237,7 +237,7 @@ function CreateAgentModal({
   const [prompt, setPrompt] = useState(initialData?.prompt ?? "");
   const [tone, setTone] = useState<AIAgent["toneOfVoice"]>(initialData?.toneOfVoice ?? "Ramah");
   const [responseMode, setResponseMode] = useState<AIAgent["responseMode"]>(initialData?.responseMode ?? "Answer + Handover if Needed");
-  const [channelUsage, setChannelUsage] = useState(initialData?.channelUsage ?? "WhatsApp - Johan Garage");
+  const [channelUsage, setChannelUsage] = useState(initialData?.channelUsage ?? "WhatsApp - Business");
   const [actions, setActions] = useState(initialData?.allowedActions ?? {
     replyMessage: true,
     createLead: false,
@@ -302,7 +302,7 @@ function CreateAgentModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-300">Agent Name</label>
-              <Input placeholder="Contoh: Johan Garage Assistant" value={name} onChange={(e) => setName(e.target.value)} className="bg-black/20" />
+              <Input placeholder="Contoh: Customer Support Assistant" value={name} onChange={(e) => setName(e.target.value)} className="bg-black/20" />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-300">Channel</label>
@@ -311,7 +311,7 @@ function CreateAgentModal({
                 value={channelUsage}
                 onChange={(e) => setChannelUsage(e.target.value)}
               >
-                <option value="WhatsApp - Johan Garage">WhatsApp - Johan Garage</option>
+                <option value="WhatsApp - Business">WhatsApp - Business</option>
                 <option value="Instagram DM">Instagram DM</option>
                 <option value="Website Chat Widget">Website Chat Widget</option>
                 <option value="Not connected">Not connected</option>
@@ -354,7 +354,7 @@ function CreateAgentModal({
           <div className="space-y-2">
             <label className="text-sm font-semibold text-slate-300">AI Prompt / Instruction</label>
             <Textarea
-              placeholder="Kamu adalah asisten virtual Johan Garage. Tugasmu membantu pelanggan dengan jawaban singkat, jelas, ramah..."
+              placeholder="Kamu adalah asisten virtual yang ramah dan sigap. Tugasmu membantu menjawab pertanyaan seputar layanan kami..."
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               className="min-h-[130px] bg-black/20"

@@ -890,7 +890,7 @@ export default function KnowledgeBasePage() {
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-semibold text-slate-300">Nama Fakta / Pemicu</label>
                     <Input
-                      placeholder="Contoh: Jadwal Buka Bengkel"
+                      placeholder="Contoh: Jadwal Buka Kantor"
                       value={kbTextTitle}
                       onChange={(e) => setKbTextTitle(e.target.value)}
                       className="h-9 text-xs"
@@ -900,7 +900,7 @@ export default function KnowledgeBasePage() {
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-semibold text-slate-300">Isi Konten Teks</label>
                     <Textarea
-                      placeholder="Contoh: Johan Garage buka Senin-Sabtu pukul 08:00-17:00."
+                      placeholder="Contoh: Kami buka setiap hari Senin-Sabtu pukul 08:00-17:00."
                       value={kbTextContent}
                       onChange={(e) => setKbTextContent(e.target.value)}
                       rows={4}
@@ -952,7 +952,7 @@ export default function KnowledgeBasePage() {
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-300">1. Persona Configuration (Identitas Bot)</label>
               <Textarea
-                placeholder="Contoh: Kamu adalah asisten mekanik Johan Garage yang ramah dan ahli dalam mesin motor..."
+                placeholder="Contoh: Kamu adalah asisten customer service yang ramah dan ahli seputar layanan bisnis kami..."
                 value={personaConfig}
                 onChange={(e) => setPersonaConfig(e.target.value)}
                 rows={3}
@@ -964,7 +964,7 @@ export default function KnowledgeBasePage() {
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-300">2. Tone of Voice (Gaya Bahasa)</label>
               <Textarea
-                placeholder="Contoh: Gunakan bahasa santai anak motor, panggil pelanggan dengan sapaan 'Om' atau 'Bang'..."
+                placeholder="Contoh: Gunakan bahasa santai yang ramah, panggil pelanggan dengan sapaan 'Kak'..."
                 value={toneOfVoice}
                 onChange={(e) => setToneOfVoice(e.target.value)}
                 rows={3}
@@ -976,7 +976,7 @@ export default function KnowledgeBasePage() {
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-300">3. Guardrails / Aturan Keamanan</label>
               <Textarea
-                placeholder="Contoh: Dilarang memberikan estimasi harga perbaikan mesin berat sebelum inspeksi langsung..."
+                placeholder="Contoh: Dilarang memberikan estimasi harga sebelum mengetahui detail kebutuhan customer..."
                 value={guardrails}
                 onChange={(e) => setGuardrails(e.target.value)}
                 rows={3}

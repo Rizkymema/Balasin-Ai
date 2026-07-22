@@ -387,6 +387,7 @@ export function CustomerContextPanel({
             <Ticket className="mr-2 h-4 w-4" />
             Buat Ticket
           </Button>
+          {/* 
           <Link
             href="/booking"
             className="inline-flex h-10 items-center rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-[11px] font-semibold text-slate-300 transition hover:bg-white/[0.08]"
@@ -394,6 +395,7 @@ export function CustomerContextPanel({
             <CalendarClock className="mr-2 h-4 w-4" />
             Buka Booking
           </Link>
+          */}
           <Link
             href="/customers"
             className="inline-flex h-10 items-center rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-[11px] font-semibold text-slate-300 transition hover:bg-white/[0.08]"

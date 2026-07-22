@@ -18,6 +18,7 @@ import {
   Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type {
@@ -49,12 +50,13 @@ export function CreateConversationModal({
   onClose,
   onSave,
 }: CreateConversationModalProps) {
+  const { config } = useDashboardConfig();
   const [activeTab, setActiveTab] = useState<"form" | "visual">("visual");
   const [selectedNode, setSelectedNode] = useState<FlowNodeType>("trigger");
 
   const [name, setName] = useState(initialData?.name ?? "");
   const [channel, setChannel] = useState(
-    initialData?.channel ?? "WhatsApp - Johan Garage",
+    initialData?.channel ?? "WhatsApp - Business",
   );
   const [trigger, setTrigger] = useState(
     initialData?.trigger ?? "Pesan Pertama Masuk",
@@ -158,8 +160,8 @@ export function CreateConversationModal({
                 value={channel}
                 onChange={(e) => setChannel(e.target.value)}
               >
-                <option value="WhatsApp - Johan Garage">
-                  WhatsApp - Johan Garage
+                <option value="WhatsApp - Business">
+                  WhatsApp - Business
                 </option>
                 <option value="Instagram DM">Instagram DM</option>
                 <option value="Website Chat Widget">Website Chat Widget</option>
@@ -253,7 +255,7 @@ export function CreateConversationModal({
                 Konten Pesan Awal
               </label>
               <Textarea
-                placeholder="Halo! Selamat datang di Johan Garage. Ada yang bisa kami bantu?"
+                placeholder={config?.workspace?.name ? `Halo! Selamat datang di ${config.workspace.name}. Ada yang bisa kami bantu?` : "Halo! Selamat datang di layanan kami. Ada yang bisa kami bantu?"}
                 value={initialMessage}
                 onChange={(e) => setInitialMessage(e.target.value)}
                 className="min-h-[160px] bg-black/40 text-xs leading-relaxed"
@@ -571,7 +573,7 @@ export function CreateConversationModal({
                     <p className="line-clamp-2 text-xs leading-relaxed text-slate-300 italic">
                       &ldquo;
                       {initialMessage ||
-                        "Halo! Selamat datang di Johan Garage. Ada yang bisa kami bantu?"}
+                        (config?.workspace?.name ? `Halo! Selamat datang di ${config.workspace.name}. Ada yang bisa kami bantu?` : "Halo! Selamat datang di layanan kami. Ada yang bisa kami bantu?")}
                       &rdquo;
                     </p>
                   </div>
@@ -722,7 +724,7 @@ export function CreateConversationModal({
                     Conversation Name
                   </label>
                   <Input
-                    placeholder="Contoh: Greeting Johan Garage"
+                    placeholder="Contoh: Alur Sambutan Pelanggan"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="border-white/10 bg-black/20"
@@ -737,8 +739,8 @@ export function CreateConversationModal({
                     value={channel}
                     onChange={(e) => setChannel(e.target.value)}
                   >
-                    <option value="WhatsApp - Johan Garage">
-                      WhatsApp - Johan Garage
+                    <option value="WhatsApp - Business">
+                      WhatsApp - Business
                     </option>
                     <option value="Instagram DM">Instagram DM</option>
                     <option value="Website Chat Widget">
@@ -809,7 +811,7 @@ export function CreateConversationModal({
                   Initial Message
                 </label>
                 <Textarea
-                  placeholder="Halo! Selamat datang di Johan Garage. Ada yang bisa kami bantu?"
+                  placeholder={config?.workspace?.name ? `Halo! Selamat datang di ${config.workspace.name}. Ada yang bisa kami bantu?` : "Halo! Selamat datang di layanan kami. Ada yang bisa kami bantu?"}
                   value={initialMessage}
                   onChange={(e) => setInitialMessage(e.target.value)}
                   className="min-h-[100px] border-white/10 bg-black/20"

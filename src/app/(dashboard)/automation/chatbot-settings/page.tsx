@@ -54,8 +54,8 @@ const DEFAULT_SETTINGS: ChatbotSettingsState = {
     listenTimeSeconds: 2,
     handoverEnabled: true,
     handoverTargetType: "Specific team",
-    handoverTarget: "Mekanik",
-    handoverMessage: "Baik kak, saya teruskan percakapan ini ke admin Johan Garage agar bisa dibantu lebih lanjut.",
+    handoverTarget: "Customer Service",
+    handoverMessage: "Baik kak, saya teruskan percakapan ini ke admin agar bisa dibantu lebih lanjut.",
   },
   idleAction: {
     enabled: true,
@@ -601,7 +601,7 @@ function ApiIntegrationPanel({
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-white">Webhook / API Bisnis Eksternal</h2>
-          <p className="text-sm text-slate-400 mt-1">Gunakan untuk memanggil API bisnis Anda sendiri (seperti cek stok, status booking, database mekanik) saat percakapan berlangsung. <strong>Bukan untuk API Key AI (OpenAI/Gemini).</strong></p>
+          <p className="text-sm text-slate-400 mt-1">Gunakan untuk memanggil API bisnis Anda sendiri (seperti cek stok, status transaksi, database layanan) saat percakapan berlangsung. <strong>Bukan untuk API Key AI (OpenAI/Gemini).</strong></p>
         </div>
         <Button onClick={() => { setEditingApi(primaryIntegration); setIsModalOpen(true); }} className="gap-2 shrink-0">
           <Plus className="h-4 w-4" />

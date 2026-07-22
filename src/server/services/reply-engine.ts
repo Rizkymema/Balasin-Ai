@@ -536,7 +536,8 @@ function extractStyleSignals(config: DashboardConfig) {
       combined.includes("besti") ||
       combined.includes("bro") ||
       combined.includes("anak bengkel") ||
-      combined.includes("johan garage"),
+      combined.includes("johan garage") ||
+      combined.includes(config.workspace.name.toLowerCase()),
   };
 }
 
@@ -670,14 +671,11 @@ function previousMessageNeedsFollowUp(message: string) {
   const normalized = normalizeText(message);
 
   return (
-    normalized.includes("tipe motor") ||
-    normalized.includes("tahun berapa") ||
-    normalized.includes("tahun motor") ||
     normalized.includes("jenis jasa") ||
     normalized.includes("detail layanan") ||
     normalized.includes("keluhan") ||
-    normalized.includes("kilometer") ||
-    normalized.includes("riwayat servis") ||
+    normalized.includes("spesifikasi") ||
+    normalized.includes("kebutuhan") ||
     normalized.includes("kapan terakhir")
   );
 }
@@ -828,30 +826,8 @@ function buildPriceFollowUpReply(
   config: DashboardConfig,
   context?: ReplyContext,
 ) {
-  const contextualText = buildContextualMessage(messageText, config, context);
-  const serviceDetail = detectServiceDetail(contextualText);
-  const rawMotorType = extractMotorType(contextualText);
-  const motorType =
-    serviceDetail &&
-    normalizeText(rawMotorType) === normalizeText(serviceDetail.replace(/^servis\s+/i, ""))
-      ? ""
-      : rawMotorType;
-  const motorYear = extractMotorYear(contextualText);
   const waLink = getWaHandoffLink(config);
-
-  if (!serviceDetail) {
-    return "Kami bisa bantu cek harga ya. Mohon kirim detail layanan yang dimaksud agar saya jawab lebih akurat.";
-  }
-
-  if (!motorType) {
-    return `Untuk ${serviceDetail}, boleh kirim tipe motornya dulu ya biar saya cek konteksnya dengan benar.`;
-  }
-
-  if (!motorYear) {
-    return `Untuk ${serviceDetail} di ${motorType}, tahun motornya berapa ya? Biar saya lanjut bantu cek dengan konteks yang pas.`;
-  }
-
-  return `Untuk ${serviceDetail} ${motorType} tahun ${motorYear}, saya belum menemukan harga final yang pasti di data aktif saat ini. Supaya tidak ngarang angka, saya sarankan cek ke admin via ${waLink} ya. Kalau mau, saya bisa bantu arahkan detail pertanyaannya juga.`;
+  return `Kami bisa bantu cek harga ya. Mohon informasikan detail produk atau layanan spesifik yang Anda tanyakan agar kami dapat memberikan estimasi harga yang paling akurat. Jika Anda ingin respon lebih cepat, silakan hubungi admin via ${waLink} ya.`;
 }
 
 function getEditDistanceWithinLimit(

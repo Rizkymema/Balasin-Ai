@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import { Input } from "@/components/ui/input";
 import type {
   AIAgent,
@@ -247,6 +248,7 @@ function newNode(
 }
 
 export default function ConversationFlowBuilderPage() {
+  const { config } = useDashboardConfig();
   const params = useParams<{ flowId: string }>();
   const router = useRouter();
   const flowId = params.flowId;
@@ -267,7 +269,7 @@ export default function ConversationFlowBuilderPage() {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [validation, setValidation] = useState<FlowValidationView | null>(null);
   const [previewMessage, setPreviewMessage] = useState(
-    "Kalau upgrade CVT Honda Genio harganya berapa?",
+    "Halo, tanya harga layanannya dong?",
   );
   const [previewNow, setPreviewNow] = useState(getLocalDateTimeValue);
   const [previewResult, setPreviewResult] = useState<FlowPreviewResult | null>(
@@ -737,7 +739,7 @@ export default function ConversationFlowBuilderPage() {
           {/* Workspace & Flow Title */}
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <span className="hidden sm:inline text-xs font-medium text-slate-400 shrink-0">
-              Workspace: <strong className="text-white">Johan Garage</strong>
+              Workspace: <strong className="text-white">{config?.workspace?.name || "Workspace Utama"}</strong>
             </span>
             <span className="hidden sm:inline text-slate-600">/</span>
 
@@ -1051,6 +1053,7 @@ export default function ConversationFlowBuilderPage() {
                   onNowChange={setPreviewNow}
                   onRun={(customMsg) => void runPreview(customMsg)}
                   onReset={() => setPreviewResult(null)}
+                  businessName={config?.workspace?.name}
                 />
               )}
             </div>

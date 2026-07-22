@@ -48,6 +48,7 @@ type ConversationListPanelProps = {
   summary: InboxSummary;
   onSelectConversation: (conversationId: string) => void;
   onRefresh?: () => void;
+  businessName?: string;
 };
 
 const CHANNEL_LABELS: Record<ConversationRecord["channel"], string> = {
@@ -141,6 +142,7 @@ export function ConversationListPanel({
   summary,
   onSelectConversation,
   onRefresh,
+  businessName,
 }: ConversationListPanelProps) {
   const [showFilters, setShowFilters] = useState(false);
 
@@ -358,7 +360,7 @@ export function ConversationListPanel({
                       <div className="mt-3 flex items-center justify-between text-[10px]">
                         <div className="flex items-center gap-1.5">
                           <span className="text-slate-500 font-bold tracking-wide">
-                            Johan Garage
+                            {businessName || "Workspace"}
                           </span>
                           <span className={cn(
                             "px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-wide uppercase border shrink-0",

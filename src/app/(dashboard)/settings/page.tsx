@@ -166,7 +166,7 @@ export default function SettingsPage() {
   const [isSavedAgent, setIsSavedAgent] = useState(false);
   const [divisions, setDivisions] = useState([
     { id: "div_001", name: "Customer Service", description: "Menangani pertanyaan umum pelanggan.", agents: 5, supervisor: "Admin Senior", status: "Active" },
-    { id: "div_002", name: "Mekanik", description: "Menangani pertanyaan teknis servis motor.", agents: 3, supervisor: "Kepala Mekanik", status: "Active" },
+    { id: "div_002", name: "Technical Support", description: "Menangani pertanyaan teknis seputar layanan.", agents: 3, supervisor: "Kepala Technical", status: "Active" },
     { id: "div_003", name: "Sales", description: "Menangani penjualan produk dan sparepart.", agents: 4, supervisor: "Sales Lead", status: "Active" },
   ]);
   const [showDivModal, setShowDivModal] = useState(false);
@@ -194,7 +194,7 @@ export default function SettingsPage() {
   const [waitingMsg, setWaitingMsg] = useState("Mohon tunggu sebentar kak, semua admin sedang melayani pelanggan lain. Chat kakak sudah masuk antrean dan akan segera kami bantu.");
   const [workloadByDiv, setWorkloadByDiv] = useState([
     { division: "Customer Service", maxActive: 10, maxPending: 20 },
-    { division: "Mekanik", maxActive: 5, maxPending: 10 },
+    { division: "Technical Support", maxActive: 5, maxPending: 10 },
     { division: "Sales", maxActive: 15, maxPending: 25 },
   ]);
   const [idleEnabled, setIdleEnabled] = useState(true);
@@ -214,9 +214,9 @@ export default function SettingsPage() {
 
   // Mock Contact Info custom fields
   const [customFields, setCustomFields] = useState([
-    { id: "1", name: "License Plate (Plat Nomor)", type: "Text", required: true },
-    { id: "2", name: "Motorcycle Model (Tipe Motor)", type: "Text", required: true },
-    { id: "3", name: "Preferred Service Schedule", type: "Date", required: false }
+    { id: "1", name: "Customer Code", type: "Text", required: true },
+    { id: "2", name: "Product Category Interest", type: "Text", required: true },
+    { id: "3", name: "Preferred Discussion Schedule", type: "Date", required: false }
   ]);
   const [newFieldName, setNewFieldName] = useState("");
   const [newFieldType, setNewFieldType] = useState("Text");
@@ -225,14 +225,14 @@ export default function SettingsPage() {
   // Mock Survey CSAT States
   const [csatEnabled, setCsatEnabled] = useState(true);
   const [csatScale, setCsatScale] = useState("5");
-  const [csatQuestion, setCsatQuestion] = useState("Bagaimana penilaian Anda terhadap kualitas servis dan respon agen Johan Garage hari ini?");
+  const [csatQuestion, setCsatQuestion] = useState("Bagaimana penilaian Anda terhadap kualitas layanan dan respon agen kami hari ini?");
   const [isSavedSurvey, setIsSavedSurvey] = useState(false);
 
   // Mock Ticket Category States
   const [ticketCategories, setTicketCategories] = useState([
-    { id: "c1", name: "Mesin & Transmisi", defaultPriority: "High" },
-    { id: "c2", name: "Kelistrikan", defaultPriority: "Medium" },
-    { id: "c3", name: "Servis Rutin / Oli", defaultPriority: "Low" }
+    { id: "c1", name: "General Question", defaultPriority: "High" },
+    { id: "c2", name: "Technical Inquiry", defaultPriority: "Medium" },
+    { id: "c3", name: "Billing & Payment", defaultPriority: "Low" }
   ]);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryPriority, setNewCategoryPriority] = useState("Medium");
@@ -245,9 +245,9 @@ export default function SettingsPage() {
 
   // Mock Import Export logs
   const [logs, setLogs] = useState([
-    { id: "l1", type: "Export Contacts", user: "Admin Johan", date: "2026-06-22 14:32", status: "Success", size: "145 KB" },
-    { id: "l2", type: "Import Contacts CSV", user: "Admin Johan", date: "2026-06-20 09:15", status: "Success (154 baris)", size: "48 KB" },
-    { id: "l3", type: "Export CSAT Survey", user: "Admin Johan", date: "2026-06-18 17:40", status: "Success", size: "12 KB" }
+    { id: "l1", type: "Export Contacts", user: "Admin Utama", date: "2026-06-22 14:32", status: "Success", size: "145 KB" },
+    { id: "l2", type: "Import Contacts CSV", user: "Admin Utama", date: "2026-06-20 09:15", status: "Success (154 baris)", size: "48 KB" },
+    { id: "l3", type: "Export CSAT Survey", user: "Admin Utama", date: "2026-06-18 17:40", status: "Success", size: "12 KB" }
   ]);
 
   useEffect(() => {
@@ -1237,7 +1237,7 @@ export default function SettingsPage() {
                       placeholder="Masukkan alamat IP yang diizinkan (contoh: 192.168.1.1, satu per baris)"
                       className="h-10 text-xs"
                     />
-                    <p className="text-[9px] text-slate-500">Membatasi akses Admin/Operator login dashboard hanya dari IP kantor Johan Garage yang terdaftar.</p>
+                    <p className="text-[9px] text-slate-500">Membatasi akses Admin/Operator login dashboard hanya dari IP kantor yang terdaftar.</p>
                   </div>
 
                   <label className="flex items-start gap-3 text-xs leading-normal text-slate-300 cursor-pointer rounded-xl border border-white/8 bg-white/[0.03] p-4">

@@ -5,6 +5,7 @@ import { Bot, Send, X, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 
 type MessageTarget = {
   id: string;
@@ -34,11 +35,12 @@ type Message = {
 const SUGGESTIONS = [
   "Rangkum booking terbaru",
   "Berapa tiket prioritas High?",
-  "Daftar jasa & produk Johan Garage",
+  "Daftar jasa & produk bisnis kami",
   "Bagaimana cara koneksi Instagram?",
 ];
 
 export function DashboardAIAssistant() {
+  const { config } = useDashboardConfig();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -270,7 +272,7 @@ export function DashboardAIAssistant() {
               AI Copilot
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
             </div>
-            <div className="text-[10px] text-slate-500">Asisten data Johan Garage</div>
+            <div className="text-[10px] text-slate-500">Asisten data {config?.workspace?.name || "Workspace"}</div>
           </div>
         </div>
         <button
