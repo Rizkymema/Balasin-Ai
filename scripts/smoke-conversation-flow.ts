@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { AIAgent, ConversationFlow } from "../src/types/dashboard-config";
+import type { ConversationRecord } from "../src/types/operations";
 
 const storageDirectory = mkdtempSync(join(tmpdir(), "balesin-flow-test-"));
 let closeDatabase = () => {};
@@ -19,7 +20,7 @@ delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 async function main() {
   const { defaultDashboardConfig } =
     await import("../src/lib/dashboard-config");
-  const { createBookingServiceFlowTemplate } =
+  const { createBookingServiceFlowTemplate, createSystemChatbotFlowTemplate } =
     await import("../src/lib/conversation-flow-templates");
   const { getDatabase } = await import("../src/server/db");
   closeDatabase = () => getDatabase().close();
@@ -38,10 +39,10 @@ async function main() {
     resumeConversationFlowForm,
     validateConversationFlowGraph,
   } = await import("../src/server/services/conversation-flow-service");
-  const {
-    isChannelAutomationEnabled,
-    resolveInboundAutomation,
-  } = await import("../src/server/services/automation-orchestrator");
+  const { isChannelAutomationEnabled, resolveInboundAutomation } =
+    await import("../src/server/services/automation-orchestrator");
+  const { classifyInboundSafety } =
+    await import("../src/server/services/reply-engine");
 
   const flow = {
     id: "flow-smoke",
@@ -96,6 +97,9 @@ async function main() {
 
   const graph = structuredClone(initialized?.draftGraph);
   assert.ok(graph);
+  const graphAiNode = graph.nodes.find((node) => node.type === "ai_agent");
+  assert.ok(graphAiNode);
+  graphAiNode.data.agentId = selectedAgent.id;
   const greeting = graph.nodes.find((node) => node.data.label === "Greeting");
   assert.ok(greeting);
   greeting.data.message = "Halo dari draft";
@@ -156,6 +160,15 @@ async function main() {
   );
   assert.ok(unselectedAiNode);
   delete unselectedAiNode.data.agentId;
+  const unselectedValidation = validateConversationFlowGraph(
+    unselectedGraph,
+    config,
+  );
+  assert.equal(unselectedValidation.valid, false);
+  assert.equal(
+    unselectedValidation.errors.some((item) => item.code === "missing_agent"),
+    true,
+  );
   const unselectedAutomation = resolveInboundAutomation(
     {
       ...runtimeConfig,
@@ -239,9 +252,7 @@ async function main() {
   assert.equal(bookingRuntime.formState?.mode, "single_message");
   assert.equal(bookingRuntime.formState?.fieldIndex, 0);
   assert.equal(
-    bookingRuntime.messages.some((item) =>
-      item.includes("SATU pesan"),
-    ),
+    bookingRuntime.messages.some((item) => item.includes("SATU pesan")),
     true,
   );
 
@@ -265,6 +276,76 @@ async function main() {
   assert.equal(bookingStep.completedForm?.values.preferred_time, "13:00");
   assert.equal(bookingStep.needsHuman, true);
 
+  const systemTemplate = createSystemChatbotFlowTemplate({
+    flowId: "flow-system-chatbot-smoke",
+    lastUpdate: new Date().toISOString(),
+    agentId: selectedAgent.id,
+  });
+  assert.equal(systemTemplate.normalizedTrigger, "all_incoming_messages");
+  assert.ok(systemTemplate.draftGraph);
+  const systemValidation = validateConversationFlowGraph(
+    systemTemplate.draftGraph,
+    config,
+  );
+  assert.equal(
+    systemValidation.valid,
+    true,
+    systemValidation.errors.map((item) => item.message).join("; "),
+  );
+
+  const systemRuntimeConfig = structuredClone(config);
+  systemRuntimeConfig.automation.conversations = [
+    {
+      ...systemTemplate,
+      status: "Published",
+      publishedGraph: systemTemplate.draftGraph,
+    },
+  ];
+  const ongoingSystemAutomation = resolveInboundAutomation(
+    systemRuntimeConfig,
+    {
+      channel: "WhatsApp",
+      messageText: "berapa harga servis cvt?",
+      nowIso: "2026-07-21T12:00:00.000Z",
+      existingConversation: {
+        automation: {},
+      } as ConversationRecord,
+      safetyAction: "allow",
+    },
+  );
+  assert.equal(ongoingSystemAutomation.flow?.id, systemTemplate.id);
+  assert.equal(ongoingSystemAutomation.agent?.id, selectedAgent.id);
+
+  const blockedSystemAutomation = resolveInboundAutomation(
+    systemRuntimeConfig,
+    {
+      channel: "WhatsApp",
+      messageText: "promo slot gacor maxwin",
+      nowIso: "2026-07-21T12:00:00.000Z",
+      existingConversation: null,
+      safetyAction: "silence",
+    },
+  );
+  assert.equal(blockedSystemAutomation.flow, null);
+  assert.equal(blockedSystemAutomation.agent, null);
+
+  assert.equal(
+    classifyInboundSafety("promo slot gacor maxwin", config).action,
+    "silence",
+  );
+  assert.equal(
+    classifyInboundSafety("motor saya rem blong, darurat", config).action,
+    "handoff",
+  );
+  assert.equal(
+    classifyInboundSafety("berapa harga servis cvt?", config).action,
+    "allow",
+  );
+  assert.equal(
+    classifyInboundSafety("berapa harga ganti rantai motor?", config).action,
+    "allow",
+  );
+
   console.log(
     JSON.stringify({
       initialized: true,
@@ -282,6 +363,9 @@ async function main() {
       channelSettings: true,
       explicitFlowAgent: true,
       unselectedAgentBlocked: true,
+      systemChatbotTemplate: true,
+      allMessageTrigger: true,
+      safetyGate: true,
     }),
   );
 }

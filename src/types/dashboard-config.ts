@@ -60,6 +60,7 @@ export type AutomationRule = {
 };
 
 export type ConversationFlowTrigger =
+  | "all_incoming_messages"
   | "first_incoming_message"
   | "outside_office_hours"
   | "keyword_match"

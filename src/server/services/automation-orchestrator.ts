@@ -27,6 +27,7 @@ type InboundAutomationInput = {
   messageText: string;
   nowIso: string;
   existingConversation: ConversationRecord | null;
+  safetyAction?: "allow" | "silence" | "handoff";
 };
 
 type InboundAutomationResolution = {
@@ -87,6 +88,10 @@ function normalizeFlowTrigger(flow: ConversationFlow): ConversationFlowTrigger {
 
   const trigger = normalizeText(flow.trigger);
 
+  if (trigger.includes("semua pesan") || trigger.includes("all incoming")) {
+    return "all_incoming_messages";
+  }
+
   if (trigger.includes("luar jam")) {
     return "outside_office_hours";
   }
@@ -128,10 +133,7 @@ function toComparableChannel(channel: string) {
   return normalized;
 }
 
-const AUTOMATION_READY_CHANNEL_STATUSES = new Set([
-  "connected",
-  "testing",
-]);
+const AUTOMATION_READY_CHANNEL_STATUSES = new Set(["connected", "testing"]);
 
 export function isChannelAutomationEnabled(
   config: DashboardConfig,
@@ -142,7 +144,9 @@ export function isChannelAutomationEnabled(
       return (
         config.channels.whatsapp.autoReply &&
         ((config.channels.whatsapp.enabled &&
-          AUTOMATION_READY_CHANNEL_STATUSES.has(config.channels.whatsapp.status)) ||
+          AUTOMATION_READY_CHANNEL_STATUSES.has(
+            config.channels.whatsapp.status,
+          )) ||
           config.channels.whatsapp.qrSessions?.some(
             (session) => session.status === "connected",
           ) === true)
@@ -261,6 +265,8 @@ function matchFlowByTrigger(
   const trigger = normalizeFlowTrigger(flow);
 
   switch (trigger) {
+    case "all_incoming_messages":
+      return true;
     case "outside_office_hours":
       return isOutsideBusinessHours(config, new Date(input.nowIso));
     case "keyword_match": {
@@ -304,6 +310,7 @@ function selectAutomationFlow(
     "outside_office_hours",
     "booking_intent",
     "keyword_match",
+    "all_incoming_messages",
     "first_incoming_message",
   ];
 
@@ -341,7 +348,9 @@ function selectAutomationAgent(
     (agent) => agent.status === "Active",
   );
 
-  const selectedAgentId = graphAgentId ?? flow?.aiAgentId;
+  const selectedAgentId = flow?.publishedGraph
+    ? graphAgentId
+    : (graphAgentId ?? flow?.aiAgentId);
   if (selectedAgentId) {
     const directMatch = activeAgents.find(
       (agent) => agent.id === selectedAgentId,
@@ -357,7 +366,9 @@ function selectAutomationAgent(
     return null;
   }
 
-  return activeAgents.find((agent) => agentMatchesChannel(agent, channel)) ?? null;
+  return (
+    activeAgents.find((agent) => agentMatchesChannel(agent, channel)) ?? null
+  );
 }
 
 function mapToneValue(agent: AIAgent) {
@@ -498,7 +509,9 @@ export function resolveInboundAutomation(
   config: DashboardConfig,
   input: InboundAutomationInput,
 ): InboundAutomationResolution {
-  const flow = selectAutomationFlow(config, input);
+  const safetyBlocked =
+    input.safetyAction === "silence" || input.safetyAction === "handoff";
+  const flow = safetyBlocked ? null : selectAutomationFlow(config, input);
   const graph = flow ? getPublishedConversationFlowGraph(flow) : null;
   const activeFormSession = input.existingConversation?.automation?.formSession;
   const graphBeforeAi = graph
@@ -506,12 +519,12 @@ export function resolveInboundAutomation(
       ? resumeConversationFlowForm({
           graph,
           config,
-        state: {
-          nodeId: activeFormSession.nodeId,
-          mode: activeFormSession.mode,
-          fieldIndex: activeFormSession.fieldIndex,
-          values: activeFormSession.values,
-        },
+          state: {
+            nodeId: activeFormSession.nodeId,
+            mode: activeFormSession.mode,
+            fieldIndex: activeFormSession.fieldIndex,
+            values: activeFormSession.values,
+          },
           answer: input.messageText,
           now: new Date(input.nowIso),
         })
@@ -527,16 +540,25 @@ export function resolveInboundAutomation(
           item.id === graphBeforeAi.aiAgentId && item.status === "Active",
       ) ?? null)
     : null;
-  const agent =
-    graphAgent ??
-    selectAutomationAgent(
-      config,
-      input.channel,
-      flow,
-      graphBeforeAi?.aiAgentId,
-    );
+  const agent = safetyBlocked
+    ? null
+    : (graphAgent ??
+      selectAutomationAgent(
+        config,
+        input.channel,
+        flow,
+        graphBeforeAi?.aiAgentId,
+      ));
   const effectiveConfig = buildEffectiveReplyConfig(config, agent);
   const tagsToAdd: string[] = [];
+
+  if (input.safetyAction === "silence") {
+    tagsToAdd.push("moderated");
+  }
+
+  if (input.safetyAction === "handoff") {
+    tagsToAdd.push("safety_handoff");
+  }
 
   if (flow && normalizeFlowTrigger(flow) === "booking_intent") {
     tagsToAdd.push("booking_intent");

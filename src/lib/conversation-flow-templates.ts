@@ -5,6 +5,135 @@ import type {
 } from "@/types/dashboard-config";
 
 export const BOOKING_SERVICE_TEMPLATE_NAME = "Booking Service - Johan Garage";
+export const SYSTEM_CHATBOT_TEMPLATE_NAME = "Chatbot Utama - RAG & Safety";
+
+export function createSystemChatbotFlowTemplate(input: {
+  flowId: string;
+  lastUpdate: string;
+  agentId?: string;
+}): ConversationFlow {
+  const nodeId = (name: string) => `${input.flowId}-${name}`;
+  const nodes: ConversationFlowNode[] = [
+    {
+      id: nodeId("start"),
+      type: "start",
+      position: { x: 520, y: 40 },
+      data: {
+        label: "Pesan Masuk + Safety Gate",
+        trigger: "all_incoming_messages",
+        triggerKeywords: [],
+      },
+    },
+    {
+      id: nodeId("rag-agent"),
+      type: "ai_agent",
+      position: { x: 470, y: 220 },
+      data: {
+        label: "RAG Knowledge Base + Custom Instructions",
+        agentId: input.agentId,
+        useConversationHistory: true,
+        requireKnowledgeBase: true,
+      },
+    },
+    {
+      id: nodeId("answered"),
+      type: "end",
+      position: { x: 80, y: 470 },
+      data: { label: "Jawaban Akurat Terkirim" },
+    },
+    {
+      id: nodeId("fallback"),
+      type: "fallback",
+      position: { x: 460, y: 470 },
+      data: {
+        label: "Fallback Data Tidak Tersedia",
+        message:
+          "Maaf, informasi tersebut belum tersedia di data resmi kami. Agar informasinya akurat, pesan Anda akan diteruskan ke admin.",
+      },
+    },
+    {
+      id: nodeId("handoff"),
+      type: "handoff",
+      position: { x: 460, y: 690 },
+      data: {
+        label: "Safety Handoff ke Admin",
+        message: "Pesan Anda sudah diteruskan ke admin untuk ditindaklanjuti.",
+        handoffTarget: "Admin Desk",
+        handoffReason:
+          "Data tidak tersedia, keyakinan rendah, atau pesan membutuhkan penanganan manusia.",
+      },
+    },
+    {
+      id: nodeId("handoff-end"),
+      type: "end",
+      position: { x: 510, y: 900 },
+      data: { label: "Menunggu Admin" },
+    },
+  ];
+
+  const edge = (
+    name: string,
+    source: string,
+    target: string,
+    sourceHandle?: string,
+    label?: string,
+  ): ConversationFlowEdge => ({
+    id: `${input.flowId}-edge-${name}`,
+    source: nodeId(source),
+    target: nodeId(target),
+    sourceHandle,
+    label,
+  });
+
+  return {
+    id: input.flowId,
+    name: SYSTEM_CHATBOT_TEMPLATE_NAME,
+    channel: "All Channels",
+    trigger: "Semua pesan masuk",
+    normalizedTrigger: "all_incoming_messages",
+    triggerKeywords: [],
+    initialMessage: "",
+    interactiveMenu: [],
+    fallbackMessage:
+      "Maaf, informasi tersebut belum tersedia di data resmi kami. Pesan Anda akan diteruskan ke admin.",
+    aiAgentId: input.agentId,
+    humanAgentHandoff: {
+      enabled: true,
+      condition:
+        "Data tidak tersedia, keyakinan rendah, atau pesan membutuhkan admin.",
+    },
+    status: "Draft",
+    botResponse: 0,
+    lastUpdate: input.lastUpdate,
+    draftGraph: {
+      nodes,
+      edges: [
+        edge("start-rag", "start", "rag-agent"),
+        edge(
+          "rag-answered",
+          "rag-agent",
+          "answered",
+          "answered",
+          "Data ditemukan",
+        ),
+        edge("rag-human", "rag-agent", "handoff", "needs_human", "Perlu admin"),
+        edge(
+          "rag-not-found",
+          "rag-agent",
+          "fallback",
+          "not_found",
+          "Data tidak ada",
+        ),
+        edge("rag-error", "rag-agent", "fallback", "error", "AI error"),
+        edge("fallback-handoff", "fallback", "handoff"),
+        edge("handoff-end", "handoff", "handoff-end"),
+      ],
+      viewport: { x: 0, y: 0, zoom: 0.82 },
+    },
+    draftRevision: 1,
+    hasUnpublishedChanges: true,
+  };
+}
 
 export function createBookingServiceFlowTemplate(input: {
   flowId: string;

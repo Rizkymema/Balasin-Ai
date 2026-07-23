@@ -12,6 +12,7 @@ import { formatClockTime } from "@/lib/time";
 import {
   analyzeSentiment,
   applyConfiguredResponsePolicy,
+  classifyInboundSafety,
   generateReplyDecision,
   type ReplyContext,
   type ReplyDecision,
@@ -390,11 +391,13 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       channelContext: input.channelContext,
     } satisfies ConversationRecord);
 
+  const safety = classifyInboundSafety(input.messageText, config);
   const automation = resolveInboundAutomation(config, {
     channel: input.channel,
     messageText: input.messageText,
     nowIso: receivedAt,
     existingConversation,
+    safetyAction: safety.action,
   });
   const effectiveConfig = automation.effectiveConfig;
   const agentRequiresExplicitSelection = Boolean(
@@ -433,6 +436,28 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       status: existingConversation.status,
       summary: existingConversation.summary,
       reply: "",
+      grounded: false,
+      source: "fallback",
+    };
+  } else if (safety.action === "silence") {
+    decision = {
+      intent: safety.intent,
+      confidence: 99,
+      needsHuman: false,
+      status: "spam",
+      summary: safety.reason,
+      reply: "",
+      grounded: false,
+      source: "fallback",
+    };
+  } else if (safety.action === "handoff") {
+    decision = {
+      intent: safety.intent,
+      confidence: 99,
+      needsHuman: true,
+      status: "assigned_to_admin",
+      summary: safety.reason,
+      reply: effectiveConfig.automation.aiConfig.handoverMessage,
       grounded: false,
       source: "fallback",
     };
@@ -665,10 +690,18 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
     });
     conversation = appendAutomationLog(conversation, {
       event: "message_received",
-      summary: automation.flow
-        ? `Flow "${automation.flow.name}" aktif untuk pesan masuk ini.`
-        : "Tidak ada flow publish yang cocok; pesan diproses oleh inbox default.",
-      status: automation.flow ? "applied" : "skipped",
+      summary:
+        safety.action !== "allow"
+          ? `Safety Gate diterapkan: ${safety.reason}`
+          : automation.flow
+            ? `Flow "${automation.flow.name}" aktif untuk pesan masuk ini.`
+            : "Tidak ada flow publish yang cocok; pesan diproses oleh RAG default.",
+      status:
+        safety.action !== "allow"
+          ? "applied"
+          : automation.flow
+            ? "applied"
+            : "skipped",
       createdAt: receivedAt,
     });
   } else {
@@ -677,10 +710,10 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       lastInboundAt: receivedAt,
     });
   }
-  const detectedSentiment = await analyzeSentiment(
-    input.messageText,
-    effectiveConfig,
-  );
+  const detectedSentiment =
+    safety.action === "allow"
+      ? await analyzeSentiment(input.messageText, effectiveConfig)
+      : "negative";
 
   conversation = {
     ...conversation,
@@ -796,10 +829,9 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
 
   customer = {
     ...customer,
-    leadStatus:
-      automation.graphBeforeAi?.completedForm
-        ? "Booking"
-        : finalStatus === "assigned_to_admin"
+    leadStatus: automation.graphBeforeAi?.completedForm
+      ? "Booking"
+      : finalStatus === "assigned_to_admin"
         ? "Complaint"
         : finalStatus === "waiting_customer"
           ? "Booking"

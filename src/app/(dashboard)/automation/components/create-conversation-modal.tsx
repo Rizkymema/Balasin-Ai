@@ -82,6 +82,7 @@ export function CreateConversationModal({
   );
 
   const normalizedTriggerMap: Record<string, ConversationFlowTrigger> = {
+    "Semua pesan masuk": "all_incoming_messages",
     "Pesan Pertama Masuk": "first_incoming_message",
     "Pesan pertama masuk": "first_incoming_message",
     "Di luar jam kerja": "outside_office_hours",
@@ -160,9 +161,7 @@ export function CreateConversationModal({
                 value={channel}
                 onChange={(e) => setChannel(e.target.value)}
               >
-                <option value="WhatsApp - Business">
-                  WhatsApp - Business
-                </option>
+                <option value="WhatsApp - Business">WhatsApp - Business</option>
                 <option value="Instagram DM">Instagram DM</option>
                 <option value="Website Chat Widget">Website Chat Widget</option>
                 <option value="Telegram">Telegram</option>
@@ -178,6 +177,7 @@ export function CreateConversationModal({
                 value={trigger}
                 onChange={(e) => setTrigger(e.target.value)}
               >
+                <option value="Semua pesan masuk">Semua pesan masuk</option>
                 <option value="Pesan Pertama Masuk">Pesan Pertama Masuk</option>
                 <option value="Di luar jam kerja">Di luar jam kerja</option>
                 <option value="Keyword tertentu">Keyword tertentu</option>
@@ -255,7 +255,11 @@ export function CreateConversationModal({
                 Konten Pesan Awal
               </label>
               <Textarea
-                placeholder={config?.workspace?.name ? `Halo! Selamat datang di ${config.workspace.name}. Ada yang bisa kami bantu?` : "Halo! Selamat datang di layanan kami. Ada yang bisa kami bantu?"}
+                placeholder={
+                  config?.workspace?.name
+                    ? `Halo! Selamat datang di ${config.workspace.name}. Ada yang bisa kami bantu?`
+                    : "Halo! Selamat datang di layanan kami. Ada yang bisa kami bantu?"
+                }
                 value={initialMessage}
                 onChange={(e) => setInitialMessage(e.target.value)}
                 className="min-h-[160px] bg-black/40 text-xs leading-relaxed"
@@ -573,7 +577,9 @@ export function CreateConversationModal({
                     <p className="line-clamp-2 text-xs leading-relaxed text-slate-300 italic">
                       &ldquo;
                       {initialMessage ||
-                        (config?.workspace?.name ? `Halo! Selamat datang di ${config.workspace.name}. Ada yang bisa kami bantu?` : "Halo! Selamat datang di layanan kami. Ada yang bisa kami bantu?")}
+                        (config?.workspace?.name
+                          ? `Halo! Selamat datang di ${config.workspace.name}. Ada yang bisa kami bantu?`
+                          : "Halo! Selamat datang di layanan kami. Ada yang bisa kami bantu?")}
                       &rdquo;
                     </p>
                   </div>
@@ -760,6 +766,7 @@ export function CreateConversationModal({
                   value={trigger}
                   onChange={(e) => setTrigger(e.target.value)}
                 >
+                  <option value="Semua pesan masuk">Semua pesan masuk</option>
                   <option value="Pesan Pertama Masuk">
                     Pesan Pertama Masuk
                   </option>
@@ -811,7 +818,11 @@ export function CreateConversationModal({
                   Initial Message
                 </label>
                 <Textarea
-                  placeholder={config?.workspace?.name ? `Halo! Selamat datang di ${config.workspace.name}. Ada yang bisa kami bantu?` : "Halo! Selamat datang di layanan kami. Ada yang bisa kami bantu?"}
+                  placeholder={
+                    config?.workspace?.name
+                      ? `Halo! Selamat datang di ${config.workspace.name}. Ada yang bisa kami bantu?`
+                      : "Halo! Selamat datang di layanan kami. Ada yang bisa kami bantu?"
+                  }
                   value={initialMessage}
                   onChange={(e) => setInitialMessage(e.target.value)}
                   className="min-h-[100px] border-white/10 bg-black/20"

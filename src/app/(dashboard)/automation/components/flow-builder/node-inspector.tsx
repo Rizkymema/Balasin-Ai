@@ -84,6 +84,7 @@ export function NodeInspector({ node, agents, onChange, onDelete }: Props) {
                 }
                 className="h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-white outline-none focus:border-cyan-400"
               >
+                <option value="all_incoming_messages">Semua pesan masuk</option>
                 <option value="first_incoming_message">
                   Pesan pertama masuk
                 </option>
@@ -128,7 +129,10 @@ export function NodeInspector({ node, agents, onChange, onDelete }: Props) {
 
         {node.type === "form_chat" && (
           <>
-            <Field label="Judul Form Chat" hint="Tampak di bagian paling atas form chat.">
+            <Field
+              label="Judul Form Chat"
+              hint="Tampak di bagian paling atas form chat."
+            >
               <Input
                 value={node.data.formTitle ?? ""}
                 onChange={(e) => update({ formTitle: e.target.value })}
@@ -137,7 +141,10 @@ export function NodeInspector({ node, agents, onChange, onDelete }: Props) {
               />
             </Field>
 
-            <Field label="Deskripsi / Instruksi Chat" hint="Pesan pembuka form yang akan dibaca pelanggan.">
+            <Field
+              label="Deskripsi / Instruksi Chat"
+              hint="Pesan pembuka form yang akan dibaca pelanggan."
+            >
               <Textarea
                 value={node.data.formDescription ?? ""}
                 onChange={(e) => update({ formDescription: e.target.value })}
@@ -167,7 +174,7 @@ export function NodeInspector({ node, agents, onChange, onDelete }: Props) {
 
             <div className="space-y-3 rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-violet-300 flex items-center gap-1.5">
+                <span className="flex items-center gap-1.5 text-[11px] font-bold text-violet-300">
                   <FileText className="h-3.5 w-3.5" />
                   Fields Form ({node.data.formFields?.length ?? 0})
                 </span>
@@ -185,7 +192,7 @@ export function NodeInspector({ node, agents, onChange, onDelete }: Props) {
                     };
                     update({ formFields: [...fields, newField] });
                   }}
-                  className="h-7 gap-1 px-2.5 text-[10px] font-bold bg-violet-500/20 text-violet-300 border-violet-500/30 hover:bg-violet-500/30"
+                  className="h-7 gap-1 border-violet-500/30 bg-violet-500/20 px-2.5 text-[10px] font-bold text-violet-300 hover:bg-violet-500/30"
                 >
                   <Plus className="h-3 w-3" /> Tambah Field
                 </Button>
@@ -216,21 +223,24 @@ export function NodeInspector({ node, agents, onChange, onDelete }: Props) {
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <span className="text-[10px] text-slate-400 font-semibold block mb-1">
+                      <span className="mb-1 block text-[10px] font-semibold text-slate-400">
                         Nama Field
                       </span>
                       <Input
                         value={field.label}
                         onChange={(e) => {
                           const fields = [...(node.data.formFields ?? [])];
-                          fields[index] = { ...fields[index], label: e.target.value };
+                          fields[index] = {
+                            ...fields[index],
+                            label: e.target.value,
+                          };
                           update({ formFields: fields });
                         }}
-                        className="h-8 text-xs bg-black/40"
+                        className="h-8 bg-black/40 text-xs"
                       />
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 font-semibold block mb-1">
+                      <span className="mb-1 block text-[10px] font-semibold text-slate-400">
                         Tipe Input
                       </span>
                       <select
@@ -257,7 +267,7 @@ export function NodeInspector({ node, agents, onChange, onDelete }: Props) {
 
                   {field.type === "select" && (
                     <div>
-                      <span className="text-[10px] text-slate-400 font-semibold block mb-1">
+                      <span className="mb-1 block text-[10px] font-semibold text-slate-400">
                         Pilihan (Pisahkan dengan koma)
                       </span>
                       <Input
@@ -274,19 +284,22 @@ export function NodeInspector({ node, agents, onChange, onDelete }: Props) {
                           update({ formFields: fields });
                         }}
                         placeholder="Servis CVT, Ganti Oli, Tune Up"
-                        className="h-8 text-xs bg-black/40"
+                        className="h-8 bg-black/40 text-xs"
                       />
                     </div>
                   )}
 
                   <div className="flex items-center justify-between pt-1">
-                    <label className="flex items-center gap-1.5 text-[10px] text-slate-400 cursor-pointer">
+                    <label className="flex cursor-pointer items-center gap-1.5 text-[10px] text-slate-400">
                       <input
                         type="checkbox"
                         checked={field.required !== false}
                         onChange={(e) => {
                           const fields = [...(node.data.formFields ?? [])];
-                          fields[index] = { ...fields[index], required: e.target.checked };
+                          fields[index] = {
+                            ...fields[index],
+                            required: e.target.checked,
+                          };
                           update({ formFields: fields });
                         }}
                         className="accent-violet-500"
@@ -327,7 +340,7 @@ export function NodeInspector({ node, agents, onChange, onDelete }: Props) {
 
         {node.type === "ai_agent" && (
           <>
-            <Field label="AI Agent">
+            <Field label="AI Agent (wajib)">
               <select
                 value={node.data.agentId ?? ""}
                 onChange={(event) =>
@@ -335,7 +348,7 @@ export function NodeInspector({ node, agents, onChange, onDelete }: Props) {
                 }
                 className="h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-white outline-none focus:border-cyan-400"
               >
-                <option value="">Auto by channel</option>
+                <option value="">Pilih AI Agent aktif...</option>
                 {agents.map((agent) => (
                   <option
                     key={agent.id}
@@ -363,7 +376,8 @@ export function NodeInspector({ node, agents, onChange, onDelete }: Props) {
             />
             <div className="rounded-xl border border-cyan-400/15 bg-cyan-400/[0.04] p-3 text-[11px] leading-relaxed text-cyan-100/70">
               Output: Answered, Human, No data, dan Error. Custom Instructions
-              global otomatis diterapkan.
+              global otomatis diterapkan. Agent wajib dipilih agar perilaku test
+              dan runtime sama.
             </div>
           </>
         )}

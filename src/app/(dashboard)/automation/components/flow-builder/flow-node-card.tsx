@@ -86,7 +86,7 @@ export function FlowNodeCard({
       <div
         className={`relative rounded-full border bg-blue-600 px-3 py-1.5 text-[10px] font-bold text-white shadow-lg transition ${selected ? "border-cyan-300 ring-4 ring-cyan-400/20" : "border-blue-500"}`}
       >
-        Start point
+        {data.label || "Start point"}
         <Handle
           type="source"
           position={Position.Bottom}
@@ -114,7 +114,7 @@ export function FlowNodeCard({
 
   return (
     <div
-      className={`relative min-w-[240px] max-w-[320px] rounded-xl border bg-white shadow-[0_10px_30px_rgba(15,23,42,0.12)] transition ${
+      className={`relative max-w-[320px] min-w-[240px] rounded-xl border bg-white shadow-[0_10px_30px_rgba(15,23,42,0.12)] transition ${
         selected
           ? "border-cyan-500 ring-4 ring-cyan-400/15"
           : "border-slate-300"
@@ -148,7 +148,7 @@ export function FlowNodeCard({
 
       {preview && (
         <div
-          className={`max-h-52 overflow-y-auto px-3.5 pt-2.5 text-[11px] leading-relaxed text-slate-700 whitespace-pre-wrap break-words nodrag ${
+          className={`nodrag max-h-52 overflow-y-auto px-3.5 pt-2.5 text-[11px] leading-relaxed break-words whitespace-pre-wrap text-slate-700 ${
             outputs ? "pb-3" : "pb-5"
           }`}
         >

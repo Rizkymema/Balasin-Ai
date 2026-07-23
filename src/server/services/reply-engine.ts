@@ -1,4 +1,7 @@
-import { getKnowledgeChunks, type KnowledgeChunk } from "@/server/repositories/dashboard-repository";
+import {
+  getKnowledgeChunks,
+  type KnowledgeChunk,
+} from "@/server/repositories/dashboard-repository";
 import { resolveAppUrl } from "@/lib/app-url";
 import {
   formatCustomInstructionsForPrompt,
@@ -38,6 +41,23 @@ export type ReplyContext = {
   externalBusinessContext?: string;
 };
 
+export type InboundSafetyDecision =
+  | {
+      action: "allow";
+      intent: "Normal";
+      reason: string;
+    }
+  | {
+      action: "silence";
+      intent: "Spam" | "Ujaran kasar";
+      reason: string;
+    }
+  | {
+      action: "handoff";
+      intent: "Darurat" | "Komplain kritis";
+      reason: string;
+    };
+
 const LOCATION_KEYWORDS = [
   "alamat",
   "lokasi",
@@ -48,20 +68,38 @@ const LOCATION_KEYWORDS = [
   "gmaps",
 ];
 
-const HOURS_KEYWORDS = [
-  "jam",
-  "buka",
-  "tutup",
-  "operasional",
-  "open",
-  "close",
+const HOURS_KEYWORDS = ["jam", "buka", "tutup", "operasional", "open", "close"];
+
+const EMAIL_KEYWORDS = [
+  "email",
+  "surel",
+  "kontak email",
+  "hubungi lewat email",
+];
+const DESCRIPTION_KEYWORDS = [
+  "siapa",
+  "profil",
+  "tentang",
+  "about",
+  "apa itu",
+  "deskripsi",
+];
+const NAME_KEYWORDS = [
+  "nama bisnis",
+  "nama toko",
+  "nama bengkel",
+  "bengkel apa",
+  "toko apa",
 ];
 
-const EMAIL_KEYWORDS = ["email", "surel", "kontak email", "hubungi lewat email"];
-const DESCRIPTION_KEYWORDS = ["siapa", "profil", "tentang", "about", "apa itu", "deskripsi"];
-const NAME_KEYWORDS = ["nama bisnis", "nama toko", "nama bengkel", "bengkel apa", "toko apa"];
-
-const PRICE_KEYWORDS = ["harga", "berapa", "biaya", "tarif", "ongkos", "estimasi"];
+const PRICE_KEYWORDS = [
+  "harga",
+  "berapa",
+  "biaya",
+  "tarif",
+  "ongkos",
+  "estimasi",
+];
 const TECHNICAL_MOTOR_KEYWORDS = [
   "motor",
   "mesin",
@@ -127,7 +165,13 @@ const DEFAULT_GREETING_KEYWORDS = [
   "hlo",
 ];
 
-const BOOKING_KEYWORDS = ["booking", "book", "servis besok", "service besok", "jadwal"];
+const BOOKING_KEYWORDS = [
+  "booking",
+  "book",
+  "servis besok",
+  "service besok",
+  "jadwal",
+];
 const SPAM_KEYWORDS = [
   "judol",
   "judi online",
@@ -187,7 +231,7 @@ const FINANCE_KEYWORDS = [
   "sudah transfer",
   "konfirmasi bayar",
   "pembayaran",
-  "transfer"
+  "transfer",
 ];
 
 const DISCOUNT_KEYWORDS = [
@@ -199,7 +243,7 @@ const DISCOUNT_KEYWORDS = [
   "harga grosir",
   "b2b",
   "diskon khusus",
-  "minta diskon"
+  "minta diskon",
 ];
 
 const DETAILED_COMPLAINT_KEYWORDS = [
@@ -216,7 +260,7 @@ const DETAILED_COMPLAINT_KEYWORDS = [
   "barang kurang",
   "salah barang",
   "pengembalian barang",
-  "retur"
+  "retur",
 ];
 
 const SAFETY_KEYWORDS = [
@@ -232,7 +276,17 @@ const SAFETY_KEYWORDS = [
   "terbakar",
   "kebakaran",
   "overbooking",
-  "bentrok"
+  "bentrok",
+];
+const CRITICAL_SAFETY_KEYWORDS = [
+  "bahaya",
+  "darurat",
+  "urgent",
+  "tabrakan",
+  "kecelakaan",
+  "rem blong",
+  "terbakar",
+  "kebakaran",
 ];
 
 const ANGRY_KEYWORDS = [
@@ -251,7 +305,7 @@ const ANGRY_KEYWORDS = [
   "tolol",
   "kecewa banget",
   "marah",
-  "kasar"
+  "kasar",
 ];
 
 const IMPORTANT_BUSINESS_KEYWORDS = [
@@ -448,11 +502,70 @@ function tokenize(input: string) {
 function hasKeyword(input: string, keywords: string[]) {
   const normalizedInput = normalizeText(input);
 
-  return keywords.some((keyword) => normalizedInput.includes(normalizeText(keyword)));
+  return keywords.some((keyword) =>
+    normalizedInput.includes(normalizeText(keyword)),
+  );
+}
+
+function hasWholeKeyword(input: string, keywords: string[]) {
+  const normalizedInput = normalizeText(input);
+  return keywords.some((keyword) => {
+    const normalizedKeyword = normalizeText(keyword);
+    return new RegExp(`\\b${escapeRegExp(normalizedKeyword)}\\b`, "i").test(
+      normalizedInput,
+    );
+  });
 }
 
 function isSpamMessage(input: string) {
   return hasKeyword(input, SPAM_KEYWORDS);
+}
+
+export function classifyInboundSafety(
+  messageText: string,
+  config: DashboardConfig,
+): InboundSafetyDecision {
+  const normalized = normalizeText(messageText);
+
+  if (config.automation.spamGuard && isSpamMessage(normalized)) {
+    return {
+      action: "silence",
+      intent: "Spam",
+      reason:
+        "Pesan terdeteksi sebagai spam, promosi terlarang, atau judi online.",
+    };
+  }
+
+  if (hasWholeKeyword(normalized, OFFENSIVE_COMMENT_KEYWORDS)) {
+    return {
+      action: "silence",
+      intent: "Ujaran kasar",
+      reason: "Pesan berisi ujaran kasar dan tidak diteruskan ke chatbot.",
+    };
+  }
+
+  if (hasWholeKeyword(normalized, CRITICAL_SAFETY_KEYWORDS)) {
+    return {
+      action: "handoff",
+      intent: "Darurat",
+      reason: "Pesan mengindikasikan kondisi darurat atau risiko keselamatan.",
+    };
+  }
+
+  if (hasWholeKeyword(normalized, ANGRY_KEYWORDS)) {
+    return {
+      action: "handoff",
+      intent: "Komplain kritis",
+      reason:
+        "Pesan mengindikasikan komplain kritis yang perlu ditangani admin.",
+    };
+  }
+
+  return {
+    action: "allow",
+    intent: "Normal",
+    reason: "Pesan aman untuk diproses oleh Conversation Flow atau RAG.",
+  };
 }
 
 function getImportantBusinessCategory(input: string) {
@@ -482,10 +595,14 @@ function isKnownWorkspaceFactQuestion(input: string, config: DashboardConfig) {
   }
 
   return (
-    (hasKeyword(input, LOCATION_KEYWORDS) && Boolean(config.workspace.address.trim())) ||
-    (hasKeyword(input, HOURS_KEYWORDS) && Boolean(config.workspace.businessHours.trim())) ||
-    (hasKeyword(input, EMAIL_KEYWORDS) && Boolean(config.workspace.supportEmail.trim())) ||
-    (hasKeyword(input, DESCRIPTION_KEYWORDS) && Boolean(config.workspace.description.trim())) ||
+    (hasKeyword(input, LOCATION_KEYWORDS) &&
+      Boolean(config.workspace.address.trim())) ||
+    (hasKeyword(input, HOURS_KEYWORDS) &&
+      Boolean(config.workspace.businessHours.trim())) ||
+    (hasKeyword(input, EMAIL_KEYWORDS) &&
+      Boolean(config.workspace.supportEmail.trim())) ||
+    (hasKeyword(input, DESCRIPTION_KEYWORDS) &&
+      Boolean(config.workspace.description.trim())) ||
     (hasKeyword(input, NAME_KEYWORDS) && Boolean(config.workspace.name.trim()))
   );
 }
@@ -509,7 +626,8 @@ function isGreetingMessage(input: string, config: DashboardConfig) {
   }
 
   return greetingKeywords.some(
-    (keyword) => normalized === keyword || compact === keyword || tokens.includes(keyword),
+    (keyword) =>
+      normalized === keyword || compact === keyword || tokens.includes(keyword),
   );
 }
 
@@ -536,7 +654,9 @@ function stripOpeningPhrase(input: string) {
 }
 
 function extractStyleSignals(config: DashboardConfig) {
-  const instructions = parseCustomInstructions(config.aiAgent.replyInstructions);
+  const instructions = parseCustomInstructions(
+    config.aiAgent.replyInstructions,
+  );
   const explicitTone = instructions.tone.toLowerCase();
   const toneSource = explicitTone || config.aiAgent.tone.toLowerCase();
   const personaSource = [
@@ -621,9 +741,13 @@ function applyStyleInstructions(
 
   if (signals.useGuaLu || signals.usePren) {
     text = text.replace(/\bAnda\b/g, "lu").replace(/\banda\b/g, "lu");
-    text = text.replace(/\bBapak\/Ibu\b/g, "pren").replace(/\bbapak\/ibu\b/g, "pren");
+    text = text
+      .replace(/\bBapak\/Ibu\b/g, "pren")
+      .replace(/\bbapak\/ibu\b/g, "pren");
   } else if (signals.useBapakIbu) {
-    text = text.replace(/\bAnda\b/g, "Bapak/Ibu").replace(/\banda\b/g, "Bapak/Ibu");
+    text = text
+      .replace(/\bAnda\b/g, "Bapak/Ibu")
+      .replace(/\banda\b/g, "Bapak/Ibu");
   } else if (signals.useKak) {
     text = text.replace(/\bAnda\b/g, "kak").replace(/\banda\b/g, "kak");
   }
@@ -706,7 +830,7 @@ function buildConversationSnippet(context?: ReplyContext) {
               ? "Admin"
               : message.sender === "agent"
                 ? "Agent"
-              : "System";
+                : "System";
 
       return `${speaker}: ${message.text.trim()}`;
     })
@@ -715,7 +839,8 @@ function buildConversationSnippet(context?: ReplyContext) {
 
 function messageNeedsConversationContext(messageText: string) {
   const normalized = normalizeText(messageText);
-  const CONTEXT_FOLLOWUP_RX = /\b(ada|kosong|ready|harganya|ongkosnya|biayanya|kapan|dimana|alamatnya|itu|ini|tersebut|disitu|sana|sini|besok|lusa|jumat|sabtu|minggu|senin|selasa|rabu|kamis)\b/i;
+  const CONTEXT_FOLLOWUP_RX =
+    /\b(ada|kosong|ready|harganya|ongkosnya|biayanya|kapan|dimana|alamatnya|itu|ini|tersebut|disitu|sana|sini|besok|lusa|jumat|sabtu|minggu|senin|selasa|rabu|kamis)\b/i;
 
   return /^\d{4}$/.test(normalized) || CONTEXT_FOLLOWUP_RX.test(normalized);
 }
@@ -753,8 +878,7 @@ function buildContextualMessage(
     ?.text.trim();
   const lastAiMessage = [...previousMessages]
     .reverse()
-    .find((message) => message.sender === "ai")
-    ?.text;
+    .find((message) => message.sender === "ai")?.text;
 
   const priorCustomerContext = lastCustomerMessage ?? "";
   const priorIntentDetected =
@@ -772,7 +896,10 @@ function buildContextualMessage(
     messageNeedsConversationContext(messageText) ||
     previousMessageNeedsFollowUp(lastAiMessage ?? "");
 
-  if (!needsFollowUpContext || (!priorIntentDetected && !previousMessageNeedsFollowUp(lastAiMessage ?? ""))) {
+  if (
+    !needsFollowUpContext ||
+    (!priorIntentDetected && !previousMessageNeedsFollowUp(lastAiMessage ?? ""))
+  ) {
     return messageText;
   }
 
@@ -861,13 +988,17 @@ function extractMotorType(text: string) {
   if (knownMotorMatch) {
     return knownMotorMatch[0]
       .split(" ")
-      .map((part) => (part ? part.charAt(0).toUpperCase() + part.slice(1) : part))
+      .map((part) =>
+        part ? part.charAt(0).toUpperCase() + part.slice(1) : part,
+      )
       .join(" ");
   }
 
   if (tokens.length <= 4) {
     return tokens
-      .map((part) => (part ? part.charAt(0).toUpperCase() + part.slice(1) : part))
+      .map((part) =>
+        part ? part.charAt(0).toUpperCase() + part.slice(1) : part,
+      )
       .join(" ");
   }
 
@@ -966,7 +1097,9 @@ function scoreCandidate(messageText: string, candidateText: string) {
   }
 
   const matchedTokenCount = messageTokens.filter((token) =>
-    candidateTokens.some((candidateToken) => areTokensSimilar(token, candidateToken)),
+    candidateTokens.some((candidateToken) =>
+      areTokensSimilar(token, candidateToken),
+    ),
   ).length;
   const matchedCandidateTokenCount = candidateTokens.filter((token) =>
     messageTokens.some((messageToken) => areTokensSimilar(token, messageToken)),
@@ -975,11 +1108,15 @@ function scoreCandidate(messageText: string, candidateText: string) {
   const overlapScore = matchedTokenCount / messageTokens.length;
   const candidateCoverage = matchedCandidateTokenCount / candidateTokens.length;
   const phraseBonus =
-    matchedTokenCount >= 2 && normalizedCandidate.includes(messageTokens.join(" "))
+    matchedTokenCount >= 2 &&
+    normalizedCandidate.includes(messageTokens.join(" "))
       ? 0.15
       : 0;
 
-  return Math.min(1, Math.max(overlapScore, candidateCoverage * 0.9) + phraseBonus);
+  return Math.min(
+    1,
+    Math.max(overlapScore, candidateCoverage * 0.9) + phraseBonus,
+  );
 }
 
 function findBestFaqMatch(messageText: string, faqs: FAQItem[]) {
@@ -988,7 +1125,10 @@ function findBestFaqMatch(messageText: string, faqs: FAQItem[]) {
   for (const faq of faqs) {
     const questionScore = scoreCandidate(messageText, faq.question);
     const answerScore = scoreCandidate(messageText, faq.answer);
-    const score = Math.max(questionScore * 1.15, (questionScore + answerScore) / 2);
+    const score = Math.max(
+      questionScore * 1.15,
+      (questionScore + answerScore) / 2,
+    );
 
     if (!bestMatch || score > bestMatch.score) {
       bestMatch = { faq, score };
@@ -1011,7 +1151,10 @@ function buildRelevantFaqContext(messageText: string, faqs: FAQItem[]) {
     .map((faq) => {
       const questionScore = scoreCandidate(messageText, faq.question);
       const answerScore = scoreCandidate(messageText, faq.answer);
-      const score = Math.max(questionScore * 1.15, (questionScore + answerScore) / 2);
+      const score = Math.max(
+        questionScore * 1.15,
+        (questionScore + answerScore) / 2,
+      );
 
       return {
         question: faq.question.trim(),
@@ -1068,7 +1211,11 @@ function parseStructuredKnowledgeChunk(content: string) {
       continue;
     }
 
-    if (key === "kata kunci" || key === "trigger" || key === "kata kunci trigger") {
+    if (
+      key === "kata kunci" ||
+      key === "trigger" ||
+      key === "kata kunci trigger"
+    ) {
       result.triggers = value
         .split(",")
         .map((item) => item.trim())
@@ -1076,7 +1223,11 @@ function parseStructuredKnowledgeChunk(content: string) {
       continue;
     }
 
-    if (key === "panduan jawaban ai" || key === "jawaban ai" || key === "panduan") {
+    if (
+      key === "panduan jawaban ai" ||
+      key === "jawaban ai" ||
+      key === "panduan"
+    ) {
       result.guidance = value;
       continue;
     }
@@ -1106,7 +1257,9 @@ function isNoisyWebsiteChunk(chunk: KnowledgeChunk) {
     "booking bengkel",
     "categories",
   ];
-  const hitCount = noiseMarkers.filter((marker) => normalized.includes(marker)).length;
+  const hitCount = noiseMarkers.filter((marker) =>
+    normalized.includes(marker),
+  ).length;
 
   // Kurangi agresivitas penyaringan agar data operasional tidak terbuang
   return hitCount >= 3 || (normalized.length > 800 && hitCount >= 2);
@@ -1135,7 +1288,9 @@ export function isInternalReplyArtifact(content: string) {
     /(?:^|\n|\|)\s*(?:indikasi|sentiment|intent|classification|klasifikasi)\s*:/i,
   ];
 
-  return classifierLabels.filter((pattern) => pattern.test(normalized)).length >= 2;
+  return (
+    classifierLabels.filter((pattern) => pattern.test(normalized)).length >= 2
+  );
 }
 
 function isClassifierAnalysisText(content: string) {
@@ -1179,9 +1334,9 @@ function isAnswerBearingKnowledgeChunk(chunk: KnowledgeChunk) {
     row &&
     Boolean(
       row.priceStart ||
-        row.priceMax ||
-        row.include ||
-        (row.name && (row.category || row.specification)),
+      row.priceMax ||
+      row.include ||
+      (row.name && (row.category || row.specification)),
     )
   ) {
     return true;
@@ -1208,9 +1363,11 @@ export function isKnowledgeChunkEligibleForAnswer(chunk: KnowledgeChunk) {
 }
 
 function extractTriggersFromContent(content: string): string[] {
-  const match = content.match(/(?:Kata Kunci \/ Trigger|Kata Kunci|Trigger)\s*:\s*([^|]+)/i);
+  const match = content.match(
+    /(?:Kata Kunci \/ Trigger|Kata Kunci|Trigger)\s*:\s*([^|]+)/i,
+  );
   if (!match) return [];
-  
+
   return match[1]
     .split(",")
     .map((t) => t.trim().toLowerCase())
@@ -1235,7 +1392,10 @@ function scoreTriggers(messageText: string, triggers: string[]) {
       continue;
     }
 
-    bestScore = Math.max(bestScore, scoreCandidate(messageText, normalizedTrigger));
+    bestScore = Math.max(
+      bestScore,
+      scoreCandidate(messageText, normalizedTrigger),
+    );
   }
 
   return bestScore;
@@ -1262,7 +1422,12 @@ const SHEET_SPEC_KEYS = [
   "spesifikasi",
   "cocok untuk",
 ];
-const SHEET_PRICE_START_KEYS = ["harga mulai rp", "harga mulai", "harga", "price"];
+const SHEET_PRICE_START_KEYS = [
+  "harga mulai rp",
+  "harga mulai",
+  "harga",
+  "price",
+];
 const SHEET_PRICE_MAX_KEYS = [
   "harga maksimum rp",
   "harga maksimum",
@@ -1323,7 +1488,9 @@ function findStructuredField(
   parts: Array<{ key: string; normalizedKey: string; value: string }>,
   candidates: string[],
 ) {
-  const normalizedCandidates = candidates.map((candidate) => normalizeText(candidate));
+  const normalizedCandidates = candidates.map((candidate) =>
+    normalizeText(candidate),
+  );
 
   for (const candidate of normalizedCandidates) {
     const exactMatch = parts.find((part) => part.normalizedKey === candidate);
@@ -1359,7 +1526,14 @@ function parseStructuredSheetRow(content: string) {
   const priceMax = findStructuredField(parts, SHEET_PRICE_MAX_KEYS);
   const include = findStructuredField(parts, SHEET_INCLUDE_KEYS);
 
-  if (!name && !category && !specification && !priceStart && !priceMax && !include) {
+  if (
+    !name &&
+    !category &&
+    !specification &&
+    !priceStart &&
+    !priceMax &&
+    !include
+  ) {
     return null;
   }
 
@@ -1398,7 +1572,8 @@ function formatStructuredSheetRowReply(
 
   if (
     row.category &&
-    (!row.name || !normalizeText(row.name).includes(normalizeText(row.category)))
+    (!row.name ||
+      !normalizeText(row.name).includes(normalizeText(row.category)))
   ) {
     segments.push(`kategori ${row.category}`);
   }
@@ -1410,11 +1585,15 @@ function formatStructuredSheetRowReply(
   let reply = segments.join(" ");
 
   if (priceLabel) {
-    reply = reply ? `${reply} harganya ${priceLabel}` : `Harganya ${priceLabel}`;
+    reply = reply
+      ? `${reply} harganya ${priceLabel}`
+      : `Harganya ${priceLabel}`;
   }
 
   if (row.include) {
-    reply = reply ? `${reply}. Include: ${row.include}` : `Include: ${row.include}`;
+    reply = reply
+      ? `${reply}. Include: ${row.include}`
+      : `Include: ${row.include}`;
   }
 
   return (
@@ -1485,11 +1664,15 @@ function scoreStructuredSheetRow(
   askingPrice: boolean,
 ) {
   const nameScore = row.name ? scoreCandidate(messageText, row.name) : 0;
-  const categoryScore = row.category ? scoreCandidate(messageText, row.category) : 0;
+  const categoryScore = row.category
+    ? scoreCandidate(messageText, row.category)
+    : 0;
   const specificationScore = row.specification
     ? scoreCandidate(messageText, row.specification)
     : 0;
-  const includeScore = row.include ? scoreCandidate(messageText, row.include) : 0;
+  const includeScore = row.include
+    ? scoreCandidate(messageText, row.include)
+    : 0;
   const primaryScore = Math.max(
     nameScore * 1.25,
     categoryScore * 1.1,
@@ -1497,7 +1680,9 @@ function scoreStructuredSheetRow(
   );
   const supportingScore = includeScore * 0.7;
   const identityTokens = new Set(
-    tokenize([row.name, row.category, row.specification].filter(Boolean).join(" ")),
+    tokenize(
+      [row.name, row.category, row.specification].filter(Boolean).join(" "),
+    ),
   );
   const specificQueryTokens = tokenize(messageText).filter(
     (token) => !STRUCTURED_QUERY_NOISE_TOKENS.has(token),
@@ -1521,7 +1706,9 @@ function scoreStructuredSheetRow(
   // remains a ranking signal even when both candidates are strong matches.
   return Math.min(
     1.4,
-    Math.max(primaryScore, supportingScore) + priceBoost + identityCoverage * 0.22,
+    Math.max(primaryScore, supportingScore) +
+      priceBoost +
+      identityCoverage * 0.22,
   );
 }
 
@@ -1543,18 +1730,18 @@ function formatGoogleSheetReply(content: string): string {
 
   if (content.includes(" | ")) {
     const parts = content.split(" | ");
-    
+
     // Look specifically for "Panduan Jawaban AI" or "Jawaban" or "Answer" or "Content"
     for (const part of parts) {
       const colonIndex = part.indexOf(":");
       if (colonIndex !== -1) {
         const key = part.slice(0, colonIndex).trim().toLowerCase();
         const value = part.slice(colonIndex + 1).trim();
-        
+
         if (
-          key === "panduan jawaban ai" || 
-          key === "jawaban" || 
-          key === "answer" || 
+          key === "panduan jawaban ai" ||
+          key === "jawaban" ||
+          key === "answer" ||
           key === "jawaban ai" ||
           key === "response message"
         ) {
@@ -1562,7 +1749,7 @@ function formatGoogleSheetReply(content: string): string {
         }
       }
     }
-    
+
     // Fallback: If no explicit answer column was found, format all parts except Category/Triggers/Status
     return parts
       .map((part) => {
@@ -1610,14 +1797,12 @@ async function findBestGoogleSheetMatch(
 
   const askingPrice = hasKeyword(queryLower, PRICE_KEYWORDS);
 
-  let bestMatch:
-    | {
-        chunk: KnowledgeChunk;
-        score: number;
-        isTriggerMatch: boolean;
-        reply: string;
-      }
-    | null = null;
+  let bestMatch: {
+    chunk: KnowledgeChunk;
+    score: number;
+    isTriggerMatch: boolean;
+    reply: string;
+  } | null = null;
 
   for (const chunk of sheetChunks) {
     if (isInactiveKnowledgeChunk(chunk)) {
@@ -1637,10 +1822,10 @@ async function findBestGoogleSheetMatch(
     // Check triggers first (substring match with word boundary)
     for (const trigger of triggers) {
       if (trigger.length < 2) continue;
-      
+
       const escapedTrigger = escapeRegExp(trigger);
       const regex = new RegExp(`\\b${escapedTrigger}\\b`, "i");
-      
+
       if (regex.test(queryLower)) {
         hasTriggerMatch = true;
         const wordCount = trigger.split(/\s+/).length;
@@ -1654,7 +1839,11 @@ async function findBestGoogleSheetMatch(
     if (hasTriggerMatch) {
       const structuredRow = parseStructuredSheetRow(chunk.content);
       const rowIdentity = structuredRow
-        ? [structuredRow.name, structuredRow.category, structuredRow.specification]
+        ? [
+            structuredRow.name,
+            structuredRow.category,
+            structuredRow.specification,
+          ]
             .filter(Boolean)
             .join(" ")
         : "";
@@ -1713,7 +1902,11 @@ async function findBestGoogleSheetMatch(
 
     const structuredRow = parseStructuredSheetRow(chunk.content);
     if (structuredRow) {
-      const currentScore = scoreStructuredSheetRow(messageText, structuredRow, askingPrice);
+      const currentScore = scoreStructuredSheetRow(
+        messageText,
+        structuredRow,
+        askingPrice,
+      );
       if (currentScore > 0) {
         if (
           !bestMatch ||
@@ -1752,7 +1945,9 @@ async function findBestGoogleSheetMatch(
       : 0;
     const priceBoost =
       askingPrice &&
-      /(harga|biaya|tarif|pricelist)/i.test(`${structured.category} ${structured.guidance}`)
+      /(harga|biaya|tarif|pricelist)/i.test(
+        `${structured.category} ${structured.guidance}`,
+      )
         ? 0.15
         : 0;
     const currentScore = Math.min(
@@ -1761,7 +1956,10 @@ async function findBestGoogleSheetMatch(
         priceBoost,
     );
 
-    if (!bestMatch || (!bestMatch.isTriggerMatch && currentScore > bestMatch.score)) {
+    if (
+      !bestMatch ||
+      (!bestMatch.isTriggerMatch && currentScore > bestMatch.score)
+    ) {
       bestMatch = {
         chunk,
         score: currentScore,
@@ -1774,7 +1972,8 @@ async function findBestGoogleSheetMatch(
   if (bestMatch) {
     const confidence = Math.min(99, Math.round(bestMatch.score * 100));
     const minimumConfidence = askingPrice ? 68 : 62;
-    const isMatched = bestMatch.isTriggerMatch || confidence >= minimumConfidence;
+    const isMatched =
+      bestMatch.isTriggerMatch || confidence >= minimumConfidence;
 
     if (isMatched) {
       return {
@@ -1797,15 +1996,13 @@ async function findBestDocumentMatch(messageText: string) {
       c.metadata?.sourceType !== "google_sheet" &&
       isKnowledgeChunkEligibleForAnswer(c),
   );
-  let bestMatch:
-    | {
-        content: string;
-        sourceName: string;
-        score: number;
-        answer?: string;
-        question?: string;
-      }
-    | null = null;
+  let bestMatch: {
+    content: string;
+    sourceName: string;
+    score: number;
+    answer?: string;
+    question?: string;
+  } | null = null;
 
   for (const chunk of nonSheetChunks) {
     const structured = parseStructuredKnowledgeChunk(chunk.content);
@@ -1926,7 +2123,8 @@ async function buildRelevantDocumentContext(messageText: string) {
       return {
         sourceName: titleBase,
         question: chunk.metadata.question?.trim() || "",
-        content: content.length > 700 ? `${content.slice(0, 697).trim()}...` : content,
+        content:
+          content.length > 700 ? `${content.slice(0, 697).trim()}...` : content,
         score,
         sourceType: chunk.metadata.sourceType,
       };
@@ -1987,7 +2185,9 @@ function extractAiResponseText(payload: unknown, provider?: string) {
 
   // Anthropic response: { content: [{ type: "text", text: "..." }] }
   if (provider === "anthropic") {
-    const anthropic = payload as { content?: Array<{ type?: string; text?: string }> };
+    const anthropic = payload as {
+      content?: Array<{ type?: string; text?: string }>;
+    };
     const text = anthropic.content
       ?.filter((item) => item.type === "text")
       .map((item) => item.text?.trim() ?? "")
@@ -2051,10 +2251,14 @@ async function generateProviderReply(
     return null;
   }
 
-  const faqContext = buildRelevantFaqContext(messageText, config.knowledgeBase.faqs);
+  const faqContext = buildRelevantFaqContext(
+    messageText,
+    config.knowledgeBase.faqs,
+  );
   const documentContext = await buildRelevantDocumentContext(messageText);
   const conversationContext = buildConversationSnippet(context);
-  const externalBusinessContext = context?.externalBusinessContext?.trim() ?? "";
+  const externalBusinessContext =
+    context?.externalBusinessContext?.trim() ?? "";
   const timezone = config.workspace.timezone || getDefaultTimezone();
   const currentTime = formatCurrentTimeContext(timezone);
 
@@ -2100,7 +2304,9 @@ async function generateProviderReply(
   const customInstructions = parseCustomInstructions(
     config.aiAgent.replyInstructions,
   );
-  const customInstructionsSection = hasCustomInstructionContent(customInstructions)
+  const customInstructionsSection = hasCustomInstructionContent(
+    customInstructions,
+  )
     ? `\n=== PENGATURAN RESPONS PEMILIK BISNIS ===\n${formatCustomInstructionsForPrompt(customInstructions)}\n========================================\n`
     : "";
   const requiresBusinessGrounding = isImportantBusinessQuestion(messageText);
@@ -2150,11 +2356,13 @@ DATA API BISNIS
 ${externalBusinessContext || "Tidak ada data API bisnis untuk pertanyaan ini."}
 
 PRIORITAS KNOWLEDGE BASE
-${hasStrongKnowledgeContext
-  ? "Ada FAQ/Knowledge relevan. Anda WAJIB menjawab berdasarkan data relevan di atas dan tidak boleh mengganti jawabannya dengan asumsi umum atau data lain yang bertentangan."
-  : faqContext.length > 0 || documentContext.length > 0
-    ? `Ada kandidat data yang harus Anda periksa secara semantik. Gunakan hanya kandidat yang secara jelas menjawab pertanyaan. Jika tidak ada yang benar-benar menjawab dan pertanyaan meminta data bisnis/teknis, output persis ${NO_KNOWLEDGE_MATCH_TOKEN}.`
-    : `Tidak ada FAQ/Knowledge yang cocok langsung. Untuk pertanyaan bisnis/teknis, output persis ${NO_KNOWLEDGE_MATCH_TOKEN}.`}
+${
+  hasStrongKnowledgeContext
+    ? "Ada FAQ/Knowledge relevan. Anda WAJIB menjawab berdasarkan data relevan di atas dan tidak boleh mengganti jawabannya dengan asumsi umum atau data lain yang bertentangan."
+    : faqContext.length > 0 || documentContext.length > 0
+      ? `Ada kandidat data yang harus Anda periksa secara semantik. Gunakan hanya kandidat yang secara jelas menjawab pertanyaan. Jika tidak ada yang benar-benar menjawab dan pertanyaan meminta data bisnis/teknis, output persis ${NO_KNOWLEDGE_MATCH_TOKEN}.`
+      : `Tidak ada FAQ/Knowledge yang cocok langsung. Untuk pertanyaan bisnis/teknis, output persis ${NO_KNOWLEDGE_MATCH_TOKEN}.`
+}
 
 PERTANYAAN CUSTOMER
 ${messageText}
@@ -2167,7 +2375,10 @@ ${messageText}
     });
 
     if (!reply) {
-      console.error("[reply-engine] empty reply from provider", config.aiProvider.provider);
+      console.error(
+        "[reply-engine] empty reply from provider",
+        config.aiProvider.provider,
+      );
       return null;
     }
 
@@ -2196,7 +2407,10 @@ ${messageText}
   }
 }
 
-function buildFallbackDecision(config: DashboardConfig, summary: string): ReplyDecision {
+function buildFallbackDecision(
+  config: DashboardConfig,
+  summary: string,
+): ReplyDecision {
   return {
     intent: "FAQ umum",
     confidence: 45,
@@ -2245,7 +2459,11 @@ function extractCriticalFacts(text: string) {
 
   return new Set(
     (matches ?? []).map((value) =>
-      value.toLowerCase().replace(/[),.;!?]+$/g, "").replace(/\s+/g, "").trim(),
+      value
+        .toLowerCase()
+        .replace(/[),.;!?]+$/g, "")
+        .replace(/\s+/g, "")
+        .trim(),
     ),
   );
 }
@@ -2273,11 +2491,17 @@ export async function applyConfiguredResponsePolicy(
   decision: ReplyDecision,
   config: DashboardConfig,
 ) {
-  if (!decision.reply?.trim() || decision.status === "spam" || decision.instructionsApplied) {
+  if (
+    !decision.reply?.trim() ||
+    decision.status === "spam" ||
+    decision.instructionsApplied
+  ) {
     return decision;
   }
 
-  const instructions = parseCustomInstructions(config.aiAgent.replyInstructions);
+  const instructions = parseCustomInstructions(
+    config.aiAgent.replyInstructions,
+  );
   if (!hasCustomInstructionContent(instructions)) {
     return decision;
   }
@@ -2413,7 +2637,8 @@ async function generateReplyDecisionBase(
       confidence: 99,
       needsHuman: false,
       status: "spam",
-      summary: "Pesan terdeteksi sebagai spam dan tidak diteruskan ke alur aktif.",
+      summary:
+        "Pesan terdeteksi sebagai spam dan tidak diteruskan ke alur aktif.",
       grounded: false,
     };
   }
@@ -2424,7 +2649,8 @@ async function generateReplyDecisionBase(
       confidence: 90,
       needsHuman: false,
       status: "ai_active",
-      summary: "Customer membuka percakapan dengan izin bertanya dan sistem membalas sebagai sapaan aman.",
+      summary:
+        "Customer membuka percakapan dengan izin bertanya dan sistem membalas sebagai sapaan aman.",
       reply: applyStyleInstructions(buildGreetingReply(config), config),
       grounded: true,
       source: "workspace",
@@ -2437,7 +2663,8 @@ async function generateReplyDecisionBase(
       confidence: 92,
       needsHuman: false,
       status: "ai_active",
-      summary: "Customer mengirim sapaan umum dan sistem membalas dengan greeting aman.",
+      summary:
+        "Customer mengirim sapaan umum dan sistem membalas dengan greeting aman.",
       reply: applyStyleInstructions(buildGreetingReply(config), config),
       grounded: true,
       source: "workspace",
@@ -2448,12 +2675,11 @@ async function generateReplyDecisionBase(
 
   // --- 1. PRIORITAS UTAMA: GROUNDED KNOWLEDGE BASE MATCHES ---
   const staticKnowledgeThreshold = getStaticKnowledgeThreshold(config);
-  
+
   // A. Google Sheet Match
   const googleSheetMatch = await findBestGoogleSheetMatch(routedMessage);
   const isSheetMatch =
-    googleSheetMatch &&
-    !isInstructionOnly(googleSheetMatch.reply);
+    googleSheetMatch && !isInstructionOnly(googleSheetMatch.reply);
 
   // B. FAQ Match
   const faqMatch = findBestFaqMatch(routedMessage, config.knowledgeBase.faqs);
@@ -2467,10 +2693,14 @@ async function generateReplyDecisionBase(
   const isHarmlessQuery =
     isGreetingMessage(messageText, config) ||
     (opener.hadOpener && !opener.stripped) ||
-    (hasKeyword(rawLower, LOCATION_KEYWORDS) && config.workspace.address.trim()) ||
-    (hasKeyword(rawLower, HOURS_KEYWORDS) && config.workspace.businessHours.trim()) ||
-    (hasKeyword(rawLower, EMAIL_KEYWORDS) && config.workspace.supportEmail.trim()) ||
-    (hasKeyword(rawLower, DESCRIPTION_KEYWORDS) && config.workspace.description.trim()) ||
+    (hasKeyword(rawLower, LOCATION_KEYWORDS) &&
+      config.workspace.address.trim()) ||
+    (hasKeyword(rawLower, HOURS_KEYWORDS) &&
+      config.workspace.businessHours.trim()) ||
+    (hasKeyword(rawLower, EMAIL_KEYWORDS) &&
+      config.workspace.supportEmail.trim()) ||
+    (hasKeyword(rawLower, DESCRIPTION_KEYWORDS) &&
+      config.workspace.description.trim()) ||
     (hasKeyword(rawLower, NAME_KEYWORDS) && config.workspace.name.trim());
   const hasKnownWorkspaceFact = isKnownWorkspaceFactQuestion(rawLower, config);
 
@@ -2603,7 +2833,12 @@ async function generateReplyDecisionBase(
   }
 
   // General questions may use provider knowledge only after the internal-data gate.
-  if (providerReply && (providerReply.grounded || isHarmlessQuery || !isImportantBusinessQuestion(routedMessage))) {
+  if (
+    providerReply &&
+    (providerReply.grounded ||
+      isHarmlessQuery ||
+      !isImportantBusinessQuestion(routedMessage))
+  ) {
     return {
       intent: hasKeyword(lower, PRICE_KEYWORDS)
         ? "Tanya harga"
@@ -2649,7 +2884,8 @@ async function generateReplyDecisionBase(
       confidence: 95,
       needsHuman: true,
       status: "assigned_to_admin",
-      summary: "Customer mengirim pesan terkait transaksi/keuangan dan perlu penanganan admin.",
+      summary:
+        "Customer mengirim pesan terkait transaksi/keuangan dan perlu penanganan admin.",
       reply: applyStyleInstructions(
         `Maaf ya Kak, untuk kendala transaksi/pembayaran ini harus dibantu cek langsung oleh Admin kami agar aman. Kakak bisa langsung hubungi Admin lewat WhatsApp di ${waLink} ya!`,
         config,
@@ -2667,7 +2903,8 @@ async function generateReplyDecisionBase(
       confidence: 95,
       needsHuman: true,
       status: "assigned_to_admin",
-      summary: "Customer ingin negosiasi diskon/kerja sama dan harus dialihkan ke admin.",
+      summary:
+        "Customer ingin negosiasi diskon/kerja sama dan harus dialihkan ke admin.",
       reply: applyStyleInstructions(
         `Maaf ya Kak, untuk kendala negosiasi diskon ini harus dibantu cek langsung oleh Admin kami agar aman. Kakak bisa langsung hubungi Admin lewat WhatsApp di ${waLink} ya!`,
         config,
@@ -2685,7 +2922,8 @@ async function generateReplyDecisionBase(
       confidence: 95,
       needsHuman: true,
       status: "assigned_to_admin",
-      summary: "Customer mengirim komplain/garansi dan memerlukan penanganan manual admin.",
+      summary:
+        "Customer mengirim komplain/garansi dan memerlukan penanganan manual admin.",
       reply: applyStyleInstructions(
         `Maaf ya Kak, untuk kendala komplain/garansi ini harus dibantu cek langsung oleh Admin kami agar aman. Kakak bisa langsung hubungi Admin lewat WhatsApp di ${waLink} ya!`,
         config,
@@ -2703,7 +2941,8 @@ async function generateReplyDecisionBase(
       confidence: 95,
       needsHuman: true,
       status: "assigned_to_admin",
-      summary: "Customer mengalami kendala keselamatan/darurat dan harus dialihkan segera.",
+      summary:
+        "Customer mengalami kendala keselamatan/darurat dan harus dialihkan segera.",
       reply: applyStyleInstructions(
         `Maaf ya Kak, untuk kendala darurat ini harus dibantu cek langsung oleh Admin kami agar aman. Kakak bisa langsung hubungi Admin lewat WhatsApp di ${waLink} ya!`,
         config,
@@ -2721,7 +2960,8 @@ async function generateReplyDecisionBase(
       confidence: 95,
       needsHuman: true,
       status: "assigned_to_admin",
-      summary: "Customer mengekspresikan kekesalan/ancaman dan dihentikan auto-reply-nya.",
+      summary:
+        "Customer mengekspresikan kekesalan/ancaman dan dihentikan auto-reply-nya.",
       reply: applyStyleInstructions(
         `Maaf ya Kak, untuk keluhan Anda ini harus dibantu cek langsung oleh Admin kami agar aman. Kakak bisa langsung hubungi Admin lewat WhatsApp di ${waLink} ya!`,
         config,
@@ -2737,7 +2977,8 @@ async function generateReplyDecisionBase(
       confidence: 83,
       needsHuman: false,
       status: "waiting_customer",
-      summary: "Customer ingin booking dan sistem perlu mengumpulkan detail tambahan.",
+      summary:
+        "Customer ingin booking dan sistem perlu mengumpulkan detail tambahan.",
       reply: applyStyleInstructions(
         "Siap, kami bantu booking. Mohon kirim nama, tipe motor, keluhan, tanggal, dan jam yang diinginkan ya.",
         config,
@@ -2747,7 +2988,10 @@ async function generateReplyDecisionBase(
     };
   }
 
-  if (hasKeyword(rawLower, LOCATION_KEYWORDS) && config.workspace.address.trim()) {
+  if (
+    hasKeyword(rawLower, LOCATION_KEYWORDS) &&
+    config.workspace.address.trim()
+  ) {
     return {
       intent: "Tanya alamat",
       confidence: 98,
@@ -2764,7 +3008,10 @@ async function generateReplyDecisionBase(
     };
   }
 
-  if (hasKeyword(rawLower, HOURS_KEYWORDS) && config.workspace.businessHours.trim()) {
+  if (
+    hasKeyword(rawLower, HOURS_KEYWORDS) &&
+    config.workspace.businessHours.trim()
+  ) {
     return {
       intent: "Tanya jam buka",
       confidence: 96,
@@ -2779,7 +3026,10 @@ async function generateReplyDecisionBase(
     };
   }
 
-  if (hasKeyword(rawLower, EMAIL_KEYWORDS) && config.workspace.supportEmail.trim()) {
+  if (
+    hasKeyword(rawLower, EMAIL_KEYWORDS) &&
+    config.workspace.supportEmail.trim()
+  ) {
     return {
       intent: "Tanya email",
       confidence: 97,
@@ -2796,7 +3046,10 @@ async function generateReplyDecisionBase(
     };
   }
 
-  if (hasKeyword(rawLower, DESCRIPTION_KEYWORDS) && config.workspace.description.trim()) {
+  if (
+    hasKeyword(rawLower, DESCRIPTION_KEYWORDS) &&
+    config.workspace.description.trim()
+  ) {
     return {
       intent: "Tanya profil bisnis",
       confidence: 95,
@@ -2855,7 +3108,8 @@ async function generateReplyDecisionBase(
       confidence: 72,
       needsHuman: false,
       status: "ai_active",
-      summary: "Customer menanyakan harga, tetapi belum ada jawaban grounded yang cukup kuat.",
+      summary:
+        "Customer menanyakan harga, tetapi belum ada jawaban grounded yang cukup kuat.",
       reply: applyStyleInstructions(
         buildPriceFollowUpReply(routedMessage, config, context),
         config,
@@ -2876,13 +3130,20 @@ export async function generateReplyDecision(
   config: DashboardConfig,
   context?: ReplyContext,
 ): Promise<ReplyDecision> {
-  const decision = await generateReplyDecisionBase(messageText, config, context);
+  const decision = await generateReplyDecisionBase(
+    messageText,
+    config,
+    context,
+  );
   return applyConfiguredResponsePolicy(messageText, decision, config);
 }
 
-export async function isNegativeComment(text: string, config: DashboardConfig): Promise<boolean> {
+export async function isNegativeComment(
+  text: string,
+  config: DashboardConfig,
+): Promise<boolean> {
   const rawLower = normalizeText(text);
-  
+
   // 1. Check blacklist
   const blacklist = config.aiAgent.blacklist.map((item) => item.toLowerCase());
   if (blacklist.some((term) => term && rawLower.includes(term))) {
@@ -2935,19 +3196,46 @@ export async function analyzeSentiment(
 
   // Check if we have corrections in config for self-training (few-shot reinforcement)
   const corrections = config.knowledgeBase.sentimentCorrections || [];
-  const matchedCorrection = corrections.find((c) => c.text.toLowerCase().trim() === rawLower);
+  const matchedCorrection = corrections.find(
+    (c) => c.text.toLowerCase().trim() === rawLower,
+  );
   if (matchedCorrection) {
     return matchedCorrection.sentiment;
   }
 
   // Pre-checks for basic positive/negative indicators to save token costs
   const happyWords = [
-    "terima kasih", "makasih", "keren", "bagus", "puas", "mantap", "sip",
-    "ok", "oke", "luar biasa", "thank", "thanks", "tq", "👍", "🙏"
+    "terima kasih",
+    "makasih",
+    "keren",
+    "bagus",
+    "puas",
+    "mantap",
+    "sip",
+    "ok",
+    "oke",
+    "luar biasa",
+    "thank",
+    "thanks",
+    "tq",
+    "👍",
+    "🙏",
   ];
   const angryWords = [
-    "jelek", "kecewa", "lambat", "parah", "penipu", "rugi", "marah",
-    "goblok", "tolol", "anjing", "babi", "tai", "😡", "👎"
+    "jelek",
+    "kecewa",
+    "lambat",
+    "parah",
+    "penipu",
+    "rugi",
+    "marah",
+    "goblok",
+    "tolol",
+    "anjing",
+    "babi",
+    "tai",
+    "😡",
+    "👎",
   ];
 
   if (happyWords.some((w) => rawLower === w)) return "positive";
@@ -2995,7 +3283,7 @@ Jawab HANYA dengan satu kata: "positive", "neutral", atau "negative". Jangan ber
         const reply = await callLlm(config, systemPrompt, userPrompt, {
           temperature: 0.0,
           maxTokens: 10,
-        }).then(r => r.toLowerCase().trim());
+        }).then((r) => r.toLowerCase().trim());
 
         if (reply.includes("positive")) return "positive";
         if (reply.includes("negative")) return "negative";
@@ -3010,5 +3298,3 @@ Jawab HANYA dengan satu kata: "positive", "neutral", atau "negative". Jangan ber
 
   return "neutral";
 }
-
-

@@ -2,11 +2,19 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarCheck2, Loader2, PlusCircle, Sparkles } from "lucide-react";
+import {
+  CalendarCheck2,
+  Loader2,
+  PlusCircle,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import {
   BOOKING_SERVICE_TEMPLATE_NAME,
   createBookingServiceFlowTemplate,
+  createSystemChatbotFlowTemplate,
+  SYSTEM_CHATBOT_TEMPLATE_NAME,
 } from "@/lib/conversation-flow-templates";
 import type { ConversationFlow } from "@/types/dashboard-config";
 import { Button } from "@/components/ui/button";
@@ -19,6 +27,18 @@ import {
 } from "./components/conversation-components";
 import { CreateConversationModal } from "./components/create-conversation-modal";
 import { DeleteConversationModal } from "./components/delete-conversation-modal";
+
+function formatFlowLastUpdate() {
+  return new Date()
+    .toLocaleString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+    .replace(/\./g, ":");
+}
 
 export default function AutomationPage() {
   const { config, patchConfig, isLoading } = useDashboardConfig();
@@ -33,6 +53,8 @@ export default function AutomationPage() {
     null,
   );
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
+  const [isCreatingSystemTemplate, setIsCreatingSystemTemplate] =
+    useState(false);
   const [togglingFlowId, setTogglingFlowId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,6 +76,48 @@ export default function AutomationPage() {
   const bookingTemplateFlow = conversations.find(
     (flow) => flow.name === BOOKING_SERVICE_TEMPLATE_NAME,
   );
+  const systemTemplateFlow = conversations.find(
+    (flow) => flow.name === SYSTEM_CHATBOT_TEMPLATE_NAME,
+  );
+  const activeAgent = config?.automation.aiAgents.find(
+    (agent) => agent.status === "Active",
+  );
+
+  const handleUseSystemTemplate = async () => {
+    if (systemTemplateFlow) {
+      router.push(`/automation/conversations/${systemTemplateFlow.id}`);
+      return;
+    }
+
+    if (!activeAgent) {
+      alert(
+        "Aktifkan minimal satu AI Agent sebelum membuat flow Chatbot Utama.",
+      );
+      return;
+    }
+
+    setIsCreatingSystemTemplate(true);
+    const flow = createSystemChatbotFlowTemplate({
+      flowId: `conv_system_chatbot_${Date.now()}`,
+      lastUpdate: formatFlowLastUpdate(),
+      agentId: activeAgent.id,
+    });
+    const nextConversations = [flow, ...conversations];
+
+    try {
+      setConversations(nextConversations);
+      await patchConfig((current) => ({
+        ...current,
+        automation: {
+          ...current.automation,
+          conversations: nextConversations,
+        },
+      }));
+      router.push(`/automation/conversations/${flow.id}`);
+    } finally {
+      setIsCreatingSystemTemplate(false);
+    }
+  };
 
   const handleUseBookingTemplate = async () => {
     if (bookingTemplateFlow) {
@@ -62,18 +126,9 @@ export default function AutomationPage() {
     }
 
     setIsCreatingTemplate(true);
-    const lastUpdate = new Date()
-      .toLocaleString("id-ID", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-      .replace(/\./g, ":");
     const flow = createBookingServiceFlowTemplate({
       flowId: `conv_booking_service_${Date.now()}`,
-      lastUpdate,
+      lastUpdate: formatFlowLastUpdate(),
     });
     const nextConversations = [flow, ...conversations];
 
@@ -203,9 +258,7 @@ export default function AutomationPage() {
       );
     } catch (error) {
       alert(
-        error instanceof Error
-          ? error.message
-          : "Status flow gagal diubah.",
+        error instanceof Error ? error.message : "Status flow gagal diubah.",
       );
     } finally {
       setTogglingFlowId(null);
@@ -254,43 +307,90 @@ export default function AutomationPage() {
         </Button>
       </div>
 
-      <section className="rounded-2xl border border-emerald-400/15 bg-[linear-gradient(135deg,rgba(16,185,129,0.08),rgba(6,182,212,0.03))] p-4 sm:p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <div className="flex min-w-0 flex-1 items-start gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
-              <CalendarCheck2 className="h-6 w-6" />
-            </span>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-bold text-white">
-                  Template Booking Service
+      <div className="grid gap-4 xl:grid-cols-2">
+        <section className="rounded-2xl border border-cyan-400/20 bg-[linear-gradient(135deg,rgba(6,182,212,0.10),rgba(14,116,144,0.03))] p-4 sm:p-5">
+          <div className="flex h-full flex-col gap-4">
+            <div className="flex min-w-0 flex-1 items-start gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
+                <ShieldCheck className="h-6 w-6" />
+              </span>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-bold text-white">
+                    Template Chatbot Utama
+                  </p>
+                  <span className="rounded-full bg-cyan-400/10 px-2 py-0.5 text-[9px] font-black tracking-wide text-cyan-300 uppercase">
+                    RAG + Safety
+                  </span>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                  Safety Gate, semua pesan masuk, Knowledge Base, Custom
+                  Instructions, fallback aman, dan handoff admin dalam satu flow
+                  utama.
                 </p>
-                <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-[9px] font-black tracking-wide text-emerald-300 uppercase">
-                  Ready to use
-                </span>
               </div>
-              <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-400">
-                Trigger booking, cek jam operasional, form data pelanggan dan
-                motor, pilihan layanan serta jadwal, lalu konfirmasi admin.
-                Dibuat sebagai Draft agar aman untuk dites sebelum Publish.
-              </p>
             </div>
+            <Button
+              type="button"
+              onClick={() => void handleUseSystemTemplate()}
+              disabled={
+                isCreatingSystemTemplate ||
+                (!systemTemplateFlow && !activeAgent)
+              }
+              className="h-10 w-full gap-2 bg-cyan-500 px-4 text-xs text-slate-950 hover:bg-cyan-400"
+            >
+              {isCreatingSystemTemplate ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ShieldCheck className="h-4 w-4" />
+              )}
+              {systemTemplateFlow
+                ? "Buka Template"
+                : activeAgent
+                  ? "Gunakan Template"
+                  : "Aktifkan AI Agent Dahulu"}
+            </Button>
           </div>
-          <Button
-            type="button"
-            onClick={() => void handleUseBookingTemplate()}
-            disabled={isCreatingTemplate}
-            className="h-10 shrink-0 gap-2 bg-emerald-500 px-4 text-xs text-white hover:bg-emerald-400"
-          >
-            {isCreatingTemplate ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-            {bookingTemplateFlow ? "Buka Template" : "Gunakan Template"}
-          </Button>
-        </div>
-      </section>
+        </section>
+
+        <section className="rounded-2xl border border-emerald-400/15 bg-[linear-gradient(135deg,rgba(16,185,129,0.08),rgba(6,182,212,0.03))] p-4 sm:p-5">
+          <div className="flex h-full flex-col gap-4">
+            <div className="flex min-w-0 flex-1 items-start gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
+                <CalendarCheck2 className="h-6 w-6" />
+              </span>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-bold text-white">
+                    Template Booking Service
+                  </p>
+                  <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-[9px] font-black tracking-wide text-emerald-300 uppercase">
+                    Ready to use
+                  </span>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                  Trigger booking, cek jam operasional, form pelanggan dan
+                  kendaraan, pilihan layanan serta jadwal, lalu konfirmasi
+                  admin.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={() => void handleUseBookingTemplate()}
+              disabled={isCreatingTemplate}
+              className="h-10 w-full gap-2 bg-emerald-500 px-4 text-xs text-white hover:bg-emerald-400"
+            >
+              {isCreatingTemplate ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {bookingTemplateFlow ? "Buka Template" : "Gunakan Template"}
+            </Button>
+          </div>
+        </section>
+      </div>
 
       {/* Info Tip regarding overlap between Conversation Flow & AI Agent */}
       <div className="animate-fade-in rounded-xl border border-cyan-500/20 bg-cyan-950/10 p-4 text-xs text-cyan-200">

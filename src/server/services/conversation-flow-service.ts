@@ -315,7 +315,8 @@ function formatBulkFormPrompt(
   lines.push("");
 
   for (const [index, field] of fields.entries()) {
-    const example = existingValues[field.id] || buildFormFieldExample(field, index);
+    const example =
+      existingValues[field.id] || buildFormFieldExample(field, index);
     lines.push(`${field.label}: ${example}`);
   }
 
@@ -404,7 +405,9 @@ function parseBulkFormAnswer(input: {
   for (const field of input.fields) {
     if (field.required === false) continue;
     if (!values[field.id]) {
-      errors.push(`${field.label} wajib diisi dengan format "${field.label}: ..."`);
+      errors.push(
+        `${field.label} wajib diisi dengan format "${field.label}: ..."`,
+      );
     }
   }
 
@@ -413,7 +416,9 @@ function parseBulkFormAnswer(input: {
     errors,
     complete:
       errors.length === 0 &&
-      input.fields.every((field) => field.required === false || Boolean(values[field.id])),
+      input.fields.every(
+        (field) => field.required === false || Boolean(values[field.id]),
+      ),
   };
 }
 
@@ -572,7 +577,15 @@ export function validateConversationFlowGraph(
           });
         }
       }
-      if (item.data.agentId && config) {
+      if (!item.data.agentId) {
+        errors.push({
+          code: "missing_agent",
+          nodeId: item.id,
+          message:
+            "AI Agent wajib dipilih agar flow test dan runtime menggunakan konfigurasi yang sama.",
+          severity: "error",
+        });
+      } else if (config) {
         const agent = config.automation.aiAgents.find(
           (candidate) => candidate.id === item.data.agentId,
         );
@@ -988,8 +1001,8 @@ export function resumeConversationFlowForm(input: {
     ...next,
     messages:
       formNode.data.successMessage?.trim() && next.messages.length === 0
-      ? [formNode.data.successMessage.trim(), ...next.messages]
-      : next.messages,
+        ? [formNode.data.successMessage.trim(), ...next.messages]
+        : next.messages,
     completedForm: { nodeId: formNode.id, values },
   };
 }
@@ -1039,16 +1052,11 @@ export function resolveGraphAgent(
   config: DashboardConfig,
   agentId?: string,
 ): AIAgent | null {
-  if (agentId) {
-    return (
-      config.automation.aiAgents.find(
-        (agent) => agent.id === agentId && agent.status === "Active",
-      ) ?? null
-    );
-  }
+  if (!agentId) return null;
   return (
-    config.automation.aiAgents.find((agent) => agent.status === "Active") ??
-    null
+    config.automation.aiAgents.find(
+      (agent) => agent.id === agentId && agent.status === "Active",
+    ) ?? null
   );
 }
 
@@ -1068,7 +1076,7 @@ export function deriveLegacyFieldsFromGraph(
     triggerKeywords: start?.data.triggerKeywords ?? flow.triggerKeywords,
     initialMessage: greeting?.data.message ?? flow.initialMessage,
     fallbackMessage: fallback?.data.message ?? flow.fallbackMessage,
-    aiAgentId: agent?.data.agentId ?? flow.aiAgentId,
+    aiAgentId: agent ? agent.data.agentId : flow.aiAgentId,
     humanAgentHandoff: {
       enabled: Boolean(handoff),
       condition:
