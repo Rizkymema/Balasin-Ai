@@ -151,7 +151,10 @@ export function getInboxWhatsAppAccountOptions(
   };
 
   const primaryMetaId = config.channels.whatsapp.phoneNumberId.trim();
-  if (primaryMetaId) {
+  if (
+    primaryMetaId &&
+    ["connected", "testing"].includes(config.channels.whatsapp.status)
+  ) {
     addOption({
       value: `meta:${primaryMetaId}`,
       label: config.channels.whatsapp.businessLabel.trim() || "WhatsApp Meta",
@@ -162,7 +165,7 @@ export function getInboxWhatsAppAccountOptions(
 
   for (const account of config.channels.whatsapp.accounts ?? []) {
     const phoneNumberId = account.phoneNumberId.trim();
-    if (!phoneNumberId) {
+    if (!phoneNumberId || !["connected", "testing"].includes(account.status)) {
       continue;
     }
 
@@ -179,7 +182,7 @@ export function getInboxWhatsAppAccountOptions(
 
   for (const session of config.channels.whatsapp.qrSessions ?? []) {
     const instanceName = session.instanceName.trim();
-    if (!instanceName) {
+    if (!instanceName || session.status !== "connected") {
       continue;
     }
 
@@ -189,27 +192,6 @@ export function getInboxWhatsAppAccountOptions(
         session.label.trim() || session.phoneNumber?.trim() || "WhatsApp QR",
       detail: session.phoneNumber?.trim() || instanceName,
       status: session.status,
-    });
-  }
-
-  for (const [key] of conversationCounts) {
-    if (options.has(key)) {
-      continue;
-    }
-
-    const rawId = key.includes(":") ? key.slice(key.indexOf(":") + 1) : "";
-    addOption({
-      value: key,
-      label:
-        key === "unassigned"
-          ? "WhatsApp lama"
-          : key.startsWith("qr:")
-            ? "WhatsApp QR"
-            : "WhatsApp Meta",
-      detail:
-        key === "unassigned"
-          ? "Akun asal belum tercatat"
-          : rawId,
     });
   }
 

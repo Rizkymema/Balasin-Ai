@@ -61,6 +61,14 @@ const config = {
           phoneNumber: "628123456789",
           createdAt: "2026-07-22T12:00:00.000Z",
         },
+        {
+          id: "qr-disconnected",
+          instanceName: "old-qr-session",
+          label: "Old QR Session",
+          status: "disconnected",
+          phoneNumber: "628000000000",
+          createdAt: "2026-07-21T12:00:00.000Z",
+        },
       ],
     },
   },
@@ -79,15 +87,24 @@ const conversations = [
 
 const options = getInboxWhatsAppAccountOptions(config, conversations);
 assert.equal(options.find((option) => option.value === "all")?.conversationCount, 3);
+assert.equal(options.length, 3);
 assert.equal(
   options.find((option) => option.value === "qr:johan-garage-qr")
     ?.conversationCount,
   1,
 );
 assert.equal(
+  options.some((option) => option.value === "qr:old-qr-session"),
+  false,
+);
+assert.equal(
   options.find((option) => option.value === "meta:meta-primary")
     ?.conversationCount,
   1,
+);
+assert.equal(
+  options.some((option) => option.value === "unassigned"),
+  false,
 );
 assert.equal(
   getConversationWhatsAppAccountKey(conversations[2]),
