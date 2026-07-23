@@ -748,7 +748,7 @@ export function deriveContactDetail(
     time: customer.lastContact || "Terakhir tersimpan",
     title: "Contact aktif di CRM",
     detail: `Lifecycle ${lifecycle}, owner ${customer.assignedTo}, segment ${customer.segment || "General"}.`,
-    toneClassName: "border-cyan-200 bg-cyan-50 text-cyan-800",
+    toneClassName: "border-blue-200 bg-blue-50 text-blue-800",
   });
 
   conversations.slice(0, 3).forEach((conversation) => {
@@ -757,7 +757,7 @@ export function deriveContactDetail(
       time: conversation.timestamp,
       title: `${conversation.channel} - ${conversation.lastIntent || "Conversation"}`,
       detail: conversation.lastMessage,
-      toneClassName: "border-slate-200 bg-white text-slate-700",
+      toneClassName: "border-slate-200 bg-slate-50 text-slate-700",
     });
   });
 
@@ -767,7 +767,7 @@ export function deriveContactDetail(
       time: `${booking.date} ${booking.slot}`,
       title: `Booking ${booking.service}`,
       detail: `${booking.status}${booking.branch ? ` | ${booking.branch}` : ""}`,
-      toneClassName: "border-violet-200 bg-violet-50 text-violet-800",
+      toneClassName: "border-indigo-200 bg-indigo-50 text-indigo-800",
     });
   });
 

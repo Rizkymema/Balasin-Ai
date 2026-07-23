@@ -152,15 +152,15 @@ export function ConversationListPanel({
         </div>
 
         <div className="px-4 pb-3">
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3">
-            <div className="flex items-center gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-2xs">
-                <Smartphone className="h-4 w-4" />
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-2.5">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white">
+                <Smartphone className="h-3.5 w-3.5" />
               </span>
-              <div className="min-w-0 flex-1 space-y-1">
+              <div className="min-w-0 flex-1">
                 <label
                   htmlFor="inbox-whatsapp-account"
-                  className="block text-[9px] font-extrabold uppercase tracking-wider text-emerald-800"
+                  className="mb-0.5 block text-[9px] font-extrabold uppercase tracking-wider text-emerald-800"
                 >
                   Akun WhatsApp Inbox
                 </label>
@@ -172,7 +172,7 @@ export function ConversationListPanel({
                       event.target.value as InboxWhatsAppAccountFilter,
                     )
                   }
-                  className="h-9 w-full rounded-lg border-emerald-200 bg-white px-2.5 py-1 pr-7 text-[11px] font-semibold text-slate-900 shadow-2xs"
+                  className="h-7 w-full rounded-lg border-emerald-200 bg-white text-[11px] font-semibold text-slate-900"
                 >
                   {whatsappAccountOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -183,7 +183,7 @@ export function ConversationListPanel({
               </div>
               <Link
                 href="/channels"
-                className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
+                className="shrink-0 rounded-lg px-2 py-1 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition"
               >
                 Kelola
               </Link>
@@ -310,8 +310,8 @@ export function ConversationListPanel({
                     <div className={cn(
                       "h-9 w-9 rounded-full flex items-center justify-center shrink-0 border shadow-2xs font-bold text-xs",
                       conversation.channel === "WhatsApp" ? "bg-emerald-50 text-emerald-600 border-emerald-200" :
-                      conversation.channel.startsWith("Instagram") ? "bg-fuchsia-50 text-fuchsia-600 border-fuchsia-200" :
-                      "bg-blue-50 text-blue-600 border-blue-200"
+                        conversation.channel.startsWith("Instagram") ? "bg-fuchsia-50 text-fuchsia-600 border-fuchsia-200" :
+                          "bg-blue-50 text-blue-600 border-blue-200"
                     )}>
                       <ChannelIcon className="h-4 w-4" />
                     </div>

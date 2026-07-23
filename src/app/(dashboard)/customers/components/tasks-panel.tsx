@@ -21,27 +21,27 @@ function statusTone(status: CrmTaskRecord["status"]) {
     case "In Progress":
       return "border-amber-200 bg-amber-50 text-amber-700";
     default:
-      return "border-cyan-200 bg-cyan-50 text-cyan-700";
+      return "border-blue-200 bg-blue-50 text-blue-700";
   }
 }
 
 function priorityTone(priority: CrmTaskRecord["priority"]) {
   switch (priority) {
     case "High":
-      return "text-rose-700";
+      return "text-rose-700 font-bold";
     case "Medium":
-      return "text-amber-700";
+      return "text-amber-700 font-bold";
     default:
-      return "text-slate-600";
+      return "text-slate-500 font-medium";
   }
 }
 
 export function TasksPanel({ tasks }: TasksPanelProps) {
   if (tasks.length === 0) {
     return (
-      <Card>
+      <Card className="border-slate-200 bg-white">
         <EmptyState
-          icon={<ListTodo className="h-10 w-10" />}
+          icon={<ListTodo className="h-10 w-10 text-blue-600" />}
           title="Belum ada task"
           description="Task follow-up dan aktivitas ticket akan muncul di halaman ini saat CRM memiliki contact aktif."
           className="min-h-[320px]"
@@ -51,17 +51,17 @@ export function TasksPanel({ tasks }: TasksPanelProps) {
   }
 
   return (
-    <Card className="space-y-5 p-5 md:p-6">
-      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+    <Card className="space-y-5 p-5 md:p-6 border-slate-200 bg-white shadow-2xs">
+      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between border-b border-slate-100 pb-3">
         <div>
-          <h2 className="text-lg font-bold text-white">Tasks</h2>
-          <p className="text-xs leading-6 text-slate-400">
+          <h2 className="text-base font-bold text-slate-900">Tasks</h2>
+          <p className="text-xs leading-normal text-slate-500 font-medium mt-0.5">
             Aktivitas follow-up yang diambil dari hot lead, booking, dan ticket aktif.
           </p>
         </div>
 
-        <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white/[0.04] px-3 py-1.5 text-xs text-[var(--color-muted)]">
-          <AlarmClockCheck className="h-3.5 w-3.5" />
+        <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3.5 py-1 text-xs text-slate-600 font-semibold shadow-2xs">
+          <AlarmClockCheck className="h-3.5 w-3.5 text-slate-400" />
           Task queue initial scope
         </div>
       </div>
@@ -70,19 +70,19 @@ export function TasksPanel({ tasks }: TasksPanelProps) {
         {tasks.map((task) => (
           <div
             key={task.id}
-            className="rounded-2xl border border-white/8 bg-white/[0.03] p-4"
+            className="rounded-2xl border border-slate-200 bg-slate-50/50 p-5 space-y-4"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-white">{task.title}</p>
-                <p className="mt-1 text-xs text-slate-400">
-                  {task.contactName} - {task.type}
+                <p className="text-xs font-bold text-slate-900 leading-snug">{task.title}</p>
+                <p className="text-[10px] text-slate-500 font-bold mt-1">
+                  {task.contactName} • {task.type}
                 </p>
               </div>
 
               <span
                 className={cn(
-                  "rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+                  "rounded-full border px-2.5 py-0.5 text-[10px] font-bold shrink-0 shadow-2xs",
                   statusTone(task.status),
                 )}
               >
@@ -90,15 +90,17 @@ export function TasksPanel({ tasks }: TasksPanelProps) {
               </span>
             </div>
 
-            <div className="mt-4 space-y-2 text-sm text-slate-300">
-              <p>Owner: {task.owner}</p>
-              <p>Due: {task.dueLabel}</p>
-              <p className={priorityTone(task.priority)}>Priority: {task.priority}</p>
-              <p className="text-slate-500">{task.outcome}</p>
+            <div className="space-y-1.5 text-xs text-slate-600 font-semibold border-t border-slate-100 pt-3">
+              <p><span className="text-slate-400 font-bold">Owner:</span> {task.owner}</p>
+              <p><span className="text-slate-400 font-bold">Due:</span> {task.dueLabel}</p>
+              <p className={priorityTone(task.priority)}>
+                <span className="text-slate-400 font-bold">Priority:</span> {task.priority}
+              </p>
+              <p className="text-slate-500 mt-2 font-medium bg-white rounded-lg p-2 border border-slate-100">{task.outcome}</p>
             </div>
 
             {task.status === "Completed" ? (
-              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-bold text-emerald-700 shadow-2xs">
                 <CheckCheck className="h-3.5 w-3.5" />
                 Completed
               </div>

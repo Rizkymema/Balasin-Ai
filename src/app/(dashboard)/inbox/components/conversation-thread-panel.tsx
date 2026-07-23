@@ -522,14 +522,14 @@ export function ConversationThreadPanel({
           })}
 
           {conversation.notes.trim() ? (
-            <div className="rounded-xl border border-purple-200 bg-purple-50 p-3.5">
+            <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3.5 shadow-2xs">
               <div className="flex items-start gap-2.5">
-                <StickyNote className="mt-0.5 h-4 w-4 text-purple-600 shrink-0" />
+                <StickyNote className="mt-0.5 h-4 w-4 text-amber-600 shrink-0" />
                 <div>
-                  <p className="text-xs font-bold text-purple-900">
+                  <p className="text-xs font-bold text-amber-900">
                     Private Note
                   </p>
-                  <p className="mt-1 text-xs leading-relaxed text-purple-800">
+                  <p className="mt-1 text-xs leading-relaxed text-slate-800">
                     {conversation.notes}
                   </p>
                 </div>
@@ -752,11 +752,11 @@ export function ConversationThreadPanel({
                 onChange={(event) => onNoteDraftChange(event.target.value)}
                 rows={2}
                 placeholder="Tulis catatan internal..."
-                className="min-h-[60px] max-h-[120px] resize-none rounded-xl border-purple-200 bg-purple-50/50 px-4 py-2.5 text-xs text-slate-900"
+                className="min-h-[60px] max-h-[120px] resize-none rounded-xl border-amber-200 bg-amber-50/30 px-4 py-2.5 text-xs text-slate-900 focus:border-amber-400 focus:ring-amber-500/20"
                 disabled={isSubmitting}
               />
               <div className="flex items-center justify-between">
-                <p className="text-[11px] text-purple-700 font-semibold">
+                <p className="text-[11px] text-amber-700 font-semibold">
                   {noteSaved ? "✓ Catatan tersimpan" : "Catatan hanya terlihat oleh tim internal."}
                 </p>
                 <Button
@@ -764,7 +764,7 @@ export function ConversationThreadPanel({
                   size="sm"
                   onClick={onSaveNote}
                   disabled={isSubmitting}
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold border-transparent"
                 >
                   Simpan Note
                 </Button>

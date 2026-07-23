@@ -44,10 +44,10 @@ import {
 } from "@/components/ui/table";
 
 const priorityClasses: Record<TicketPriority, string> = {
-  low: "border-sky-400/20 bg-sky-950/20 text-sky-300",
-  medium: "border-cyan-400/20 bg-cyan-950/20 text-cyan-300",
-  high: "border-amber-400/20 bg-amber-950/20 text-amber-300",
-  critical: "border-rose-400/20 bg-rose-950/20 text-rose-300",
+  low: "border-sky-200 bg-sky-50 text-sky-700",
+  medium: "border-blue-200 bg-blue-50 text-blue-700",
+  high: "border-amber-200 bg-amber-50 text-amber-700",
+  critical: "border-rose-200 bg-rose-50 text-rose-700",
 };
 
 type TicketDraft = {
@@ -348,43 +348,43 @@ export default function TicketsPage() {
   if (!selectedTicket) {
     return (
       <div className="space-y-6">
-        <div className="rounded-2xl border border-white/8 bg-gradient-to-r from-white/[0.04] to-transparent p-6 md:p-8">
+        <Card className="p-6 md:p-8 bg-white border border-slate-200 shadow-2xs">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <Badge>Ticket / Handoff Admin</Badge>
-              <h1 className="mt-3 text-3xl font-bold text-white">
+            <div className="space-y-2">
+              <Badge variant="secondary">Ticket / Handoff Admin</Badge>
+              <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">
                 Ticket desk siap dipakai saat kasus admin pertama masuk.
               </h1>
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
+              <p className="max-w-3xl text-xs md:text-sm leading-relaxed text-slate-600 font-medium">
                 Belum ada ticket tersimpan. Anda bisa membuat ticket manual sekarang atau
                 biarkan ticket dibuat dari inbox saat AI perlu handoff ke admin.
               </p>
             </div>
-            <Button type="button" variant="secondary" className="rounded-xl px-4" onClick={() => setIsCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button type="button" variant="primary" className="px-5 shrink-0" onClick={() => setIsCreateOpen(true)}>
+              <Plus className="mr-1.5 h-4 w-4" />
               Buat ticket
             </Button>
           </div>
-        </div>
+        </Card>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {stats.map((stat) => (
-            <Card key={stat.label} className="glass-panel p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            <Card key={stat.label} className="p-5 bg-white border border-slate-200 shadow-2xs">
+              <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                 {stat.label}
               </p>
-              <p className="mt-3 text-3xl font-bold text-white">{stat.value}</p>
+              <p className="mt-2 text-2xl font-black text-slate-900">{stat.value}</p>
             </Card>
           ))}
         </div>
 
         <EmptyState
-          icon={<Ticket className="h-10 w-10" />}
+          icon={<Ticket className="h-10 w-10 text-blue-600" />}
           title="Belum ada ticket"
           description="Ticket akan muncul saat ada handoff dari inbox atau saat Anda membuat kasus manual dari dashboard."
           action={
-            <Button type="button" variant="secondary" className="rounded-xl px-4" onClick={() => setIsCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button type="button" variant="primary" className="px-5" onClick={() => setIsCreateOpen(true)}>
+              <Plus className="mr-1.5 h-4 w-4" />
               Buat ticket
             </Button>
           }
@@ -402,95 +402,119 @@ export default function TicketsPage() {
         >
           <form onSubmit={handleCreateTicket} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-              <Input
-                value={draft.customerName}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, customerName: event.target.value }))
-                }
-                placeholder="Nama customer"
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-900">Nama Customer</label>
+                <Input
+                  value={draft.customerName}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, customerName: event.target.value }))
+                  }
+                  placeholder="Nama customer"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-900">Jenis Issue</label>
+                <Input
+                  value={draft.issueType}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, issueType: event.target.value }))
+                  }
+                  placeholder="Jenis issue"
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-900">Saluran (Channel)</label>
+                <Select
+                  value={draft.channel}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      channel: event.target.value as ChannelKind,
+                    }))
+                  }
+                >
+                  <option value="WhatsApp">WhatsApp</option>
+                  <option value="Website Chat">Website Chat</option>
+                  <option value="Instagram DM">Instagram DM</option>
+                  <option value="Instagram Comment">Instagram Comment</option>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-900">Petugas (Assigned to)</label>
+                <Input
+                  value={draft.assignedTo}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, assignedTo: event.target.value }))
+                  }
+                  placeholder="Assigned to"
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-900">Prioritas</label>
+                <Select
+                  value={draft.priority}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      priority: event.target.value as TicketPriority,
+                    }))
+                  }
+                >
+                  <option value="low">low</option>
+                  <option value="medium">medium</option>
+                  <option value="high">high</option>
+                  <option value="critical">critical</option>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-900">Status</label>
+                <Select
+                  value={draft.status}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      status: event.target.value as TicketStatus,
+                    }))
+                  }
+                >
+                  <option value="open">open</option>
+                  <option value="in_progress">in_progress</option>
+                  <option value="complaint">complaint</option>
+                  <option value="resolved">resolved</option>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">Ringkasan Masalah</label>
+              <Textarea
+                rows={4}
+                value={draft.summary}
+                onChange={(event) => setDraft((current) => ({ ...current, summary: event.target.value }))}
+                placeholder="Ringkasan ticket"
                 required
               />
-              <Input
-                value={draft.issueType}
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">Catatan Tambahan / Resolution Note</label>
+              <Textarea
+                rows={3}
+                value={draft.resolutionNote}
                 onChange={(event) =>
-                  setDraft((current) => ({ ...current, issueType: event.target.value }))
+                  setDraft((current) => ({ ...current, resolutionNote: event.target.value }))
                 }
-                placeholder="Jenis issue"
+                placeholder="Catatan tambahan / resolution note"
               />
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Select
-                value={draft.channel}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    channel: event.target.value as ChannelKind,
-                  }))
-                }
-              >
-                <option value="WhatsApp">WhatsApp</option>
-                <option value="Website Chat">Website Chat</option>
-                <option value="Instagram DM">Instagram DM</option>
-                <option value="Instagram Comment">Instagram Comment</option>
-              </Select>
-              <Input
-                value={draft.assignedTo}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, assignedTo: event.target.value }))
-                }
-                placeholder="Assigned to"
-              />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Select
-                value={draft.priority}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    priority: event.target.value as TicketPriority,
-                  }))
-                }
-              >
-                <option value="low">low</option>
-                <option value="medium">medium</option>
-                <option value="high">high</option>
-                <option value="critical">critical</option>
-              </Select>
-              <Select
-                value={draft.status}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    status: event.target.value as TicketStatus,
-                  }))
-                }
-              >
-                <option value="open">open</option>
-                <option value="in_progress">in_progress</option>
-                <option value="complaint">complaint</option>
-                <option value="resolved">resolved</option>
-              </Select>
-            </div>
-            <Textarea
-              rows={4}
-              value={draft.summary}
-              onChange={(event) => setDraft((current) => ({ ...current, summary: event.target.value }))}
-              placeholder="Ringkasan ticket"
-              required
-            />
-            <Textarea
-              rows={3}
-              value={draft.resolutionNote}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, resolutionNote: event.target.value }))
-              }
-              placeholder="Catatan tambahan / resolution note"
-            />
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-4">
               <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)}>
                 Batal
               </Button>
-              <Button type="submit">Simpan ticket</Button>
+              <Button type="submit" variant="primary">Simpan ticket</Button>
             </div>
           </form>
         </Modal>
@@ -500,144 +524,149 @@ export default function TicketsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-white/8 bg-gradient-to-r from-white/[0.04] to-transparent p-6 md:p-8">
+      <Card className="p-6 md:p-8 bg-white border border-slate-200 shadow-2xs">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <Badge>Ticket / Handoff Admin</Badge>
-            <h1 className="mt-3 text-3xl font-bold text-white">
+          <div className="space-y-2">
+            <Badge variant="secondary">Ticket / Handoff Admin</Badge>
+            <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">
               Semua kasus yang butuh admin sekarang ditrack sebagai ticket operasional.
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
+            <p className="max-w-3xl text-xs md:text-sm leading-relaxed text-slate-600 font-medium mt-1">
               Modul ini mengikuti flow `handoff`: AI berhenti membalas, sistem membuat ticket,
               admin mengambil alih, lalu status percakapan dan customer ikut tersinkron.
             </p>
           </div>
-          <Button type="button" variant="secondary" className="rounded-xl px-4" onClick={() => setIsCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Button type="button" variant="primary" className="px-5 shrink-0" onClick={() => setIsCreateOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" />
             Buat ticket
           </Button>
         </div>
-      </div>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.label} className="glass-panel p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <Card key={stat.label} className="p-5 bg-white border border-slate-200 shadow-2xs">
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
               {stat.label}
             </p>
-            <p className="mt-3 text-3xl font-bold text-white">{stat.value}</p>
+            <p className="mt-2 text-2xl font-black text-slate-900">{stat.value}</p>
           </Card>
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card className="glass-panel p-6">
-          <div className="mb-5 flex items-center justify-between">
+      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr] items-start">
+        <Card className="p-5 md:p-6 bg-white border border-slate-200 shadow-2xs">
+          <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-              <h2 className="text-lg font-bold text-white">Ticket queue</h2>
-              <p className="text-xs text-slate-400">
+              <h2 className="text-base font-bold text-slate-900">Ticket queue</h2>
+              <p className="text-xs text-slate-500 font-medium">
                 Daftar kasus yang dibuat dari inbox, komplain, atau handoff AI.
               </p>
             </div>
-            <Badge>{data.tickets.length} ticket</Badge>
+            <Badge variant="secondary">{data.tickets.length} ticket</Badge>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Issue</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Assigned</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.tickets.map((ticket) => (
-                <TableRow
-                  key={ticket.id}
-                  className={ticket.id === selectedTicket.id ? "bg-white/[0.04]" : undefined}
-                >
-                  <TableCell>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(ticket.id)}
-                      className="text-left text-white"
-                    >
-                      {ticket.customerName}
-                    </button>
-                  </TableCell>
-                  <TableCell>{ticket.issueType}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold ${priorityClasses[ticket.priority]}`}
-                    >
-                      {ticket.priority}
-                    </span>
-                  </TableCell>
-                  <TableCell>{ticket.status}</TableCell>
-                  <TableCell>{ticket.assignedTo}</TableCell>
+          <div className="overflow-x-auto rounded-xl border border-slate-100">
+            <Table>
+              <TableHeader className="bg-slate-50">
+                <TableRow>
+                  <TableHead className="font-bold text-xs">Customer</TableHead>
+                  <TableHead className="font-bold text-xs">Issue</TableHead>
+                  <TableHead className="font-bold text-xs">Priority</TableHead>
+                  <TableHead className="font-bold text-xs">Status</TableHead>
+                  <TableHead className="font-bold text-xs">Assigned</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {data.tickets.map((ticket) => (
+                  <TableRow
+                    key={ticket.id}
+                    className={ticket.id === selectedTicket.id ? "bg-blue-50/50" : undefined}
+                  >
+                    <TableCell>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(ticket.id)}
+                        className="text-left font-bold text-slate-900 hover:text-blue-600 transition cursor-pointer text-xs"
+                      >
+                        {ticket.customerName}
+                      </button>
+                    </TableCell>
+                    <TableCell className="text-slate-700 text-xs font-semibold">{ticket.issueType}</TableCell>
+                    <TableCell>
+                      <Badge className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${priorityClasses[ticket.priority]}`}>
+                        {ticket.priority}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[10px] font-bold uppercase">{ticket.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-slate-600 text-xs font-semibold">{ticket.assignedTo}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </Card>
 
-        <Card className="glass-panel p-6">
-          <div className="flex items-center justify-between gap-3">
+        <Card className="p-5 md:p-6 bg-white border border-slate-200 shadow-2xs">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-5">
             <div className="flex items-center gap-3">
-              <div className="rounded-2xl border border-white/8 bg-white/5 p-3 text-cyan-300">
-                <Ticket className="h-5 w-5" />
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-2.5 text-blue-600">
+                <Ticket className="h-4.5 w-4.5" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">Ticket detail</h2>
-                <p className="text-xs text-slate-400">
-                  Perubahan di sini langsung mempengaruhi conversation status.
+                <h2 className="text-base font-bold text-slate-900">Ticket detail</h2>
+                <p className="text-xs text-slate-500 font-medium">
+                  Perubahan sinkron ke conversation status.
                 </p>
               </div>
             </div>
             <Button
               type="button"
-              variant="secondary"
-              className="rounded-xl border-rose-500/20 bg-rose-950/20 px-4 text-rose-200 hover:border-rose-400/30 hover:bg-rose-950/30"
+              variant="destructive"
+              size="sm"
               onClick={handleDeleteTicket}
             >
-              <Trash2 className="mr-2 h-4 w-4" />
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
               Hapus
             </Button>
           </div>
 
-          <div className="mt-6 space-y-4">
-            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-              <p className="text-sm font-semibold text-white">{selectedTicket.customerName}</p>
-              <p className="mt-1 text-xs text-slate-400">
-                {selectedTicket.channel} | dibuat {selectedTicket.createdAt}
+          <div className="space-y-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-1">
+              <p className="text-sm font-bold text-slate-900">{selectedTicket.customerName}</p>
+              <p className="text-[11px] text-slate-500 font-semibold">
+                {selectedTicket.channel} • dibuat {selectedTicket.createdAt}
               </p>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Customer</label>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">Customer</label>
               <Input
                 value={selectedTicket.customerName}
                 onChange={(event) => updateTicket({ customerName: event.target.value })}
+                className="h-9 bg-slate-50 text-xs"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Issue type</label>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">Issue type</label>
               <Input
                 value={selectedTicket.issueType}
                 onChange={(event) => updateTicket({ issueType: event.target.value })}
+                className="h-9 bg-slate-50 text-xs"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Channel</label>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">Channel</label>
               <Select
                 value={selectedTicket.channel}
                 onChange={(event) =>
                   updateTicket({ channel: event.target.value as ChannelKind })
                 }
+                className="h-9 text-xs"
               >
                 <option value="WhatsApp">WhatsApp</option>
                 <option value="Website Chat">Website Chat</option>
@@ -647,13 +676,14 @@ export default function TicketsPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Status</label>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-900">Status</label>
                 <Select
                   value={selectedTicket.status}
                   onChange={(event) =>
                     updateTicket({ status: event.target.value as TicketStatus })
                   }
+                  className="h-9 text-xs"
                 >
                   <option value="open">open</option>
                   <option value="in_progress">in_progress</option>
@@ -661,13 +691,14 @@ export default function TicketsPage() {
                   <option value="resolved">resolved</option>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Priority</label>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-900">Priority</label>
                 <Select
                   value={selectedTicket.priority}
                   onChange={(event) =>
                     updateTicket({ priority: event.target.value as TicketPriority })
                   }
+                  className="h-9 text-xs"
                 >
                   <option value="low">low</option>
                   <option value="medium">medium</option>
@@ -677,33 +708,36 @@ export default function TicketsPage() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Assigned to</label>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">Assigned to</label>
               <Input
                 value={selectedTicket.assignedTo}
                 onChange={(event) => updateTicket({ assignedTo: event.target.value })}
+                className="h-9 bg-slate-50 text-xs"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Ringkasan ticket</label>
-              <Textarea
-                rows={4}
-                value={selectedTicket.summary}
-                onChange={(event) => updateTicket({ summary: event.target.value })}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Resolution note</label>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">Ringkasan ticket</label>
               <Textarea
                 rows={3}
-                value={selectedTicket.resolutionNote ?? ""}
-                onChange={(event) => updateTicket({ resolutionNote: event.target.value })}
+                value={selectedTicket.summary}
+                onChange={(event) => updateTicket({ summary: event.target.value })}
+                className="bg-slate-50 text-xs"
               />
             </div>
 
-            <p className="text-[11px] text-slate-500">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">Resolution note</label>
+              <Textarea
+                rows={2}
+                value={selectedTicket.resolutionNote ?? ""}
+                onChange={(event) => updateTicket({ resolutionNote: event.target.value })}
+                className="bg-slate-50 text-xs"
+              />
+            </div>
+
+            <p className="text-[10px] text-slate-400 font-bold mt-2">
               Terakhir diperbarui: {selectedTicket.updatedAt}
             </p>
           </div>
@@ -711,44 +745,44 @@ export default function TicketsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        <Card className="glass-panel p-5">
+        <Card className="p-5 bg-white border border-slate-200 shadow-2xs space-y-2">
           <div className="flex items-center gap-3">
-            <ShieldAlert className="h-5 w-5 text-amber-300" />
-            <h3 className="text-base font-semibold text-white">Safety first</h3>
+            <ShieldAlert className="h-5 w-5 text-amber-500" />
+            <h3 className="text-sm font-bold text-slate-900">Safety first</h3>
           </div>
-          <p className="mt-4 text-sm leading-7 text-slate-300">
+          <p className="text-xs leading-relaxed text-slate-500 font-medium">
             Ticket membantu memastikan AI tidak memaksa menjawab komplain, refund,
             harga yang tidak ada datanya, atau pertanyaan teknis berat.
           </p>
         </Card>
 
-        <Card className="glass-panel p-5">
+        <Card className="p-5 bg-white border border-slate-200 shadow-2xs space-y-2">
           <div className="flex items-center gap-3">
-            <UserRound className="h-5 w-5 text-cyan-300" />
-            <h3 className="text-base font-semibold text-white">Admin ownership</h3>
+            <UserRound className="h-5 w-5 text-blue-600" />
+            <h3 className="text-sm font-bold text-slate-900">Admin ownership</h3>
           </div>
-          <p className="mt-4 text-sm leading-7 text-slate-300">
+          <p className="text-xs leading-relaxed text-slate-500 font-medium">
             Saat ticket aktif, conversation otomatis dianggap berada di jalur admin
             sampai diselesaikan atau AI diaktifkan kembali dari inbox.
           </p>
         </Card>
 
-        <Card className="glass-panel p-5">
+        <Card className="p-5 bg-white border border-slate-200 shadow-2xs space-y-2">
           <div className="flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5 text-emerald-300" />
-            <h3 className="text-base font-semibold text-white">Closure sync</h3>
+            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            <h3 className="text-sm font-bold text-slate-900">Closure sync</h3>
           </div>
-          <p className="mt-4 text-sm leading-7 text-slate-300">
+          <p className="text-xs leading-relaxed text-slate-500 font-medium">
             Menandai ticket `resolved` akan mengubah status conversation ke selesai
             dan mengurangi active ticket count pada customer terkait.
           </p>
         </Card>
       </div>
 
-      <Card className="glass-panel p-5">
+      <Card className="p-5 bg-white border border-slate-200 shadow-2xs">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-5 w-5 text-rose-300" />
-          <p className="text-sm leading-7 text-slate-300">
+          <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-500 shrink-0" />
+          <p className="text-xs leading-relaxed text-slate-600 font-semibold">
             Tahap berikutnya tinggal menghubungkan modul ini ke notifikasi real-time,
             SLA admin, dan webhook worker supaya ticket dibuat otomatis dari backend.
           </p>
@@ -766,95 +800,119 @@ export default function TicketsPage() {
       >
         <form onSubmit={handleCreateTicket} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <Input
-              value={draft.customerName}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, customerName: event.target.value }))
-              }
-              placeholder="Nama customer"
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">Nama Customer</label>
+              <Input
+                value={draft.customerName}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, customerName: event.target.value }))
+                }
+                placeholder="Nama customer"
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">Jenis Issue</label>
+              <Input
+                value={draft.issueType}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, issueType: event.target.value }))
+                }
+                placeholder="Jenis issue"
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">Saluran (Channel)</label>
+              <Select
+                value={draft.channel}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    channel: event.target.value as ChannelKind,
+                  }))
+                }
+              >
+                <option value="WhatsApp">WhatsApp</option>
+                <option value="Website Chat">Website Chat</option>
+                <option value="Instagram DM">Instagram DM</option>
+                <option value="Instagram Comment">Instagram Comment</option>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">Petugas (Assigned to)</label>
+              <Input
+                value={draft.assignedTo}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, assignedTo: event.target.value }))
+                }
+                placeholder="Assigned to"
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">Prioritas</label>
+              <Select
+                value={draft.priority}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    priority: event.target.value as TicketPriority,
+                  }))
+                }
+              >
+                <option value="low">low</option>
+                <option value="medium">medium</option>
+                <option value="high">high</option>
+                <option value="critical">critical</option>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">Status</label>
+              <Select
+                value={draft.status}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    status: event.target.value as TicketStatus,
+                  }))
+                }
+              >
+                <option value="open">open</option>
+                <option value="in_progress">in_progress</option>
+                <option value="complaint">complaint</option>
+                <option value="resolved">resolved</option>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-900">Ringkasan Masalah</label>
+            <Textarea
+              rows={4}
+              value={draft.summary}
+              onChange={(event) => setDraft((current) => ({ ...current, summary: event.target.value }))}
+              placeholder="Ringkasan ticket"
               required
             />
-            <Input
-              value={draft.issueType}
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-900">Catatan Tambahan / Resolution Note</label>
+            <Textarea
+              rows={3}
+              value={draft.resolutionNote}
               onChange={(event) =>
-                setDraft((current) => ({ ...current, issueType: event.target.value }))
+                setDraft((current) => ({ ...current, resolutionNote: event.target.value }))
               }
-              placeholder="Jenis issue"
+              placeholder="Catatan tambahan / resolution note"
             />
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Select
-              value={draft.channel}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  channel: event.target.value as ChannelKind,
-                }))
-              }
-            >
-              <option value="WhatsApp">WhatsApp</option>
-              <option value="Website Chat">Website Chat</option>
-              <option value="Instagram DM">Instagram DM</option>
-              <option value="Instagram Comment">Instagram Comment</option>
-            </Select>
-            <Input
-              value={draft.assignedTo}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, assignedTo: event.target.value }))
-              }
-              placeholder="Assigned to"
-            />
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Select
-              value={draft.priority}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  priority: event.target.value as TicketPriority,
-                }))
-              }
-            >
-              <option value="low">low</option>
-              <option value="medium">medium</option>
-              <option value="high">high</option>
-              <option value="critical">critical</option>
-            </Select>
-            <Select
-              value={draft.status}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  status: event.target.value as TicketStatus,
-                }))
-              }
-            >
-              <option value="open">open</option>
-              <option value="in_progress">in_progress</option>
-              <option value="complaint">complaint</option>
-              <option value="resolved">resolved</option>
-            </Select>
-          </div>
-          <Textarea
-            rows={4}
-            value={draft.summary}
-            onChange={(event) => setDraft((current) => ({ ...current, summary: event.target.value }))}
-            placeholder="Ringkasan ticket"
-            required
-          />
-          <Textarea
-            rows={3}
-            value={draft.resolutionNote}
-            onChange={(event) =>
-              setDraft((current) => ({ ...current, resolutionNote: event.target.value }))
-            }
-            placeholder="Catatan tambahan / resolution note"
-          />
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-4">
             <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)}>
               Batal
             </Button>
-            <Button type="submit">Simpan ticket</Button>
+            <Button type="submit" variant="primary">Simpan ticket</Button>
           </div>
         </form>
       </Modal>
