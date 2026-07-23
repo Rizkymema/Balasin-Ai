@@ -155,17 +155,29 @@ export async function POST(request: Request) {
     }
 
     if (action === "logout") {
-      await logoutWhatsAppQrInstance(session.instanceName);
+      try {
+        await logoutWhatsAppQrInstance(session.instanceName);
+      } catch (logoutError) {
+        // Some Evolution versions return an error after Baileys has already
+        // cleared the credentials. Trust the resulting gateway state.
+        const gatewayStatus = await getSessionStatus(session.instanceName);
+        if (gatewayStatus.status !== "disconnected") {
+          throw logoutError;
+        }
+      }
+
+      const nextSessions = sessions.filter((item) => item.id !== session.id);
       const nextSession: WhatsAppQrSession = {
         ...session,
         status: "disconnected",
         lastCheckedAt: new Date().toISOString(),
       };
-      await saveSessions(
-        config,
-        sessions.map((item) => item.id === session.id ? nextSession : item),
-      );
-      return jsonOk({ session: nextSession });
+      await saveSessions(config, nextSessions);
+      return jsonOk({
+        session: nextSession,
+        sessions: nextSessions,
+        removed: true,
+      });
     }
 
     const gatewayStatus = await getSessionStatus(session.instanceName);

@@ -16,6 +16,7 @@ type QrResponse = {
     sessions?: WhatsAppQrSession[];
     session?: WhatsAppQrSession;
     qrCode?: string;
+    removed?: boolean;
   };
   error?: string;
 };
@@ -65,9 +66,17 @@ export function WhatsAppQrConnector() {
       setConfigured(payload.data?.configured === true);
       setWebhookUrl(payload.data?.webhookUrl ?? "");
       setSessions(nextSessions);
-      setActiveSessionId((current) =>
-        current || nextSessions.find((session) => session.status === "connecting")?.id || "",
-      );
+      setActiveSessionId((current) => {
+        if (nextSessions.some((session) => session.id === current)) {
+          return current;
+        }
+        return (
+          nextSessions.find((session) => session.status === "connecting")?.id ??
+          nextSessions.find((session) => session.status === "connected")?.id ??
+          nextSessions[0]?.id ??
+          ""
+        );
+      });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Gagal memuat koneksi WhatsApp QR.");
     } finally {
@@ -170,11 +179,18 @@ export function WhatsAppQrConnector() {
     setIsBusy(true);
     try {
       const data = await callAction({ action: "logout", sessionId: session.id });
-      if (data?.session) {
-        setSessions((current) => current.map((item) => item.id === session.id ? data.session! : item));
+      const nextSessions =
+        data?.sessions ?? sessions.filter((item) => item.id !== session.id);
+      setSessions(nextSessions);
+      setQrCode("");
+      if (session.id === activeSessionId) {
+        setActiveSessionId(
+          nextSessions.find((item) => item.status === "connected")?.id ??
+            nextSessions[0]?.id ??
+            "",
+        );
       }
-      if (session.id === activeSessionId) setQrCode("");
-      setMessage("Sesi WhatsApp QR diputuskan.");
+      setMessage("WhatsApp berhasil logout dan dihapus dari daftar sesi QR.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Gagal memutus sesi WhatsApp QR.");
     } finally {

@@ -121,10 +121,28 @@ export async function configureWhatsAppQrWebhook(instanceName: string) {
 }
 
 export async function logoutWhatsAppQrInstance(instanceName: string) {
-  return evolutionRequest<Record<string, unknown>>(
-    `instance/logout/${encodeInstanceName(instanceName)}`,
-    { method: "POST" },
-  );
+  const path = `instance/logout/${encodeInstanceName(instanceName)}`;
+
+  try {
+    return await evolutionRequest<Record<string, unknown>>(path, {
+      method: "DELETE",
+    });
+  } catch (deleteError) {
+    try {
+      // Evolution API releases before v2 used POST for the same endpoint.
+      return await evolutionRequest<Record<string, unknown>>(path, {
+        method: "POST",
+      });
+    } catch (postError) {
+      const deleteMessage =
+        deleteError instanceof Error ? deleteError.message : "DELETE gagal";
+      const postMessage =
+        postError instanceof Error ? postError.message : "POST gagal";
+      throw new Error(
+        `Gateway menolak logout WhatsApp. DELETE: ${deleteMessage}; fallback POST: ${postMessage}`,
+      );
+    }
+  }
 }
 
 export async function sendWhatsAppQrText(input: {
