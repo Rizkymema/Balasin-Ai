@@ -143,6 +143,9 @@ export default function ChannelsPage() {
   const [accessToken, setAccessToken] = useState(config.channels.whatsapp.accessToken);
   const [verifyToken, setVerifyToken] = useState(config.channels.whatsapp.verifyToken);
   const [waAutoReply, setWaAutoReply] = useState(config.channels.whatsapp.autoReply);
+  const [waAutoReplyGroups, setWaAutoReplyGroups] = useState(
+    config.channels.whatsapp.autoReplyGroups,
+  );
   const [waStatus, setWaStatus] = useState(config.channels.whatsapp.status);
 
   const [igUsername, setIgUsername] = useState(config.channels.instagram.username);
@@ -193,6 +196,7 @@ export default function ChannelsPage() {
     setAccessToken(config.channels.whatsapp.accessToken);
     setVerifyToken(config.channels.whatsapp.verifyToken);
     setWaAutoReply(config.channels.whatsapp.autoReply);
+    setWaAutoReplyGroups(config.channels.whatsapp.autoReplyGroups);
     setWaStatus(config.channels.whatsapp.status);
 
     setIgUsername(config.channels.instagram.username);
@@ -392,6 +396,7 @@ struct ChatView: View {
             verifyToken: trimmedVerifyToken,
             webhookUrl: whatsappWebhookUrl,
             autoReply: waAutoReply,
+            autoReplyGroups: waAutoReplyGroups,
             accounts: updatedAccounts,
           },
         },
@@ -1442,6 +1447,38 @@ struct ChatView: View {
               </div>
 
               <WhatsAppQrConnector />
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-amber-400/15 bg-amber-950/10 p-4 text-xs text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={waAutoReplyGroups}
+                  onChange={(event) => {
+                    const enabled = event.target.checked;
+                    setWaAutoReplyGroups(enabled);
+                    void patchConfig((current) => ({
+                      ...current,
+                      channels: {
+                        ...current.channels,
+                        whatsapp: {
+                          ...current.channels.whatsapp,
+                          autoReplyGroups: enabled,
+                        },
+                      },
+                    }));
+                  }}
+                  className="mt-0.5 h-4 w-4 rounded border-white/12 bg-white/4 text-amber-500"
+                />
+                <span>
+                  <span className="block font-bold text-white">
+                    Balas otomatis pesan grup WhatsApp
+                  </span>
+                  <span className="mt-1 block leading-relaxed text-slate-500">
+                    OFF: chatbot mengabaikan pesan grup QR dan hanya membalas
+                    chat pribadi. ON: chatbot dapat membalas pesan yang masuk
+                    dari grup WhatsApp.
+                  </span>
+                </span>
+              </label>
 
               {/* === CONNECTED STATE === */}
               {hasConnectedWhatsApp ? (

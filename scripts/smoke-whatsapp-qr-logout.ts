@@ -38,10 +38,26 @@ globalThis.fetch = async (input, init) => {
 };
 
 async function main() {
-  const { logoutWhatsAppQrInstance } =
+  const {
+    logoutWhatsAppQrInstance,
+    shouldAutoReplyWhatsAppQrMessage,
+  } =
     await import("../src/server/services/whatsapp-qr-gateway");
 
   try {
+    assert.equal(
+      shouldAutoReplyWhatsAppQrMessage("628123456789@s.whatsapp.net", false),
+      true,
+    );
+    assert.equal(
+      shouldAutoReplyWhatsAppQrMessage("120363000000000000@g.us", false),
+      false,
+    );
+    assert.equal(
+      shouldAutoReplyWhatsAppQrMessage("120363000000000000@g.us", true),
+      true,
+    );
+
     await logoutWhatsAppQrInstance("balesin-wa-test");
 
     assert.equal(requests.length, 1);

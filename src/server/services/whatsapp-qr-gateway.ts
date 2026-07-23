@@ -77,6 +77,14 @@ function encodeInstanceName(instanceName: string) {
   return encodeURIComponent(instanceName);
 }
 
+export function shouldAutoReplyWhatsAppQrMessage(
+  remoteJid: string,
+  autoReplyGroups: boolean,
+) {
+  const isGroup = /@g\.us$/i.test(remoteJid.trim());
+  return !isGroup || autoReplyGroups;
+}
+
 export async function createWhatsAppQrInstance(instanceName: string) {
   return evolutionRequest<Record<string, unknown>>("instance/create", {
     method: "POST",

@@ -162,6 +162,7 @@ export const defaultDashboardConfig: DashboardConfig = {
       verifyToken: "verify123",
       webhookUrl: "",
       autoReply: true,
+      autoReplyGroups: false,
       qrSessions: [],
     },
     instagram: {

@@ -6,6 +6,7 @@ import {
 } from "@/server/repositories/dashboard-repository";
 import { processIncomingMessage } from "@/server/services/inbox-service";
 import { serverEnv } from "@/server/env";
+import { shouldAutoReplyWhatsAppQrMessage } from "@/server/services/whatsapp-qr-gateway";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -116,6 +117,21 @@ export async function POST(request: Request) {
       }
 
       const remoteJid = String(key.remoteJid ?? item.remoteJid ?? "").trim();
+      if (
+        !shouldAutoReplyWhatsAppQrMessage(
+          remoteJid,
+          config.channels.whatsapp.autoReplyGroups,
+        )
+      ) {
+        await recordWebhookEvent({
+          source: "whatsapp_evolution",
+          payload: body,
+          status: "ignored",
+        });
+        ignored += 1;
+        continue;
+      }
+
       const phone = getPhone(remoteJid);
       const message = asRecord(item.message);
       const messageText = getText(message);

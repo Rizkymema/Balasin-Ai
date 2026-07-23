@@ -437,6 +437,7 @@ export type DashboardConfig = {
       verifyToken: string;
       webhookUrl: string;
       autoReply: boolean;
+      autoReplyGroups: boolean;
       qrSessions?: WhatsAppQrSession[];
       accounts?: Array<{
         id: string; // phone number ID
