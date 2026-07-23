@@ -13,6 +13,7 @@
     "start": "next start",
     "test:conversation-flow": "tsx scripts/smoke-conversation-flow.ts",
     "test:inbox-whatsapp-switch": "tsx scripts/smoke-inbox-whatsapp-switch.ts",
+    "test:reply-engine-output-guard": "tsx scripts/smoke-reply-engine-output-guard.ts",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
     "format": "prettier --write .",

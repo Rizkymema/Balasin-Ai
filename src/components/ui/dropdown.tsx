@@ -40,12 +40,12 @@ export function Dropdown({ trigger, items, align = "right", className, header }:
       {isOpen && (
         <div
           className={cn(
-            "absolute z-40 mt-2 w-56 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-1 shadow-xl backdrop-blur-md animate-fade-in",
+            "absolute z-50 mt-2 w-60 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-strong)]/95 p-1.5 shadow-2xl backdrop-blur-xl animate-fade-in",
             align === "right" ? "right-0" : "left-0"
           )}
         >
           {header && (
-            <div className="px-3 py-2 border-b border-[var(--color-border)]/50 mb-1">
+            <div className="px-3 py-2.5 border-b border-[var(--color-border)]/60 mb-1">
               {header}
             </div>
           )}
@@ -57,14 +57,15 @@ export function Dropdown({ trigger, items, align = "right", className, header }:
                 setIsOpen(false);
               }}
               className={cn(
-                "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium transition duration-150",
+                "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-xs font-semibold transition-all duration-150 cursor-pointer",
                 item.danger
-                  ? "text-red-400 hover:bg-red-500/10"
-                  : "text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
+                  ? "text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
+                  : "text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] hover:text-white",
+                item.className
               )}
             >
-              {item.icon && <span className="text-[var(--color-muted)] group-hover:text-[var(--color-text)]">{item.icon}</span>}
-              <span className="flex-1">{item.label}</span>
+              {item.icon && <span className="text-[var(--color-muted)] group-hover:text-[var(--color-brand)] transition-colors">{item.icon}</span>}
+              <span className="flex-1 truncate">{item.label}</span>
             </button>
           ))}
         </div>

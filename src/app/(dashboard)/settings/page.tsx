@@ -383,12 +383,12 @@ export default function SettingsPage() {
     <div className="space-y-6">
       {/* Title */}
       <div>
-        <h1 className="flex items-center gap-2.5 text-2xl font-bold text-white">
-          <Settings className="h-6 w-6 text-cyan-400" />
+        <h1 className="flex items-center gap-2.5 text-2xl font-bold text-[var(--color-text)]">
+          <Settings className="h-6 w-6 text-[var(--color-brand)]" />
           Settings & Workspace Configuration
         </h1>
-        <p className="mt-1 text-xs text-slate-400">
-          Kelola konfigurasi sistem akun, manajemen agen, alur pesan, integrasi panggilan, database kontak, kuesioner, tiket, dan token API.
+        <p className="mt-1 text-xs text-[var(--color-muted)]">
+          Kelola konfigurasi profil workspace, sistem akun, manajemen agen, alur pesan, integrasi panggilan, database kontak, kuesioner, tiket, dan token API.
         </p>
       </div>
 
@@ -398,30 +398,30 @@ export default function SettingsPage() {
         <div className="space-y-6 lg:col-span-1">
           {/* Group 1: Sistem & Keamanan */}
           <div className="space-y-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block px-2.5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-muted)] block px-2.5">
               Sistem & Keamanan
             </span>
-            <div className="space-y-1 bg-white/[0.01] border border-white/6 rounded-xl p-1.5">
+            <div className="space-y-1 bg-[var(--color-surface-strong)] border border-[var(--color-border)] rounded-2xl p-2 shadow-sm">
               {/* Workspace Profile */}
               <button
                 onClick={() => setActiveSetting("profile")}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-bold transition-all duration-200 cursor-pointer ${
                   activeSetting === "profile"
-                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
-                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
-                <Building2 className="h-4 w-4" />
+                <Building2 className={`h-4 w-4 ${activeSetting === "profile" ? "text-[var(--color-brand)]" : "text-[var(--color-muted)]"}`} />
                 <span>Workspace Profile</span>
               </button>
 
               {/* User Management */}
               <button
                 onClick={() => setActiveSetting("users")}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "users"
-                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
-                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <User className="h-4 w-4" />
@@ -431,10 +431,10 @@ export default function SettingsPage() {
               {/* Agent Management */}
               <button
                 onClick={() => setActiveSetting("agents")}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "agents"
-                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
-                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <UserCheck className="h-4 w-4" />
@@ -444,10 +444,10 @@ export default function SettingsPage() {
               {/* SLA Management */}
               <button
                 onClick={() => setActiveSetting("sla")}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "sla"
-                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
-                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <Clock className="h-4 w-4" />
@@ -457,10 +457,10 @@ export default function SettingsPage() {
               {/* Inbox */}
               <button
                 onClick={() => setActiveSetting("inbox")}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "inbox"
-                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
-                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <Inbox className="h-4 w-4" />
@@ -470,10 +470,10 @@ export default function SettingsPage() {
               {/* Security */}
               <button
                 onClick={() => setActiveSetting("security")}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "security"
-                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
-                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <Shield className="h-4 w-4" />
@@ -484,33 +484,33 @@ export default function SettingsPage() {
 
           {/* Group 2: Fitur & Operasional */}
           <div className="space-y-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block px-2.5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-muted)] block px-2.5">
               Fitur & Operasional
             </span>
-            <div className="space-y-1 bg-white/[0.01] border border-white/6 rounded-xl p-1.5">
+            <div className="space-y-1 bg-[var(--color-surface-strong)] border border-[var(--color-border)] rounded-2xl p-2 shadow-sm">
               {/* Call */}
               <button
                 onClick={() => setActiveSetting("call")}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "call"
-                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
-                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <Phone className="h-4 w-4 text-amber-400" />
                   <span>Call (Telepon)</span>
                 </div>
-                <Badge className="bg-cyan-500 text-slate-950 text-[8px] font-extrabold px-1.5 py-0.5 rounded">NEW</Badge>
+                <Badge className="bg-[var(--color-brand)] text-slate-950 text-[8px] font-extrabold px-1.5 py-0.5 rounded">NEW</Badge>
               </button>
 
               {/* Contact Info */}
               <button
                 onClick={() => setActiveSetting("contacts")}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "contacts"
-                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
-                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <Database className="h-4 w-4" />
@@ -520,10 +520,10 @@ export default function SettingsPage() {
               {/* Customer Survey */}
               <button
                 onClick={() => setActiveSetting("survey")}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "survey"
-                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
-                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <SlidersHorizontal className="h-4 w-4" />
@@ -533,10 +533,10 @@ export default function SettingsPage() {
               {/* Ticket */}
               <button
                 onClick={() => setActiveSetting("ticket")}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "ticket"
-                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
-                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <ListChecks className="h-4 w-4" />
@@ -546,10 +546,10 @@ export default function SettingsPage() {
               {/* Import & export list */}
               <button
                 onClick={() => setActiveSetting("logs")}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "logs"
-                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
-                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <History className="h-4 w-4" />
@@ -560,17 +560,17 @@ export default function SettingsPage() {
 
           {/* Group 3: AI Provider Key */}
           <div className="space-y-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block px-2.5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-muted)] block px-2.5">
               AI Provider Key
             </span>
-            <div className="space-y-1 bg-white/[0.01] border border-white/6 rounded-xl p-1.5">
+            <div className="space-y-1 bg-[var(--color-surface-strong)] border border-[var(--color-border)] rounded-2xl p-2 shadow-sm">
               {/* AI API Key & Token */}
               <button
                 onClick={() => setActiveSetting("token_bot")}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "token_bot"
-                    ? "bg-cyan-950/40 border border-cyan-400/20 text-cyan-300"
-                    : "border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]"
+                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <FileCode className="h-4 w-4 text-emerald-400" />
@@ -588,49 +588,49 @@ export default function SettingsPage() {
           {activeSetting === "profile" && (
             <div className="space-y-6">
               {/* Workspace Profile Form */}
-              <form onSubmit={handleSaveWorkspace} className="glass-panel max-w-3xl space-y-4 rounded-xl p-6 border-white/8">
-                <div className="border-b border-white/8 pb-4 mb-4">
-                  <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-400">
-                    <Building2 className="h-4.5 w-4.5" />
+              <form onSubmit={handleSaveWorkspace} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/70 max-w-3xl space-y-5 p-6 md:p-8 backdrop-blur-md shadow-xl transition-all hover:border-[var(--color-border-hover)]">
+                <div className="border-b border-[var(--color-border)]/60 pb-4 mb-4">
+                  <h3 className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-widest text-[var(--color-brand)]">
+                    <Building2 className="h-4.5 w-4.5 text-[var(--color-brand)]" />
                     {t.profileSettingsTitle}
                   </h3>
-                  <p className="text-[11px] text-slate-400 mt-1">{t.profileSettingsDesc}</p>
+                  <p className="text-[11px] text-[var(--color-muted)] mt-1.5">{t.profileSettingsDesc}</p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">{t.workspaceName}</label>
-                    <Input value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} className="h-10 text-xs" />
+                    <label className="text-xs font-semibold text-[var(--color-text)]">{t.workspaceName}</label>
+                    <Input value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} className="h-10 text-xs bg-[var(--color-surface-strong)] border-[var(--color-border)]" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">{t.industry}</label>
-                    <Input value={industry} onChange={(event) => setIndustry(event.target.value)} className="h-10 text-xs" />
+                    <label className="text-xs font-semibold text-[var(--color-text)]">{t.industry}</label>
+                    <Input value={industry} onChange={(event) => setIndustry(event.target.value)} className="h-10 text-xs bg-[var(--color-surface-strong)] border-[var(--color-border)]" />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">{t.emailSupport}</label>
-                  <Input type="email" value={supportEmail} onChange={(event) => setSupportEmail(event.target.value)} className="h-10 text-xs" />
+                  <label className="text-xs font-semibold text-[var(--color-text)]">{t.emailSupport}</label>
+                  <Input type="email" value={supportEmail} onChange={(event) => setSupportEmail(event.target.value)} className="h-10 text-xs bg-[var(--color-surface-strong)] border-[var(--color-border)]" />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">{t.businessDesc}</label>
-                  <Textarea rows={3} value={description} onChange={(event) => setDescription(event.target.value)} className="text-xs" />
+                  <label className="text-xs font-semibold text-[var(--color-text)]">{t.businessDesc}</label>
+                  <Textarea rows={3} value={description} onChange={(event) => setDescription(event.target.value)} className="text-xs bg-[var(--color-surface-strong)] border-[var(--color-border)]" />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">{t.address}</label>
-                  <Textarea rows={2} value={address} onChange={(event) => setAddress(event.target.value)} className="text-xs" />
+                  <label className="text-xs font-semibold text-[var(--color-text)]">{t.address}</label>
+                  <Textarea rows={2} value={address} onChange={(event) => setAddress(event.target.value)} className="text-xs bg-[var(--color-surface-strong)] border-[var(--color-border)]" />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">{t.businessHours}</label>
-                  <Input value={businessHours} onChange={(event) => setWorkspaceBusinessHours(event.target.value)} className="h-10 text-xs" />
+                  <label className="text-xs font-semibold text-[var(--color-text)]">{t.businessHours}</label>
+                  <Input value={businessHours} onChange={(event) => setWorkspaceBusinessHours(event.target.value)} className="h-10 text-xs bg-[var(--color-surface-strong)] border-[var(--color-border)]" />
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">{t.timezone}</label>
+                    <label className="text-xs font-semibold text-[var(--color-text)]">{t.timezone}</label>
                     <Select value={timezone} onChange={(event) => setTimezone(event.target.value)}>
                       <option value="Asia/Jakarta">WIB - Asia/Jakarta</option>
                       <option value="Asia/Makassar">WITA - Asia/Makassar</option>
@@ -638,7 +638,7 @@ export default function SettingsPage() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">{t.defaultLang}</label>
+                    <label className="text-xs font-semibold text-[var(--color-text)]">{t.defaultLang}</label>
                     <Select value={lang} onChange={(event) => setLang(event.target.value)}>
                       <option value="id">Bahasa Indonesia</option>
                       <option value="en">English</option>
@@ -646,16 +646,16 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-white/8">
+                <div className="flex items-center justify-between pt-5 border-t border-[var(--color-border)]/60">
                   {isSavedWorkspace ? (
-                    <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 animate-fade-in">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-[var(--color-success)] animate-fade-in">
                       <Check className="h-4 w-4" /> {t.successSaveProfile}
                     </span>
                   ) : (
                     <div />
                   )}
-                  <Button type="submit" className="px-5">
-                    <Save className="mr-1.5 h-4 w-4" /> {t.saveProfile}
+                  <Button type="submit" className="px-6 font-bold shadow-[0_0_15px_rgba(10,132,255,0.25)]">
+                    <Save className="mr-2 h-4 w-4" /> {t.saveProfile}
                   </Button>
                 </div>
               </form>

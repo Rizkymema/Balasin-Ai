@@ -532,12 +532,12 @@ function extractStyleSignals(config: DashboardConfig) {
       /\bgua\b/.test(combined) ||
       /\blu\b/.test(combined),
     usePren:
-      combined.includes("pren") ||
-      combined.includes("besti") ||
-      combined.includes("bro") ||
-      combined.includes("anak bengkel") ||
-      combined.includes("johan garage") ||
-      combined.includes(config.workspace.name.toLowerCase()),
+      combined.includes("panggil pren") ||
+      combined.includes("sapaan pren") ||
+      combined.includes("panggil besti") ||
+      combined.includes("sapaan besti") ||
+      combined.includes("panggil bro") ||
+      combined.includes("sapaan bro"),
   };
 }
 
@@ -1065,15 +1065,24 @@ function isInactiveKnowledgeChunk(chunk: KnowledgeChunk) {
   );
 }
 
-function isClassifierAnalysisText(content: string) {
+export function isInternalReplyArtifact(content: string) {
   const normalized = content.trim();
+  if (!normalized) {
+    return false;
+  }
+
   const classifierLabels = [
-    /(?:^|\|)\s*jenis\s*:\s*\**(?:dm|komen|komentar)\b/i,
+    /(?:^|\n|\|)\s*(?:jenis|category|kategori|channel)\s*:/i,
+    /(?:^|\n|\|)\s*(?:question|pertanyaan)\s*:/i,
     /isi\s+pesan\s*\/\s*komentar\s*:/i,
-    /(?:^|\|)\s*indikasi\s*:/i,
+    /(?:^|\n|\|)\s*(?:indikasi|sentiment|intent|classification|klasifikasi)\s*:/i,
   ];
 
   return classifierLabels.filter((pattern) => pattern.test(normalized)).length >= 2;
+}
+
+function isClassifierAnalysisText(content: string) {
+  return isInternalReplyArtifact(content);
 }
 
 function isNonAnswerKnowledgeChunk(chunk: KnowledgeChunk) {
