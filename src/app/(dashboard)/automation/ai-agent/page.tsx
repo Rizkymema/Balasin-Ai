@@ -38,24 +38,24 @@ import { Dropdown } from "@/components/ui/dropdown";
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 function AgentStatusBadge({ status }: { status: AIAgent["status"] }) {
   if (status === "Active")
-    return <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Active</Badge>;
+    return <Badge variant="success">Active</Badge>;
   if (status === "Draft")
-    return <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20">Draft</Badge>;
-  return <Badge className="bg-slate-500/10 text-slate-400 border-slate-500/20">Inactive</Badge>;
+    return <Badge variant="warning">Draft</Badge>;
+  return <Badge variant="secondary">Inactive</Badge>;
 }
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 function EmptyAgentState({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--color-border)] py-20 px-4 text-center">
-      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--color-brand)]/10 text-[var(--color-brand)] mb-5">
-        <BrainCircuit className="h-10 w-10" />
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-16 px-4 text-center shadow-2xs">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-600 mb-4">
+        <BrainCircuit className="h-8 w-8" />
       </div>
-      <h3 className="text-xl font-bold text-white mb-2">No AI agent yet</h3>
-      <p className="text-sm text-slate-400 mb-6 max-w-md mx-auto">
+      <h3 className="text-lg font-bold text-slate-900 mb-1">No AI agent yet</h3>
+      <p className="text-xs text-slate-500 mb-6 max-w-md mx-auto">
         Buat AI Agent pertama Anda untuk membantu menjawab pesan pelanggan secara otomatis berdasarkan data bisnis internal.
       </p>
-      <Button onClick={onCreate} className="gap-2">
+      <Button onClick={onCreate} variant="primary" size="sm" className="gap-2">
         <PlusCircle className="h-4 w-4" />
         Create AI Agent
       </Button>
@@ -129,34 +129,34 @@ function TestAgentPanel({ agent, onClose }: { agent: AIAgent; onClose: () => voi
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="relative flex flex-col w-full max-w-lg rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl" style={{ height: "580px" }}>
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4 shrink-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+      <div className="relative flex flex-col w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl" style={{ height: "580px" }}>
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-brand)]/20 text-[var(--color-brand)]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 font-bold">
               <Bot className="h-5 w-5" />
             </div>
             <div>
-              <div className="font-bold text-white text-sm">{agent.name}</div>
-              <div className="text-xs text-slate-400">Test Mode</div>
+              <div className="font-bold text-slate-900 text-sm">{agent.name}</div>
+              <div className="text-xs text-slate-500 font-medium">Test Mode</div>
             </div>
           </div>
-          <button onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-white/10 hover:text-white">
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-900 cursor-pointer">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-slate-50">
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${
+              <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs shadow-2xs ${
                 msg.sender === "user"
-                  ? "bg-[var(--color-brand)] text-slate-950 font-medium"
-                  : "bg-white/[0.06] text-slate-200"
+                  ? "bg-blue-600 text-white font-medium"
+                  : "bg-white text-slate-900 border border-slate-200"
               }`}>
                 {msg.text}
                 {msg.sender === "ai" && msg.confidence && (
-                  <div className="text-[10px] text-slate-500 mt-1">
+                  <div className="text-[10px] text-slate-400 mt-1">
                     Confidence: {msg.confidence}%{msg.source ? ` | Source: ${msg.source}` : ""}
                   </div>
                 )}
@@ -165,8 +165,8 @@ function TestAgentPanel({ agent, onClose }: { agent: AIAgent; onClose: () => voi
           ))}
         </div>
 
-        <div className="border-t border-[var(--color-border)] p-4 shrink-0">
-          {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
+        <div className="border-t border-slate-100 p-4 shrink-0 bg-white">
+          {error && <p className="mb-2 text-xs text-red-600 font-semibold">{error}</p>}
           <div className="flex gap-2">
             <Input
               placeholder="Tulis pesan test..."
@@ -174,12 +174,14 @@ function TestAgentPanel({ agent, onClose }: { agent: AIAgent; onClose: () => voi
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && void handleSend()}
               disabled={isSending}
-              className="bg-black/20"
+              className="bg-slate-50 text-xs"
             />
             <Button
               onClick={() => void handleSend()}
               disabled={isSending || !input.trim()}
-              className="px-3 py-2 shrink-0"
+              variant="primary"
+              size="sm"
+              className="px-3 shrink-0"
             >
               {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
@@ -193,25 +195,25 @@ function TestAgentPanel({ agent, onClose }: { agent: AIAgent; onClose: () => voi
 // ─── Delete Confirm Modal ─────────────────────────────────────────────────────
 function DeleteAgentModal({ agentName, onClose, onConfirm }: { agentName: string; onClose: () => void; onConfirm: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-md rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-2xl text-center">
-        <button onClick={onClose} className="absolute right-4 top-4 rounded p-1 text-slate-400 hover:bg-white/10 hover:text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+      <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl text-center">
+        <button onClick={onClose} className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-900 cursor-pointer">
           <X className="h-5 w-5" />
         </button>
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10 text-red-500">
-          <AlertTriangle className="h-7 w-7" />
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+          <AlertTriangle className="h-6 w-6" />
         </div>
-        <h3 className="mb-2 text-lg font-bold text-white">Hapus AI Agent?</h3>
-        <p className="mb-6 text-sm text-slate-400">
+        <h3 className="mb-1 text-base font-bold text-slate-900">Hapus AI Agent?</h3>
+        <p className="mb-6 text-xs text-slate-500 leading-relaxed">
           Apakah Anda yakin ingin menghapus AI Agent{" "}
-          <span className="font-semibold text-white">&quot;{agentName}&quot;</span>?{" "}
+          <span className="font-bold text-slate-900">&quot;{agentName}&quot;</span>?{" "}
           Agent yang sudah dihapus tidak dapat digunakan lagi di conversation flow.
         </p>
         <div className="flex gap-3 justify-center">
-          <Button variant="secondary" onClick={onClose} className="flex-1 max-w-[120px] bg-transparent border-transparent text-slate-400 hover:text-white">
+          <Button variant="secondary" onClick={onClose} size="sm">
             Cancel
           </Button>
-          <Button onClick={onConfirm} className="flex-1 max-w-[140px] bg-red-500 hover:bg-red-600 text-white border-transparent">
+          <Button onClick={onConfirm} variant="destructive" size="sm">
             Delete AI Agent
           </Button>
         </div>
@@ -282,14 +284,14 @@ function CreateAgentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-3xl rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs overflow-y-auto">
+      <div className="relative w-full max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-2xl my-8">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4 sticky top-0 bg-[var(--color-surface)] z-10 rounded-t-xl">
-          <h2 className="font-heading text-lg font-bold text-white">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 sticky top-0 bg-white z-10 rounded-t-2xl">
+          <h2 className="text-base font-bold text-slate-900">
             {initialData ? "Edit AI Agent" : "Create AI Agent"}
           </h2>
-          <button onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-white/10 hover:text-white">
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-900 cursor-pointer">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -297,17 +299,17 @@ function CreateAgentModal({
         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
           {/* Agent Identity */}
           <div className="space-y-1">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-brand)]">Identity & Persona</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-blue-600">Identity & Persona</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-300">Agent Name</label>
-              <Input placeholder="Contoh: Customer Support Assistant" value={name} onChange={(e) => setName(e.target.value)} className="bg-black/20" />
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-900">Agent Name</label>
+              <Input placeholder="Contoh: Customer Support Assistant" value={name} onChange={(e) => setName(e.target.value)} className="bg-slate-50 text-xs" />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-300">Channel</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-900">Channel</label>
               <select
-                className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+                className="flex h-9 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-600"
                 value={channelUsage}
                 onChange={(e) => setChannelUsage(e.target.value)}
               >
@@ -319,16 +321,16 @@ function CreateAgentModal({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-300">Agent Description</label>
-            <Input placeholder="Contoh: Asisten AI untuk layanan servis, booking, harga, dan sparepart." value={description} onChange={(e) => setDescription(e.target.value)} className="bg-black/20" />
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-900">Agent Description</label>
+            <Input placeholder="Contoh: Asisten AI untuk layanan servis, booking, harga, dan sparepart." value={description} onChange={(e) => setDescription(e.target.value)} className="bg-slate-50 text-xs" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-300">Tone of Voice</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-900">Tone of Voice</label>
               <select
-                className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+                className="flex h-9 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-600"
                 value={tone}
                 onChange={(e) => setTone(e.target.value as AIAgent["toneOfVoice"])}
               >
@@ -337,10 +339,10 @@ function CreateAgentModal({
                 ))}
               </select>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-300">Response Mode</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-900">Response Mode</label>
               <select
-                className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+                className="flex h-9 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-600"
                 value={responseMode}
                 onChange={(e) => setResponseMode(e.target.value as AIAgent["responseMode"])}
               >
@@ -351,30 +353,30 @@ function CreateAgentModal({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-300">AI Prompt / Instruction</label>
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-900">AI Prompt / Instruction</label>
             <Textarea
               placeholder="Kamu adalah asisten virtual yang ramah dan sigap. Tugasmu membantu menjawab pertanyaan seputar layanan kami..."
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              className="min-h-[130px] bg-black/20"
+              className="min-h-[120px] bg-slate-50 text-xs"
             />
           </div>
 
           {/* Allowed Actions */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-brand)]">Allowed Actions</h3>
-            <div className="rounded-lg border border-[var(--color-border)] divide-y divide-[var(--color-border)]">
+          <div className="space-y-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-blue-600">Allowed Actions</h3>
+            <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 bg-white">
               {actionLabels.map(({ key, label }) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => toggleAction(key)}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-white/[0.02] transition"
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-xs font-semibold text-slate-800 hover:bg-slate-50 transition cursor-pointer"
                 >
                   {actions[key]
-                    ? <CheckSquare className="h-4 w-4 text-[var(--color-brand)] shrink-0" />
-                    : <Square className="h-4 w-4 text-slate-600 shrink-0" />
+                    ? <CheckSquare className="h-4 w-4 text-blue-600 shrink-0" />
+                    : <Square className="h-4 w-4 text-slate-300 shrink-0" />
                   }
                   {label}
                 </button>
@@ -383,30 +385,30 @@ function CreateAgentModal({
           </div>
 
           {/* Human Handover */}
-          <div className="rounded-lg border border-[var(--color-border)] p-4 space-y-4">
+          <div className="rounded-xl border border-slate-200 p-4 space-y-3 bg-slate-50/50">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="text-sm font-semibold text-white">Human Handover Rules</h4>
-                <p className="text-xs text-slate-500">Alihkan ke admin jika kondisi tertentu terpenuhi</p>
+                <h4 className="text-xs font-bold text-slate-900">Human Handover Rules</h4>
+                <p className="text-[11px] text-slate-500">Alihkan ke admin jika kondisi tertentu terpenuhi</p>
               </div>
               <label className="relative inline-flex cursor-pointer items-center">
                 <input type="checkbox" className="peer sr-only" checked={handoverEnabled} onChange={(e) => setHandoverEnabled(e.target.checked)} />
-                <div className="h-5 w-9 rounded-full bg-slate-700 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[var(--color-brand)] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"></div>
+                <div className="h-5 w-9 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-focus:outline-none shadow-2xs"></div>
               </label>
             </div>
             {handoverEnabled && (
-              <div className="space-y-3 pt-2 border-t border-[var(--color-border)]">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-300">Assign To Team</label>
-                  <Input placeholder="Customer Service" value={handoverTeam} onChange={(e) => setHandoverTeam(e.target.value)} className="bg-black/40 h-9 text-sm" />
+              <div className="space-y-3 pt-3 border-t border-slate-200">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-900">Assign To Team</label>
+                  <Input placeholder="Customer Service" value={handoverTeam} onChange={(e) => setHandoverTeam(e.target.value)} className="bg-white h-9 text-xs" />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-300">Fallback Handover Message</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-900">Fallback Handover Message</label>
                   <Textarea
                     placeholder="Baik kak, saya teruskan ke admin agar bisa dibantu lebih lanjut."
                     value={handoverMsg}
                     onChange={(e) => setHandoverMsg(e.target.value)}
-                    className="min-h-[70px] bg-black/40 text-sm"
+                    className="min-h-[60px] bg-white text-xs"
                   />
                 </div>
               </div>
@@ -415,16 +417,16 @@ function CreateAgentModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-[var(--color-border)] px-6 py-4 bg-[var(--color-surface)] rounded-b-xl">
-          <Button variant="secondary" onClick={onClose} className="text-slate-400 hover:text-white bg-transparent border-transparent">
+        <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3.5 bg-slate-50/50 rounded-b-2xl">
+          <Button variant="secondary" onClick={onClose} size="sm">
             Cancel
           </Button>
-          <div className="flex gap-3">
-            <Button variant="secondary" disabled={isSaving} onClick={() => void handleSave("Draft")} className="gap-2 bg-transparent">
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" disabled={isSaving} onClick={() => void handleSave("Draft")} className="gap-1.5">
               <Save className="h-4 w-4" />
               Save as Draft
             </Button>
-            <Button disabled={isSaving} onClick={() => void handleSave("Active")} className="gap-2">
+            <Button variant="primary" size="sm" disabled={isSaving} onClick={() => void handleSave("Active")} className="gap-1.5">
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {isSaving ? "Integrating..." : "Publish"}
             </Button>
@@ -506,7 +508,7 @@ export default function AIAgentsPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-brand)]" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
@@ -516,12 +518,12 @@ export default function AIAgentsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-heading text-white">AI Agents</h1>
-          <p className="text-sm text-slate-400 mt-1 max-w-xl">
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">AI Agents</h1>
+          <p className="text-xs text-slate-500 mt-1 max-w-xl">
             Buat dan kelola asisten AI. Setiap Agent memakai Custom Instructions global dan seluruh sumber Knowledge Base yang sudah berstatus siap.
           </p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="gap-2 shrink-0">
+        <Button onClick={() => setIsCreateOpen(true)} variant="primary" className="gap-2 shrink-0">
           <PlusCircle className="h-4 w-4" />
           Create AI Agent
         </Button>
@@ -536,13 +538,13 @@ export default function AIAgentsPage() {
             { label: "Draft", value: agents.filter((a) => a.status === "Draft").length, icon: Save },
             { label: "KB Sources", value: config.knowledgeBase.documents.filter((document) => document.status === "ready").length, icon: Database },
           ].map(({ label, value, icon: Icon }) => (
-            <Card key={label} className="p-4 border-white/10 bg-white/[0.02] flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-brand)]/15 text-[var(--color-brand)] shrink-0">
+            <Card key={label} className="p-4 border-slate-200 bg-white flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shrink-0 font-bold">
                 <Icon className="h-4.5 w-4.5" />
               </div>
               <div>
-                <div className="text-lg font-bold font-heading text-white">{value}</div>
-                <div className="text-xs text-slate-500">{label}</div>
+                <div className="text-xl font-extrabold text-slate-900">{value}</div>
+                <div className="text-xs text-slate-500 font-medium">{label}</div>
               </div>
             </Card>
           ))}
@@ -554,55 +556,55 @@ export default function AIAgentsPage() {
         <EmptyAgentState onCreate={() => setIsCreateOpen(true)} />
       ) : (
         <div className="space-y-4">
-          <div className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-white/[0.02] text-xs uppercase text-slate-500">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold text-[10px]">
                 <tr>
-                  <th className="px-5 py-4 font-semibold">Agent Name</th>
-                  <th className="px-5 py-4 font-semibold">Knowledge Base</th>
-                  <th className="px-5 py-4 font-semibold">Actions Enabled</th>
-                  <th className="px-5 py-4 font-semibold">Channel</th>
-                  <th className="px-5 py-4 font-semibold">Last Update</th>
-                  <th className="px-5 py-4 font-semibold">Status</th>
-                  <th className="px-5 py-4 font-semibold text-right">Actions</th>
+                  <th className="px-4 py-3.5 font-bold">Agent Name</th>
+                  <th className="px-4 py-3.5 font-bold">Knowledge Base</th>
+                  <th className="px-4 py-3.5 font-bold">Actions Enabled</th>
+                  <th className="px-4 py-3.5 font-bold">Channel</th>
+                  <th className="px-4 py-3.5 font-bold">Last Update</th>
+                  <th className="px-4 py-3.5 font-bold">Status</th>
+                  <th className="px-4 py-3.5 font-bold text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--color-border)]">
+              <tbody className="divide-y divide-slate-100">
                 {agents.map((agent) => {
                   const activeActions = Object.values(agent.allowedActions).filter(Boolean).length;
                   return (
-                    <tr key={agent.id} className="hover:bg-white/[0.01] transition-colors">
-                      <td className="px-5 py-4">
+                    <tr key={agent.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand)]/15 text-[var(--color-brand)]">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 font-bold">
                             <Bot className="h-4 w-4" />
                           </div>
                           <div>
-                            <div className="font-semibold text-white">{agent.name}</div>
+                            <div className="font-bold text-slate-900">{agent.name}</div>
                             <div className="text-xs text-slate-500 max-w-[200px] truncate">{agent.description}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="px-4 py-3.5 font-semibold text-slate-700">
                         <span className="flex items-center gap-1.5">
-                          <Database className="h-3.5 w-3.5 text-slate-500" />
+                          <Database className="h-3.5 w-3.5 text-slate-400" />
                           {config.knowledgeBase.documents.filter((document) => document.status === "ready").length} shared sources
                         </span>
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="px-4 py-3.5 font-semibold text-slate-700">
                         <span className="flex items-center gap-1.5">
-                          <Zap className="h-3.5 w-3.5 text-slate-500" />
+                          <Zap className="h-3.5 w-3.5 text-slate-400" />
                           {activeActions} / 6
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-slate-400">{agent.channelUsage}</td>
-                      <td className="px-5 py-4 text-slate-400">{agent.lastUpdate}</td>
-                      <td className="px-5 py-4"><AgentStatusBadge status={agent.status} /></td>
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-4 py-3.5 text-slate-500 font-medium">{agent.channelUsage}</td>
+                      <td className="px-4 py-3.5 text-slate-500 font-medium">{agent.lastUpdate}</td>
+                      <td className="px-4 py-3.5"><AgentStatusBadge status={agent.status} /></td>
+                      <td className="px-4 py-3.5 text-right">
                         <Dropdown
                           align="right"
                           trigger={
-                            <button className="rounded p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition">
+                            <button className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer">
                               <MoreVertical className="h-4 w-4" />
                             </button>
                           }
@@ -627,34 +629,34 @@ export default function AIAgentsPage() {
           </div>
 
           {/* Shared Knowledge Base detail */}
-          <div className="space-y-3">
-            <h2 className="text-sm font-bold text-slate-300 flex items-center gap-2">
-              <Database className="h-4 w-4 text-[var(--color-brand)]" />
+          <div className="space-y-3 pt-2">
+            <h2 className="text-xs font-bold text-slate-900 flex items-center gap-2">
+              <Database className="h-4 w-4 text-blue-600" />
               Knowledge Base Terhubung
             </h2>
-            <Card className="border-white/10 bg-white/[0.02] overflow-hidden">
-              <div className="px-5 py-3 border-b border-[var(--color-border)] flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                  <Database className="h-4 w-4 text-[var(--color-brand)]" />
+            <Card className="border-slate-200 bg-white overflow-hidden shadow-2xs">
+              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-4 bg-slate-50/50">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
+                  <Database className="h-4 w-4 text-blue-600" />
                   Sumber bersama untuk semua AI Agent
                 </div>
-                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                <Badge variant="success" className="text-[10px]">
                   {config.knowledgeBase.documents.filter((document) => document.status === "ready").length} Ready
                 </Badge>
               </div>
               {config.knowledgeBase.documents.length === 0 ? (
-                <p className="px-5 py-4 text-sm text-amber-300">
+                <p className="px-4 py-4 text-xs text-amber-700 font-medium">
                   Belum ada sumber. Tambahkan FAQ, dokumen, URL, Google Sheet, atau text content di menu Knowledge Base.
                 </p>
               ) : (
-                <div className="divide-y divide-[var(--color-border)]">
+                <div className="divide-y divide-slate-100">
                   {config.knowledgeBase.documents.slice(0, 8).map((document) => (
-                    <div key={document.id} className="flex items-center justify-between gap-4 px-5 py-3 text-sm">
-                      <div className="flex min-w-0 items-center gap-2 text-slate-300">
-                        <FileText className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                    <div key={document.id} className="flex items-center justify-between gap-4 px-4 py-2.5 text-xs">
+                      <div className="flex min-w-0 items-center gap-2 text-slate-800 font-semibold">
+                        <FileText className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                         <span className="truncate">{document.name}</span>
                       </div>
-                      <span className={document.status === "ready" ? "text-xs text-emerald-400" : "text-xs text-amber-400"}>
+                      <span className={document.status === "ready" ? "text-[11px] font-bold text-emerald-600" : "text-[11px] font-bold text-amber-600"}>
                         {document.status}
                       </span>
                     </div>

@@ -37,6 +37,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ChatbotSettingsState {
@@ -94,38 +95,29 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   return (
     <label className="relative inline-flex cursor-pointer items-center">
       <input type="checkbox" className="peer sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <div className="h-5 w-9 rounded-full bg-slate-700 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[var(--color-brand)] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none" />
+      <div className="h-5 w-9 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-focus:outline-none shadow-2xs" />
     </label>
   );
 }
 
 function FieldLabel({ label, hint }: { label: string; hint?: string }) {
   return (
-    <div className="mb-2">
-      <label className="text-sm font-semibold text-slate-300">{label}</label>
-      {hint && <p className="text-xs text-slate-500 mt-0.5">{hint}</p>}
+    <div className="mb-1.5">
+      <label className="text-xs font-bold text-slate-900">{label}</label>
+      {hint && <p className="text-[11px] text-slate-500 font-medium">{hint}</p>}
     </div>
   );
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-brand)] mb-4">{children}</h3>;
+  return <h3 className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-3">{children}</h3>;
 }
 
 function TestBadge({ result }: { result: ApiTestResult }) {
-  const map: Record<ApiTestResult, { color: string; icon: React.ReactNode }> = {
-    "Success": { color: "text-emerald-400 bg-emerald-500/10", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-    "Failed": { color: "text-red-400 bg-red-500/10", icon: <XCircle className="h-3.5 w-3.5" /> },
-    "Timeout": { color: "text-amber-400 bg-amber-500/10", icon: <AlertTriangle className="h-3.5 w-3.5" /> },
-    "Unauthorized": { color: "text-red-400 bg-red-500/10", icon: <XCircle className="h-3.5 w-3.5" /> },
-    "Not tested": { color: "text-slate-400 bg-slate-500/10", icon: <FlaskConical className="h-3.5 w-3.5" /> },
-  };
-  const { color, icon } = map[result];
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${color}`}>
-      {icon}{result}
-    </span>
-  );
+  if (result === "Success") return <Badge variant="success">Success</Badge>;
+  if (result === "Failed" || result === "Unauthorized") return <Badge variant="destructive">{result}</Badge>;
+  if (result === "Timeout") return <Badge variant="warning">Timeout</Badge>;
+  return <Badge variant="secondary">Not tested</Badge>;
 }
 
 function limitToSingleApiIntegration(integrations: ApiIntegration[]) {
@@ -153,13 +145,13 @@ function AIConfigPanel({
   isSaved: boolean;
 }) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-bold text-white">AI Configuration</h2>
-        <p className="text-sm text-slate-400 mt-1">Atur parameter dasar perilaku AI saat membalas pesan pelanggan.</p>
+        <h2 className="text-base font-bold text-slate-900">AI Configuration</h2>
+        <p className="text-xs text-slate-500 mt-0.5">Atur parameter dasar perilaku AI saat membalas pesan pelanggan.</p>
       </div>
 
-      <Card className="p-6 border-white/10 bg-white/[0.02] space-y-6">
+      <Card className="p-5 border-slate-200 bg-white shadow-2xs space-y-5">
         <SectionTitle>Message Threshold & Listen Time</SectionTitle>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -167,16 +159,16 @@ function AIConfigPanel({
               label="AI Message Threshold"
               hint="Batas maksimal jumlah pesan AI dalam satu sesi. Setelah batas ini, percakapan diteruskan ke human agent."
             />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mt-1">
               <Input
                 type="number"
                 min={1}
                 max={100}
                 value={config.aiMessageThreshold}
                 onChange={(e) => onChange({ ...config, aiMessageThreshold: Number(e.target.value) })}
-                className="bg-black/20 max-w-[120px]"
+                className="bg-slate-50 max-w-[120px] text-xs font-bold"
               />
-              <span className="text-sm text-slate-400">messages</span>
+              <span className="text-xs text-slate-500 font-semibold">messages</span>
             </div>
           </div>
           <div>
@@ -184,33 +176,33 @@ function AIConfigPanel({
               label="Listen Time"
               hint="Waktu tunggu sebelum bot membalas, agar pesan pelanggan yang terpecah bisa terkumpul dulu."
             />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mt-1">
               <Input
                 type="number"
                 min={0}
                 max={60}
                 value={config.listenTimeSeconds}
                 onChange={(e) => onChange({ ...config, listenTimeSeconds: Number(e.target.value) })}
-                className="bg-black/20 max-w-[120px]"
+                className="bg-slate-50 max-w-[120px] text-xs font-bold"
               />
-              <span className="text-sm text-slate-400">seconds</span>
+              <span className="text-xs text-slate-500 font-semibold">seconds</span>
             </div>
           </div>
         </div>
       </Card>
 
-      <Card className="p-6 border-white/10 bg-white/[0.02] space-y-6">
+      <Card className="p-5 border-slate-200 bg-white shadow-2xs space-y-5">
         <div className="flex items-center justify-between">
           <SectionTitle>Human Agent Handover</SectionTitle>
           <Toggle checked={config.handoverEnabled} onChange={(v) => onChange({ ...config, handoverEnabled: v })} />
         </div>
 
         {config.handoverEnabled && (
-          <div className="space-y-5 pt-2 border-t border-[var(--color-border)]">
+          <div className="space-y-4 pt-3 border-t border-slate-100">
             <div>
               <FieldLabel label="Handover Target Type" />
               <select
-                className="flex h-10 w-full max-w-xs rounded-md border border-[var(--color-border)] bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+                className="flex h-9 w-full max-w-xs rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
                 value={config.handoverTargetType}
                 onChange={(e) => onChange({ ...config, handoverTargetType: e.target.value as AutomationAiConfig["handoverTargetType"] })}
               >
@@ -227,7 +219,7 @@ function AIConfigPanel({
                   placeholder={config.handoverTargetType === "Specific team" ? "Mekanik, Customer Service, ..." : "Nama agent..."}
                   value={config.handoverTarget}
                   onChange={(e) => onChange({ ...config, handoverTarget: e.target.value })}
-                  className="bg-black/20 max-w-xs"
+                  className="bg-slate-50 max-w-xs text-xs"
                 />
               </div>
             )}
@@ -240,28 +232,28 @@ function AIConfigPanel({
               <Textarea
                 value={config.handoverMessage}
                 onChange={(e) => onChange({ ...config, handoverMessage: e.target.value })}
-                className="min-h-[90px] bg-black/20"
+                className="min-h-[80px] bg-slate-50 text-xs"
               />
             </div>
           </div>
         )}
       </Card>
 
-      <Card className="p-6 border-white/10 bg-white/[0.02] space-y-6">
+      <Card className="p-5 border-slate-200 bg-white shadow-2xs space-y-4">
         <SectionTitle>Guardrails & Pelindung Otomatis</SectionTitle>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between py-2">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between py-1">
             <div>
-              <div className="text-sm font-semibold text-white">Spam Guard</div>
-              <div className="text-xs text-slate-500">Secara otomatis menyaring dan mengabaikan pesan masuk yang terdeteksi sebagai spam.</div>
+              <div className="text-xs font-bold text-slate-900">Spam Guard</div>
+              <div className="text-[11px] text-slate-500">Secara otomatis menyaring dan mengabaikan pesan masuk yang terdeteksi sebagai spam.</div>
             </div>
             <Toggle checked={spamGuard} onChange={onChangeSpamGuard} />
           </div>
 
-          <div className="flex items-center justify-between py-2 border-t border-[var(--color-border)] pt-4">
+          <div className="flex items-center justify-between py-2 border-t border-slate-100 pt-3">
             <div>
-              <div className="text-sm font-semibold text-white">Sentiment Guard (AI Moderation)</div>
-              <div className="text-xs text-slate-500">Secara otomatis mendeteksi dan menghapus komentar negatif (makian, penipuan, hoaks) menggunakan AI.</div>
+              <div className="text-xs font-bold text-slate-900">Sentiment Guard (AI Moderation)</div>
+              <div className="text-[11px] text-slate-500">Secara otomatis mendeteksi dan menghapus komentar negatif menggunakan AI.</div>
             </div>
             <Toggle checked={sentimentGuard} onChange={onChangeSentimentGuard} />
           </div>
@@ -269,7 +261,7 @@ function AIConfigPanel({
       </Card>
 
       <div className="flex items-center gap-3">
-        <Button onClick={onSave} className="gap-2">
+        <Button onClick={onSave} variant="primary" size="sm" className="gap-1.5">
           {isSaved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
           {isSaved ? "Tersimpan!" : "Save Settings"}
         </Button>
@@ -291,24 +283,24 @@ function IdleActionPanel({
   isSaved: boolean;
 }) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-bold text-white">Idle Action</h2>
-        <p className="text-sm text-slate-400 mt-1">Atur tindakan otomatis ketika percakapan tidak aktif dalam periode tertentu.</p>
+        <h2 className="text-base font-bold text-slate-900">Idle Action</h2>
+        <p className="text-xs text-slate-500 mt-0.5">Atur tindakan otomatis ketika percakapan tidak aktif dalam periode tertentu.</p>
       </div>
 
-      <Card className="p-6 border-white/10 bg-white/[0.02] space-y-6">
+      <Card className="p-5 border-slate-200 bg-white shadow-2xs space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-semibold text-white">Enable Idle Action</div>
-            <div className="text-xs text-slate-500">Aktifkan tindakan otomatis saat percakapan tidak aktif.</div>
+            <div className="text-xs font-bold text-slate-900">Enable Idle Action</div>
+            <div className="text-[11px] text-slate-500">Aktifkan tindakan otomatis saat percakapan tidak aktif.</div>
           </div>
           <Toggle checked={config.enabled} onChange={(v) => onChange({ ...config, enabled: v })} />
         </div>
 
         {config.enabled && (
-          <div className="space-y-5 pt-4 border-t border-[var(--color-border)]">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-4 pt-3 border-t border-slate-100">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <FieldLabel label="Idle Timeout" />
                 <div className="flex items-center gap-2">
@@ -317,10 +309,10 @@ function IdleActionPanel({
                     min={1}
                     value={config.idleTimeout}
                     onChange={(e) => onChange({ ...config, idleTimeout: Number(e.target.value) })}
-                    className="bg-black/20"
+                    className="bg-slate-50 text-xs"
                   />
                   <select
-                    className="h-10 rounded-md border border-[var(--color-border)] bg-black/20 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--color-brand)]"
+                    className="h-9 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
                     value={config.idleTimeoutUnit}
                     onChange={(e) => onChange({ ...config, idleTimeoutUnit: e.target.value as "hours" | "days" })}
                   >
@@ -332,7 +324,7 @@ function IdleActionPanel({
               <div>
                 <FieldLabel label="Trigger Target" />
                 <select
-                  className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--color-brand)]"
+                  className="flex h-9 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
                   value={config.triggerTarget}
                   onChange={(e) => onChange({ ...config, triggerTarget: e.target.value as AutomationIdleAction["triggerTarget"] })}
                 >
@@ -344,7 +336,7 @@ function IdleActionPanel({
               <div>
                 <FieldLabel label="Action Type" />
                 <select
-                  className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--color-brand)]"
+                  className="flex h-9 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
                   value={config.actionType}
                   onChange={(e) => onChange({ ...config, actionType: e.target.value as AutomationIdleAction["actionType"] })}
                 >
@@ -366,14 +358,14 @@ function IdleActionPanel({
               <Textarea
                 value={config.idleMessage}
                 onChange={(e) => onChange({ ...config, idleMessage: e.target.value })}
-                className="min-h-[90px] bg-black/20"
+                className="min-h-[80px] bg-slate-50 text-xs"
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-lg border border-[var(--color-border)] bg-white/[0.01]">
+            <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">
               <div>
-                <div className="text-sm font-semibold text-white">Auto Close Conversation</div>
-                <div className="text-xs text-slate-500">Tutup percakapan otomatis setelah timeout jika tidak ada respons.</div>
+                <div className="text-xs font-bold text-slate-900">Auto Close Conversation</div>
+                <div className="text-[11px] text-slate-500">Tutup percakapan otomatis setelah timeout jika tidak ada respons.</div>
               </div>
               <Toggle checked={config.autoClose} onChange={(v) => onChange({ ...config, autoClose: v })} />
             </div>
@@ -382,7 +374,7 @@ function IdleActionPanel({
       </Card>
 
       <div className="flex items-center gap-3">
-        <Button onClick={onSave} className="gap-2">
+        <Button onClick={onSave} variant="primary" size="sm" className="gap-1.5">
           {isSaved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
           {isSaved ? "Tersimpan!" : "Save Settings"}
         </Button>
@@ -413,23 +405,23 @@ function ApiModal({
   const [status, setStatus] = useState<ApiStatus>(initialData?.status ?? "Draft");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-2xl rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl my-8">
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4 sticky top-0 bg-[var(--color-surface)] z-10 rounded-t-xl">
-          <h2 className="font-bold text-white">{initialData ? "Edit API Utama" : "Setup API Utama"}</h2>
-          <button onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-white/10 hover:text-white"><X className="h-5 w-5" /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs overflow-y-auto">
+      <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-2xl my-8">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 sticky top-0 bg-white z-10 rounded-t-2xl">
+          <h2 className="text-base font-bold text-slate-900">{initialData ? "Edit API Utama" : "Setup API Utama"}</h2>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"><X className="h-5 w-5" /></button>
         </div>
 
-        <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
+        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-1">
               <FieldLabel label="API Name" />
-              <Input placeholder="Check Service Status" value={name} onChange={(e) => setName(e.target.value)} className="bg-black/20" />
+              <Input placeholder="Check Service Status" value={name} onChange={(e) => setName(e.target.value)} className="bg-slate-50 text-xs" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <FieldLabel label="HTTP Method" />
               <select
-                className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+                className="flex h-9 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
                 value={method}
                 onChange={(e) => setMethod(e.target.value as ApiMethod)}
               >
@@ -438,16 +430,16 @@ function ApiModal({
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <FieldLabel label="Endpoint URL" />
-            <Input placeholder="https://api.example.com/endpoint" value={endpoint} onChange={(e) => setEndpoint(e.target.value)} className="bg-black/20 font-mono text-sm" />
+            <Input placeholder="https://api.example.com/endpoint" value={endpoint} onChange={(e) => setEndpoint(e.target.value)} className="bg-slate-50 font-mono text-xs" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-1">
               <FieldLabel label="Authentication Type" />
               <select
-                className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+                className="flex h-9 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
                 value={authType}
                 onChange={(e) => setAuthType(e.target.value as ApiAuthType)}
               >
@@ -455,7 +447,7 @@ function ApiModal({
               </select>
             </div>
             {authType !== "No Auth" && (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <FieldLabel label="Auth Token / Key" />
                 <div className="relative">
                   <Input
@@ -463,12 +455,12 @@ function ApiModal({
                     placeholder="sk_live_..."
                     value={authToken}
                     onChange={(e) => setAuthToken(e.target.value)}
-                    className="bg-black/20 pr-10 font-mono text-sm"
+                    className="bg-slate-50 pr-10 font-mono text-xs"
                   />
                   <button
                     type="button"
                     onClick={() => setShowToken(!showToken)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 cursor-pointer"
                   >
                     {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -477,27 +469,27 @@ function ApiModal({
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <FieldLabel label="Headers (JSON)" hint='Opsional. Contoh: {"Content-Type": "application/json"}' />
-            <Textarea placeholder='{"Content-Type": "application/json"}' value={headers} onChange={(e) => setHeaders(e.target.value)} className="min-h-[80px] bg-black/20 font-mono text-sm" />
+            <Textarea placeholder='{"Content-Type": "application/json"}' value={headers} onChange={(e) => setHeaders(e.target.value)} className="min-h-[70px] bg-slate-50 font-mono text-xs" />
           </div>
 
           {method !== "GET" && (
-            <div className="space-y-2">
+            <div className="space-y-1">
               <FieldLabel label="Request Body (JSON)" hint='Gunakan {{variable}} untuk data dinamis dari percakapan.' />
-              <Textarea placeholder='{"phone": "{{customer.phone}}"}' value={requestBody} onChange={(e) => setRequestBody(e.target.value)} className="min-h-[80px] bg-black/20 font-mono text-sm" />
+              <Textarea placeholder='{"phone": "{{customer.phone}}"}' value={requestBody} onChange={(e) => setRequestBody(e.target.value)} className="min-h-[70px] bg-slate-50 font-mono text-xs" />
             </div>
           )}
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <FieldLabel label="Response Mapping" hint="Petakan field dari response API ke variabel chatbot." />
-            <Textarea placeholder={"serviceStatus = response.status\nmechanicName = response.mechanic"} value={responseMapping} onChange={(e) => setResponseMapping(e.target.value)} className="min-h-[80px] bg-black/20 font-mono text-sm" />
+            <Textarea placeholder={"serviceStatus = response.status\nmechanicName = response.mechanic"} value={responseMapping} onChange={(e) => setResponseMapping(e.target.value)} className="min-h-[70px] bg-slate-50 font-mono text-xs" />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <FieldLabel label="Status" />
             <select
-              className="flex h-10 w-40 rounded-md border border-[var(--color-border)] bg-black/20 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+              className="flex h-9 w-40 rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
               value={status}
               onChange={(e) => setStatus(e.target.value as ApiStatus)}
             >
@@ -508,9 +500,9 @@ function ApiModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-t border-[var(--color-border)] px-6 py-4 bg-[var(--color-surface)] rounded-b-xl">
-          <Button variant="secondary" onClick={onClose} className="text-slate-400 bg-transparent border-transparent hover:text-white">Cancel</Button>
-          <Button onClick={() => onSave({ name, method, endpoint, authType, authToken, headers, requestBody, responseMapping, status })} className="gap-2">
+        <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3.5 bg-slate-50/50 rounded-b-2xl">
+          <Button variant="secondary" onClick={onClose} size="sm">Cancel</Button>
+          <Button onClick={() => onSave({ name, method, endpoint, authType, authToken, headers, requestBody, responseMapping, status })} variant="primary" size="sm" className="gap-1.5">
             <Save className="h-4 w-4" />
             Simpan API
           </Button>
@@ -584,70 +576,56 @@ function ApiIntegrationPanel({
         error instanceof Error ? error.message : "Tes koneksi API gagal.",
       );
     } finally {
-      setTestingId(null);
+      testingId && setTestingId(null);
     }
-  };
-
-  const methodColors: Record<ApiMethod, string> = {
-    GET: "text-emerald-400 bg-emerald-500/10",
-    POST: "text-blue-400 bg-blue-500/10",
-    PUT: "text-amber-400 bg-amber-500/10",
-    PATCH: "text-purple-400 bg-purple-500/10",
-    DELETE: "text-red-400 bg-red-500/10",
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-white">Webhook / API Bisnis Eksternal</h2>
-          <p className="text-sm text-slate-400 mt-1">Gunakan untuk memanggil API bisnis Anda sendiri (seperti cek stok, status transaksi, database layanan) saat percakapan berlangsung. <strong>Bukan untuk API Key AI (OpenAI/Gemini).</strong></p>
+          <h2 className="text-base font-bold text-slate-900">Webhook / API Bisnis Eksternal</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Gunakan untuk memanggil API bisnis Anda sendiri saat percakapan berlangsung. <strong>Bukan untuk API Key AI (OpenAI/Gemini).</strong></p>
         </div>
-        <Button onClick={() => { setEditingApi(primaryIntegration); setIsModalOpen(true); }} className="gap-2 shrink-0">
+        <Button onClick={() => { setEditingApi(primaryIntegration); setIsModalOpen(true); }} variant="primary" size="sm" className="gap-1.5 shrink-0">
           <Plus className="h-4 w-4" />
           {primaryIntegration ? "Ubah API Utama" : "Setup API Utama"}
         </Button>
       </div>
 
-      <Card className="border-white/10 bg-white/[0.02] p-4 text-sm text-slate-300">
+      <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 text-xs font-medium text-slate-700">
         Ini adalah konfigurasi Webhook bisnis eksternal. Jika Anda ingin mengatur API Key AI (OpenAI/Gemini/OpenRouter), silakan atur di menu <strong>Settings &gt; AI API Key &amp; Token</strong>.
-      </Card>
+      </div>
 
       {!primaryIntegration ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--color-border)] py-14 text-center">
-          <Plug className="h-10 w-10 text-slate-600 mb-3" />
-          <p className="text-sm text-slate-300">Belum ada API utama yang terhubung.</p>
-          <p className="mt-1 text-xs text-slate-500">Sistem hanya mengizinkan satu integrasi API untuk fitur chatbot.</p>
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center shadow-2xs">
+          <Plug className="h-8 w-8 text-slate-400 mb-2" />
+          <p className="text-xs font-bold text-slate-900">Belum ada API utama yang terhubung.</p>
+          <p className="mt-0.5 text-[11px] text-slate-500">Sistem hanya mengizinkan satu integrasi API untuk fitur chatbot.</p>
         </div>
       ) : (
-        <Card className="border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <h3 className="text-base font-semibold text-white">{primaryIntegration.name}</h3>
-                <span className={`rounded px-2 py-0.5 font-mono text-xs font-bold ${methodColors[primaryIntegration.method]}`}>
+        <Card className="border-slate-200 bg-white p-5 shadow-2xs">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h3 className="text-sm font-bold text-slate-900">{primaryIntegration.name}</h3>
+                <Badge variant="default" className="text-[10px]">
                   {primaryIntegration.method}
-                </span>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                  primaryIntegration.status === "Active"
-                    ? "bg-emerald-500/10 text-emerald-400"
-                    : primaryIntegration.status === "Draft"
-                      ? "bg-amber-500/10 text-amber-400"
-                      : "bg-slate-500/10 text-slate-400"
-                }`}>
+                </Badge>
+                <Badge variant={primaryIntegration.status === "Active" ? "success" : "secondary"} className="text-[10px]">
                   {primaryIntegration.status}
-                </span>
+                </Badge>
                 <TestBadge result={primaryIntegration.lastTest} />
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-2">
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Endpoint</div>
-                  <div className="mt-1 break-all font-mono text-xs text-slate-300">{primaryIntegration.endpoint}</div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Endpoint</div>
+                  <div className="mt-0.5 break-all font-mono text-xs font-semibold text-slate-800">{primaryIntegration.endpoint}</div>
                 </div>
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Authentication</div>
-                  <div className="mt-1 text-sm text-slate-300">{primaryIntegration.authType}</div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Authentication</div>
+                  <div className="mt-0.5 text-xs font-semibold text-slate-800">{primaryIntegration.authType}</div>
                 </div>
               </div>
             </div>
@@ -656,21 +634,21 @@ function ApiIntegrationPanel({
               <button
                 onClick={() => void handleTest(primaryIntegration.id)}
                 disabled={testingId === primaryIntegration.id}
-                className="rounded-lg border border-[var(--color-border)] p-2 text-slate-400 transition hover:bg-white/10 hover:text-[var(--color-brand)] disabled:opacity-50"
+                className="rounded-lg border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer disabled:opacity-50"
                 title="Test API"
               >
                 {testingId === primaryIntegration.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <FlaskConical className="h-4 w-4" />}
               </button>
               <button
                 onClick={() => { setEditingApi(primaryIntegration); setIsModalOpen(true); }}
-                className="rounded-lg border border-[var(--color-border)] p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                className="rounded-lg border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
                 title="Edit"
               >
                 <Edit2 className="h-4 w-4" />
               </button>
               <button
                 onClick={() => onChange([])}
-                className="rounded-lg border border-[var(--color-border)] p-2 text-slate-400 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400"
+                className="rounded-lg border border-slate-200 p-2 text-slate-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 cursor-pointer"
                 title="Delete"
               >
                 <Trash2 className="h-4 w-4" />
@@ -681,7 +659,7 @@ function ApiIntegrationPanel({
       )}
 
       {testError && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-800">
           {testError}
         </div>
       )}
@@ -695,7 +673,7 @@ function ApiIntegrationPanel({
       )}
 
       <div className="flex items-center gap-3">
-        <Button onClick={onSave} className="gap-2">
+        <Button onClick={onSave} variant="primary" size="sm" className="gap-1.5">
           {isSaved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
           {isSaved ? "Tersimpan!" : "Save Settings"}
         </Button>
@@ -717,28 +695,28 @@ function CRMIntegrationPanel({
   isSaved: boolean;
 }) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-bold text-white">CRM Integration</h2>
-        <p className="text-sm text-slate-400 mt-1">Sinkronkan data pelanggan dari percakapan chatbot ke sistem CRM secara otomatis.</p>
+        <h2 className="text-base font-bold text-slate-900">CRM Integration</h2>
+        <p className="text-xs text-slate-500 mt-0.5">Sinkronkan data pelanggan dari percakapan chatbot ke sistem CRM secara otomatis.</p>
       </div>
 
-      <Card className="p-6 border-white/10 bg-white/[0.02] space-y-6">
+      <Card className="p-5 border-slate-200 bg-white shadow-2xs space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-semibold text-white">Enable CRM Integration</div>
-            <div className="text-xs text-slate-500">Aktifkan sinkronisasi otomatis data pelanggan ke CRM.</div>
+            <div className="text-xs font-bold text-slate-900">Enable CRM Integration</div>
+            <div className="text-[11px] text-slate-500">Aktifkan sinkronisasi otomatis data pelanggan ke CRM.</div>
           </div>
           <Toggle checked={config.enabled} onChange={(v) => onChange({ ...config, enabled: v })} />
         </div>
 
         {config.enabled && (
-          <div className="space-y-5 pt-4 border-t border-[var(--color-border)]">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="space-y-4 pt-3 border-t border-slate-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <FieldLabel label="CRM Provider" />
                 <select
-                  className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+                  className="flex h-9 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
                   value={config.provider}
                   onChange={(e) => onChange({ ...config, provider: e.target.value })}
                 >
@@ -750,7 +728,7 @@ function CRMIntegrationPanel({
               <div>
                 <FieldLabel label="Sync Trigger" />
                 <select
-                  className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-black/20 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+                  className="flex h-9 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
                   value={config.syncTrigger}
                   onChange={(e) => onChange({ ...config, syncTrigger: e.target.value })}
                 >
@@ -769,7 +747,7 @@ function CRMIntegrationPanel({
             <div>
               <FieldLabel label="Duplicate Handling" />
               <select
-                className="flex h-10 w-60 rounded-md border border-[var(--color-border)] bg-black/20 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+                className="flex h-9 w-60 rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
                 value={config.duplicateHandling}
                 onChange={(e) => onChange({ ...config, duplicateHandling: e.target.value })}
               >
@@ -784,20 +762,20 @@ function CRMIntegrationPanel({
 
             <div>
               <SectionTitle>Contact Mapping</SectionTitle>
-              <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
-                <table className="w-full text-sm">
-                  <thead className="bg-white/[0.02] text-xs uppercase text-slate-500">
+              <div className="overflow-hidden rounded-xl border border-slate-200">
+                <table className="w-full text-xs">
+                  <thead className="bg-slate-50 text-[10px] uppercase text-slate-500 font-bold border-b border-slate-200">
                     <tr>
-                      <th className="px-4 py-2.5 text-left font-semibold">Customer Field</th>
-                      <th className="px-4 py-2.5 text-center text-slate-600">→</th>
-                      <th className="px-4 py-2.5 text-left font-semibold">CRM Field</th>
+                      <th className="px-4 py-2.5 text-left">Customer Field</th>
+                      <th className="px-4 py-2.5 text-center text-slate-400">→</th>
+                      <th className="px-4 py-2.5 text-left">CRM Field</th>
                       <th className="px-4 py-2.5"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--color-border)]">
+                  <tbody className="divide-y divide-slate-100">
                     {config.contactMapping.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-white/[0.01]">
-                        <td className="px-4 py-2.5">
+                      <tr key={idx} className="hover:bg-slate-50/50">
+                        <td className="px-4 py-2">
                           <Input
                             value={row.customerField}
                             onChange={(e) => {
@@ -805,11 +783,11 @@ function CRMIntegrationPanel({
                               next[idx] = { ...next[idx], customerField: e.target.value };
                               onChange({ ...config, contactMapping: next });
                             }}
-                            className="bg-black/20 h-8 text-sm"
+                            className="bg-slate-50 h-8 text-xs font-medium"
                           />
                         </td>
-                        <td className="px-4 py-2.5 text-center text-slate-500">→</td>
-                        <td className="px-4 py-2.5">
+                        <td className="px-4 py-2 text-center text-slate-400 font-bold">→</td>
+                        <td className="px-4 py-2">
                           <Input
                             value={row.crmField}
                             onChange={(e) => {
@@ -817,13 +795,13 @@ function CRMIntegrationPanel({
                               next[idx] = { ...next[idx], crmField: e.target.value };
                               onChange({ ...config, contactMapping: next });
                             }}
-                            className="bg-black/20 h-8 text-sm"
+                            className="bg-slate-50 h-8 text-xs font-medium"
                           />
                         </td>
-                        <td className="px-4 py-2.5">
+                        <td className="px-4 py-2">
                           <button
                             onClick={() => onChange({ ...config, contactMapping: config.contactMapping.filter((_, i) => i !== idx) })}
-                            className="text-slate-500 hover:text-red-400 transition"
+                            className="text-slate-400 hover:text-red-600 transition cursor-pointer"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -832,10 +810,10 @@ function CRMIntegrationPanel({
                     ))}
                   </tbody>
                 </table>
-                <div className="px-4 py-2 border-t border-[var(--color-border)]">
+                <div className="px-4 py-2 border-t border-slate-100 bg-slate-50/50">
                   <button
                     onClick={() => onChange({ ...config, contactMapping: [...config.contactMapping, { customerField: "", crmField: "" }] })}
-                    className="flex items-center gap-1.5 text-xs text-[var(--color-brand)] hover:opacity-80 transition"
+                    className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 transition cursor-pointer"
                   >
                     <Plus className="h-3.5 w-3.5" /> Add mapping
                   </button>
@@ -847,7 +825,7 @@ function CRMIntegrationPanel({
       </Card>
 
       <div className="flex items-center gap-3">
-        <Button onClick={onSave} className="gap-2">
+        <Button onClick={onSave} variant="primary" size="sm" className="gap-1.5">
           {isSaved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
           {isSaved ? "Tersimpan!" : "Save Settings"}
         </Button>
@@ -904,7 +882,7 @@ export default function ChatbotSettingsPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-brand)]" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
@@ -912,14 +890,14 @@ export default function ChatbotSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold font-heading text-white">Chatbot Settings</h1>
-        <p className="text-sm text-slate-400 mt-1">
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Chatbot Settings</h1>
+        <p className="text-xs text-slate-500 mt-1">
           Konfigurasi teknis perilaku bot, batas respons AI, idle session, integrasi API, dan sinkronisasi CRM.
         </p>
       </div>
 
       {/* Inner Tabs */}
-      <div className="border-b border-[var(--color-border)]">
+      <div className="border-b border-slate-200">
         <nav className="flex gap-1 overflow-x-auto">
           {TABS.map((tab) => {
             const Icon = tab.icon;
@@ -928,10 +906,10 @@ export default function ChatbotSettingsPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-all duration-150 ${
+                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold whitespace-nowrap border-b-2 transition-all cursor-pointer ${
                   isActive
-                    ? "border-[var(--color-brand)] text-[var(--color-brand)]"
-                    : "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600"
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-slate-500 hover:text-slate-900"
                 }`}
               >
                 <Icon className="h-4 w-4 shrink-0" />

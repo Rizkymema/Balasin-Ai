@@ -18,6 +18,7 @@ import {
 } from "@/lib/conversation-flow-templates";
 import type { ConversationFlow } from "@/types/dashboard-config";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 import {
   BotResponseQuotaCard,
@@ -281,7 +282,7 @@ export default function AutomationPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-brand)]" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
@@ -290,16 +291,16 @@ export default function AutomationPage() {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-white">
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
             Conversations
           </h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Kelola alur percakapan otomatis untuk merespons pelanggan secara
-            instan berdasarkan trigger, channel, dan kondisi tertentu.
+          <p className="mt-1 text-xs text-slate-500">
+            Kelola alur percakapan otomatis untuk merespons pelanggan secara instan berdasarkan trigger dan channel.
           </p>
         </div>
         <Button
           onClick={() => setIsCreateModalOpen(true)}
+          variant="primary"
           className="shrink-0 gap-2"
         >
           <PlusCircle className="h-4 w-4" />
@@ -308,36 +309,35 @@ export default function AutomationPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <section className="rounded-2xl border border-cyan-400/20 bg-[linear-gradient(135deg,rgba(6,182,212,0.10),rgba(14,116,144,0.03))] p-4 sm:p-5">
+        <section className="rounded-2xl border border-blue-200 bg-blue-50/40 p-5 shadow-2xs">
           <div className="flex h-full flex-col gap-4">
             <div className="flex min-w-0 flex-1 items-start gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
-                <ShieldCheck className="h-6 w-6" />
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white font-bold shadow-2xs">
+                <ShieldCheck className="h-5 w-5" />
               </span>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-bold text-white">
+                  <p className="text-sm font-bold text-slate-900">
                     Template Chatbot Utama
                   </p>
-                  <span className="rounded-full bg-cyan-400/10 px-2 py-0.5 text-[9px] font-black tracking-wide text-cyan-300 uppercase">
+                  <Badge variant="default" className="text-[9px]">
                     RAG + Safety
-                  </span>
+                  </Badge>
                 </div>
-                <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                  Safety Gate, semua pesan masuk, Knowledge Base, Custom
-                  Instructions, fallback aman, dan handoff admin dalam satu flow
-                  utama.
+                <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                  Safety Gate, Knowledge Base, Custom Instructions, fallback aman, dan handoff admin dalam satu flow utama.
                 </p>
               </div>
             </div>
             <Button
               type="button"
+              variant="primary"
               onClick={() => void handleUseSystemTemplate()}
               disabled={
                 isCreatingSystemTemplate ||
                 (!systemTemplateFlow && !activeAgent)
               }
-              className="h-10 w-full gap-2 bg-cyan-500 px-4 text-xs text-slate-950 hover:bg-cyan-400"
+              className="w-full gap-2 text-xs"
             >
               {isCreatingSystemTemplate ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -353,33 +353,32 @@ export default function AutomationPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-emerald-400/15 bg-[linear-gradient(135deg,rgba(16,185,129,0.08),rgba(6,182,212,0.03))] p-4 sm:p-5">
+        <section className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5 shadow-2xs">
           <div className="flex h-full flex-col gap-4">
             <div className="flex min-w-0 flex-1 items-start gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
-                <CalendarCheck2 className="h-6 w-6" />
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold shadow-2xs">
+                <CalendarCheck2 className="h-5 w-5" />
               </span>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-bold text-white">
+                  <p className="text-sm font-bold text-slate-900">
                     Template Booking Service
                   </p>
-                  <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-[9px] font-black tracking-wide text-emerald-300 uppercase">
+                  <Badge variant="success" className="text-[9px]">
                     Ready to use
-                  </span>
+                  </Badge>
                 </div>
-                <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                  Trigger booking, cek jam operasional, form pelanggan dan
-                  kendaraan, pilihan layanan serta jadwal, lalu konfirmasi
-                  admin.
+                <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                  Trigger booking, cek jam operasional, form pelanggan, pilihan layanan serta konfirmasi admin.
                 </p>
               </div>
             </div>
             <Button
               type="button"
+              variant="secondary"
               onClick={() => void handleUseBookingTemplate()}
               disabled={isCreatingTemplate}
-              className="h-10 w-full gap-2 bg-emerald-500 px-4 text-xs text-white hover:bg-emerald-400"
+              className="w-full gap-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-transparent"
             >
               {isCreatingTemplate ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -393,21 +392,17 @@ export default function AutomationPage() {
       </div>
 
       {/* Info Tip regarding overlap between Conversation Flow & AI Agent */}
-      <div className="animate-fade-in rounded-xl border border-cyan-500/20 bg-cyan-950/10 p-4 text-xs text-cyan-200">
+      <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 text-xs text-blue-900">
         <div className="flex items-start gap-3">
-          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-cyan-500/10 font-black text-cyan-400">
+          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-blue-600 text-white font-bold text-xs">
             i
           </div>
           <div>
-            <p className="font-bold text-white">
+            <p className="font-bold text-slate-900">
               Tips Integrasi Alur Percakapan & AI Agent
             </p>
-            <p className="mt-1 leading-relaxed text-cyan-200/80">
-              Alur percakapan (Conversations) bekerja secara kaku berdasarkan
-              pemicu/kata kunci tertentu. Jika Anda juga mengaktifkan{" "}
-              <strong>AI Agent</strong> pada channel yang sama, pastikan alur di
-              sini tidak bertabrakan dengan respon dinamis AI. Anda dapat memicu
-              AI Agent secara otomatis dari dalam langkah alur percakapan.
+            <p className="mt-0.5 leading-relaxed text-slate-600">
+              Alur percakapan (Conversations) bekerja berdasarkan pemicu kata kunci tertentu. Jika Anda juga mengaktifkan <strong>AI Agent</strong> pada channel yang sama, Anda dapat memicu AI Agent secara otomatis dari dalam langkah alur percakapan.
             </p>
           </div>
         </div>
@@ -445,30 +440,6 @@ export default function AutomationPage() {
                 setIsCreateModalOpen(true);
               }}
             />
-
-            {/* Pagination Placeholder */}
-            <div className="flex items-center justify-between border-t border-[var(--color-border)] pt-4">
-              <span className="text-xs text-slate-500">
-                Menampilkan {filteredConversations.length} dari{" "}
-                {conversations.length} conversations
-              </span>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  disabled
-                  className="border-white/10 bg-transparent px-3 py-1.5 text-xs text-slate-400"
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="secondary"
-                  disabled
-                  className="border-white/10 bg-transparent px-3 py-1.5 text-xs text-slate-400"
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
           </>
         )}
       </div>

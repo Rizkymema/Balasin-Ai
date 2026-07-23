@@ -48,9 +48,9 @@ function SidebarSection({
   children: ReactNode;
 }) {
   return (
-    <section className="border-t border-white/[0.06] px-5 py-5">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-[13px] font-semibold text-slate-200">{title}</h3>
+    <section className="border-t border-slate-100 px-4 py-4">
+      <div className="mb-2.5 flex items-center justify-between gap-2">
+        <h3 className="text-xs font-bold text-slate-900">{title}</h3>
         {action}
       </div>
       {children}
@@ -66,30 +66,11 @@ function DetailRow({
   value: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 text-[12px]">
+    <div className="flex items-start justify-between gap-4 text-xs">
       <span className="text-slate-500">{label}</span>
-      <span className="text-right font-medium text-slate-300">{value}</span>
+      <span className="text-right font-semibold text-slate-900">{value}</span>
     </div>
   );
-}
-
-function statusCardClass(status: ConversationRecord["status"]) {
-  switch (status) {
-    case "resolved":
-      return "border-emerald-500/30 bg-emerald-500/15 text-emerald-300";
-    case "assigned_to_admin":
-      return "border-blue-400/30 bg-blue-500/15 text-blue-300";
-    case "waiting_customer":
-      return "border-cyan-400/30 bg-cyan-500/15 text-cyan-300";
-    case "ai_paused":
-      return "border-amber-400/30 bg-amber-500/15 text-amber-300";
-    case "blocked":
-      return "border-red-400/30 bg-red-500/15 text-red-300";
-    case "spam":
-      return "border-slate-500/30 bg-slate-500/15 text-slate-400";
-    default:
-      return "border-cyan-400/30 bg-cyan-500/15 text-cyan-300";
-  }
 }
 
 export function CustomerContextPanel({
@@ -103,7 +84,7 @@ export function CustomerContextPanel({
     return (
       <aside
         className={cn(
-          "rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full",
+          "rounded-2xl border border-slate-200 bg-white shadow-2xs lg:h-full",
           hiddenOnDesktop ? "xl:hidden" : "",
         )}
       >
@@ -111,7 +92,7 @@ export function CustomerContextPanel({
           title="Customer context belum tersedia"
           description="Pilih percakapan agar panel kanan menampilkan identitas customer, AI summary, ticket, dan booking terkait."
           className="min-h-[42rem] border-none bg-transparent lg:h-full lg:min-h-0"
-          icon={<UserRound className="h-10 w-10" />}
+          icon={<UserRound className="h-8 w-8 text-slate-400" />}
         />
       </aside>
     );
@@ -123,42 +104,39 @@ export function CustomerContextPanel({
   return (
     <aside
       className={cn(
-        "custom-scrollbar overflow-y-auto overscroll-contain rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full lg:min-h-0",
+        "custom-scrollbar overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white shadow-2xs lg:h-full lg:min-h-0",
         hiddenOnDesktop ? "xl:hidden" : "",
       )}
     >
       {/* Customer Avatar & Name */}
-      <div className="flex items-start gap-3 px-5 py-5">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.06] text-slate-400">
+      <div className="flex items-start gap-3 px-4 py-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 border border-blue-200 text-blue-600 font-bold">
           <UserRound className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <h2 className="truncate text-[1.1rem] font-semibold text-slate-100">
+          <h2 className="truncate text-sm font-bold text-slate-900">
             {conversation.name}
           </h2>
-          <div className="mt-1 flex items-center gap-2 text-[13px] text-slate-500">
+          <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
             <span>{conversation.channel}</span>
           </div>
-          <div
-            className={cn(
-              "mt-3 inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold",
-              statusCardClass(conversation.status),
-            )}
-          >
-            <StatusIcon className="mr-1 h-3.5 w-3.5" />
-            {statusMeta.shortLabel}
+          <div className="mt-2 inline-flex items-center">
+            <Badge variant="default" className="text-[10px]">
+              <StatusIcon className="mr-1 h-3 w-3" />
+              {statusMeta.shortLabel}
+            </Badge>
           </div>
         </div>
       </div>
 
       <SidebarSection title="Contact">
-        <div className="space-y-3">
-          <div className="inline-flex w-full items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-sm text-slate-300">
-            <Phone className="h-4 w-4 text-slate-500" />
+        <div className="space-y-2">
+          <div className="inline-flex w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800">
+            <Phone className="h-3.5 w-3.5 text-slate-400" />
             {maskPhone(conversation.phone)}
           </div>
-          <div className="inline-flex w-full items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-sm text-slate-300">
-            <Mail className="h-4 w-4 text-slate-500" />
+          <div className="inline-flex w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800">
+            <Mail className="h-3.5 w-3.5 text-slate-400" />
             {maskEmail(conversation.email)}
           </div>
         </div>
@@ -166,9 +144,9 @@ export function CustomerContextPanel({
 
       <SidebarSection
         title="Room History"
-        action={<ChevronRight className="h-4 w-4 text-slate-500" />}
+        action={<ChevronRight className="h-4 w-4 text-slate-400" />}
       >
-        <div className="space-y-3">
+        <div className="space-y-2">
           <DetailRow label="Customer since" value={context.customerSinceLabel} />
           <DetailRow
             label="Total chat"
@@ -180,9 +158,9 @@ export function CustomerContextPanel({
 
       <SidebarSection
         title="Profile Information"
-        action={<Plus className="h-4 w-4 text-slate-500" />}
+        action={<Plus className="h-4 w-4 text-slate-400" />}
       >
-        <div className="space-y-3">
+        <div className="space-y-2">
           <DetailRow
             label="Lifecycle"
             value={context.customer?.leadStatus ?? "Belum tersegmentasi"}
@@ -197,8 +175,8 @@ export function CustomerContextPanel({
       </SidebarSection>
 
       <SidebarSection title="Notes">
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
-          <p className="text-sm leading-6 text-slate-400">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <p className="text-xs leading-relaxed text-slate-600">
             {conversation.notes.trim()
               ? conversation.notes
               : "Belum ada catatan internal pada percakapan ini."}
@@ -207,98 +185,47 @@ export function CustomerContextPanel({
       </SidebarSection>
 
       <SidebarSection title="Tags">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {conversation.tags.length > 0 ? (
             conversation.tags.map((tag) => (
               <Badge
                 key={tag}
-                className="rounded-full border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[11px] text-slate-400"
+                variant="secondary"
+                className="rounded-lg text-[10px]"
               >
-                <Tag className="mr-1 h-3.5 w-3.5" />
+                <Tag className="mr-1 h-3 w-3" />
                 {tag}
               </Badge>
             ))
           ) : (
-            <span className="text-sm text-slate-500">Belum ada tag</span>
+            <span className="text-xs text-slate-400">Belum ada tag</span>
           )}
         </div>
       </SidebarSection>
 
-      <SidebarSection title="About Room">
-        <div className="space-y-3">
-          <DetailRow label="Created" value={conversation.timestamp} />
-          <DetailRow
-            label="Last Seen"
-            value={conversation.lastSeenAt || conversation.timestamp}
-          />
-          <DetailRow
-            label="Session"
-            value={conversation.status === "resolved" ? "Expired" : "Active"}
-          />
-        </div>
-      </SidebarSection>
-
       <SidebarSection title="AI Summary">
-        <div className="space-y-3">
-          <div className="rounded-xl border border-[#00d2ff]/15 bg-[#00d2ff]/[0.06] p-3">
+        <div className="space-y-2">
+          <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3">
             <div className="flex items-start gap-2">
-              <Sparkles className="mt-0.5 h-4 w-4 text-[#00d2ff]" />
-              <p className="text-sm leading-6 text-slate-300">
+              <Sparkles className="mt-0.5 h-4 w-4 text-blue-600 shrink-0" />
+              <p className="text-xs leading-relaxed text-slate-800 font-medium">
                 {conversation.summary}
               </p>
             </div>
           </div>
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">
               Next Action
             </p>
-            <p className="mt-2 text-sm leading-6 text-slate-300">
+            <p className="mt-1 text-xs leading-relaxed text-slate-700 font-semibold">
               {getSuggestedNextAction(conversation)}
             </p>
           </div>
         </div>
       </SidebarSection>
 
-      <SidebarSection title="Automation Runtime">
-        <div className="space-y-3">
-          <DetailRow
-            label="Flow"
-            value={conversation.automation?.activeFlowName ?? "Belum dipetakan"}
-          />
-          <DetailRow
-            label="AI Agent"
-            value={conversation.automation?.activeAgentName ?? "Default AI"}
-          />
-          <DetailRow
-            label="AI Reply Count"
-            value={`${conversation.automation?.aiReplyCount ?? 0}`}
-          />
-          <DetailRow
-            label="Handoff Reason"
-            value={conversation.automation?.handoffReason ?? "-"}
-          />
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-              Latest Automation Logs
-            </p>
-            <div className="mt-3 space-y-3">
-              {(conversation.automation?.logs ?? []).length > 0 ? (
-                conversation.automation?.logs.slice(0, 3).map((log) => (
-                  <div key={log.id} className="rounded-lg border border-white/[0.05] bg-black/20 p-2.5">
-                    <p className="text-[11px] font-semibold text-slate-300">{log.event}</p>
-                    <p className="mt-1 text-[12px] leading-5 text-slate-400">{log.summary}</p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-slate-500">Belum ada log automation untuk percakapan ini.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      </SidebarSection>
-
       <SidebarSection title="Operational">
-        <div className="space-y-3">
+        <div className="space-y-2">
           <DetailRow
             label="Ticket"
             value={context.activeTicket?.id ?? "Belum ada"}
@@ -309,111 +236,28 @@ export function CustomerContextPanel({
           />
           <DetailRow label="Payment" value={context.paymentStatusLabel} />
           <DetailRow label="Last Service" value={context.lastServiceLabel} />
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 text-[12px] leading-5 text-slate-400">
-            {context.latestBooking
-              ? [
-                  context.latestBooking.date,
-                  context.latestBooking.slot,
-                  context.latestBooking.status,
-                ].join(" | ")
-              : "Data booking akan muncul di sini setelah customer dijadwalkan."}
-          </div>
         </div>
       </SidebarSection>
-
-      <SidebarSection title="Sentiment & AI Training Feedback">
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400">Sentiment Terdeteksi:</span>
-            <span className={cn(
-              "px-2 py-0.5 rounded text-[10px] font-bold uppercase border",
-              conversation.sentiment === "positive" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-              conversation.sentiment === "negative" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
-              "bg-slate-500/10 text-slate-400 border-slate-500/20"
-            )}>
-              {conversation.sentiment === "positive" ? "Positif 😊" :
-               conversation.sentiment === "negative" ? "Negatif 😡" : "Netral 😐"}
-            </span>
-          </div>
-
-          {onUpdateSentiment && (
-            <div className="space-y-1.5 pt-2 border-t border-white/5">
-              <label className="text-[11px] font-semibold text-slate-400 block">Koreksi & Latih AI:</label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {(["positive", "neutral", "negative"] as const).map((sent) => (
-                  <button
-                    key={sent}
-                    onClick={() => onUpdateSentiment(sent)}
-                    className={cn(
-                      "px-2 py-1.5 rounded-lg text-[10px] font-bold border transition text-center cursor-pointer",
-                      conversation.sentiment === sent
-                        ? "bg-cyan-500/20 border-cyan-400 text-cyan-300"
-                        : "bg-white/2 border-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/5"
-                    )}
-                  >
-                    {sent === "positive" ? "Positif 😊" :
-                     sent === "neutral" ? "Netral 😐" : "Negatif 😡"}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[9px] text-slate-500 mt-1 leading-normal">
-                Memilih sentimen di atas akan mengoreksi status percakapan dan secara otomatis melatih AI (*few-shot reinforcement*) untuk mengenali pola pesan serupa di masa depan.
-              </p>
-            </div>
-          )}
-        </div>
-      </SidebarSection>
-
-      {conversation.channel === "Instagram Comment" ? (
-        <SidebarSection title="Comment Context">
-          <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">
-            <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-400" />
-            <p className="text-sm leading-6 text-slate-300">
-              Comment reply butuh moderasi ekstra. Jika topik sensitif, lebih aman
-              arahkan ke DM.
-            </p>
-          </div>
-        </SidebarSection>
-      ) : null}
 
       <SidebarSection title="Quick Actions">
         <div className="grid gap-2">
           <Button
             type="button"
             variant="secondary"
-            className="h-10 justify-start rounded-xl border-white/[0.08] bg-white/[0.04] px-4 text-[11px] text-slate-300 hover:bg-white/[0.08]"
+            size="sm"
+            className="w-full justify-start text-xs"
             onClick={onCreateTicket}
           >
             <Ticket className="mr-2 h-4 w-4" />
             Buat Ticket
           </Button>
-          {/* 
-          <Link
-            href="/booking"
-            className="inline-flex h-10 items-center rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-[11px] font-semibold text-slate-300 transition hover:bg-white/[0.08]"
-          >
-            <CalendarClock className="mr-2 h-4 w-4" />
-            Buka Booking
-          </Link>
-          */}
           <Link
             href="/customers"
-            className="inline-flex h-10 items-center rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 text-[11px] font-semibold text-slate-300 transition hover:bg-white/[0.08]"
+            className="inline-flex h-9 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             <UserRound className="mr-2 h-4 w-4" />
-            Buka Customer
+            Buka Customer CRM
           </Link>
-        </div>
-      </SidebarSection>
-
-      <SidebarSection title="Internal Notes">
-        <div className="flex items-start gap-3 rounded-xl border border-purple-500/20 bg-purple-500/[0.06] p-3">
-          <MessageSquareText className="mt-0.5 h-4 w-4 text-purple-400" />
-          <p className="text-sm leading-6 text-slate-300">
-            {conversation.notes.trim()
-              ? conversation.notes
-              : "Belum ada catatan internal pada percakapan ini."}
-          </p>
         </div>
       </SidebarSection>
     </aside>

@@ -18,6 +18,7 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { ConversationRecord, ConversationStatus } from "@/types/operations";
 
@@ -67,69 +68,6 @@ const CHANNEL_LABELS: Record<ConversationRecord["channel"], string> = {
   "Instagram DM": "Instagram DM",
   "Instagram Comment": "Instagram Comment",
 };
-
-const PRIMARY_FILTERS: Array<{ id: InboxQuickFilterId; label: string }> = [
-  { id: "all", label: "All" },
-  { id: "need_admin", label: "Unassigned" },
-  { id: "mine", label: "Assigned" },
-  { id: "resolved", label: "Resolved" },
-];
-
-function quickFilterCount(summary: InboxSummary, filter: InboxQuickFilterId) {
-  switch (filter) {
-    case "all":
-      return summary.allCount;
-    case "unhandled":
-      return summary.unhandledCount;
-    case "need_admin":
-      return summary.needAdminCount;
-    case "mine":
-      return summary.mineCount;
-    case "ai_active":
-      return summary.aiActiveCount;
-    case "waiting_customer":
-      return summary.waitingCustomerCount;
-    case "snoozed":
-      return summary.snoozedCount;
-    case "resolved":
-      return summary.resolvedCount;
-    case "spam":
-      return summary.spamCount;
-    default:
-      return 0;
-  }
-}
-
-function statusBadgeClass(status: ConversationRecord["status"]) {
-  switch (status) {
-    case "resolved":
-      return "border-emerald-500/30 bg-emerald-500/15 text-emerald-300";
-    case "assigned_to_admin":
-      return "border-blue-400/30 bg-blue-500/15 text-blue-300";
-    case "waiting_customer":
-      return "border-cyan-400/30 bg-cyan-500/15 text-cyan-300";
-    case "ai_paused":
-      return "border-amber-400/30 bg-amber-500/15 text-amber-300";
-    case "blocked":
-      return "border-red-400/30 bg-red-500/15 text-red-300";
-    case "spam":
-      return "border-slate-500/30 bg-slate-500/15 text-slate-400";
-    default:
-      return "border-cyan-400/30 bg-cyan-500/15 text-cyan-300";
-  }
-}
-
-function unreadBadgeClass(channel: ConversationRecord["channel"]) {
-  if (channel === "WhatsApp") {
-    return "bg-emerald-500 text-white";
-  }
-
-  if (channel === "Instagram DM" || channel === "Instagram Comment") {
-    return "bg-fuchsia-500 text-white";
-  }
-
-  return "bg-cyan-500 text-white";
-}
 
 export function ConversationListPanel({
   conversations,
@@ -181,11 +119,11 @@ export function ConversationListPanel({
   };
 
   return (
-    <aside className="flex min-h-[42rem] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full lg:min-h-0">
+    <aside className="flex min-h-[42rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs lg:h-full lg:min-h-0">
       {/* Header and Toolbar */}
-      <div className="border-b border-white/[0.06] bg-[#0c1020]/40">
-        <div className="flex items-center justify-between px-4.5 py-4">
-          <h2 className="text-lg font-bold tracking-tight text-slate-100">
+      <div className="border-b border-slate-100 bg-white">
+        <div className="flex items-center justify-between px-4 py-3.5">
+          <h2 className="text-base font-bold tracking-tight text-slate-900">
             {getHeaderTitle()}
           </h2>
           <div className="flex items-center gap-1">
@@ -193,7 +131,7 @@ export function ConversationListPanel({
               <button
                 type="button"
                 onClick={onRefresh}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
                 title="Refresh"
               >
                 <RefreshCcw className="h-4 w-4" />
@@ -201,17 +139,10 @@ export function ConversationListPanel({
             )}
             <button
               type="button"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
-              title="Bulk Action"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
               onClick={() => setShowFilters(!showFilters)}
               className={cn(
-                "inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200",
-                showFilters && "bg-white/[0.06] text-[#00d2ff]"
+                "inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer",
+                showFilters && "bg-blue-50 text-blue-600 font-bold"
               )}
               title="Filter"
             >
@@ -220,16 +151,16 @@ export function ConversationListPanel({
           </div>
         </div>
 
-        <div className="px-4.5 pb-3">
-          <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/[0.05] p-2.5">
+        <div className="px-4 pb-3">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-2.5">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
-                <Smartphone className="h-4 w-4" />
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white">
+                <Smartphone className="h-3.5 w-3.5" />
               </span>
               <div className="min-w-0 flex-1">
                 <label
                   htmlFor="inbox-whatsapp-account"
-                  className="mb-1 block text-[9px] font-extrabold uppercase tracking-[0.14em] text-emerald-300/80"
+                  className="mb-0.5 block text-[9px] font-extrabold uppercase tracking-wider text-emerald-800"
                 >
                   Akun WhatsApp Inbox
                 </label>
@@ -241,7 +172,7 @@ export function ConversationListPanel({
                       event.target.value as InboxWhatsAppAccountFilter,
                     )
                   }
-                  className="h-8 w-full rounded-lg border-white/[0.08] bg-[#0a0e1c] text-[10px] font-semibold text-slate-200"
+                  className="h-7 w-full rounded-lg border-emerald-200 bg-white text-[11px] font-semibold text-slate-900"
                 >
                   {whatsappAccountOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -252,28 +183,22 @@ export function ConversationListPanel({
               </div>
               <Link
                 href="/channels"
-                className="shrink-0 rounded-md px-1.5 py-1 text-[9px] font-bold text-[#00d2ff] transition hover:bg-[#00d2ff]/10 hover:text-cyan-200"
+                className="shrink-0 rounded-lg px-2 py-1 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition"
               >
                 Kelola
               </Link>
-            </div>
-            <div className="mt-2 flex items-center justify-between gap-2 border-t border-white/[0.05] pt-2 text-[9px] text-slate-500">
-              <span className="truncate" title={activeWhatsAppAccount?.detail}>
-                {activeWhatsAppAccount?.detail || "Belum ada akun terintegrasi"}
-              </span>
-              <span className="shrink-0">Balasan memakai nomor asal chat</span>
             </div>
           </div>
         </div>
 
         {/* Sorting selection bar */}
-        <div className="px-4.5 pb-3 flex items-center justify-between text-xs text-slate-400">
-          <div className="flex items-center gap-1.5 font-bold">
+        <div className="px-4 pb-2.5 flex items-center justify-between text-xs text-slate-500">
+          <div className="flex items-center gap-1.5 font-semibold">
             <span>Sort:</span>
             <select
               value={sortBy}
               onChange={(e) => onSortChange(e.target.value)}
-              className="bg-transparent border-none text-slate-200 font-extrabold focus:outline-none cursor-pointer"
+              className="bg-transparent border-none text-slate-900 font-bold focus:outline-none cursor-pointer text-xs"
             >
               <option value="latest">Newest</option>
               <option value="unread">Unread</option>
@@ -286,14 +211,14 @@ export function ConversationListPanel({
 
         {/* Collapsible search bar */}
         {(showSearchInput || searchQuery) && (
-          <div className="px-4.5 pb-3">
+          <div className="px-4 pb-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
               <Input
                 value={searchQuery}
                 onChange={(event) => onSearchChange(event.target.value)}
                 placeholder="Cari percakapan..."
-                className="h-9 rounded-lg border-white/[0.08] bg-white/[0.04] pl-9 text-xs text-slate-200 placeholder:text-slate-500 focus:border-[#00d2ff]/80 focus:bg-white/[0.08]"
+                className="h-8 rounded-lg border-slate-200 bg-slate-50 pl-9 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:bg-white"
               />
             </div>
           </div>
@@ -301,9 +226,9 @@ export function ConversationListPanel({
 
         {/* Collapsible Filter Section */}
         {showFilters && (
-          <div className="grid gap-2 grid-cols-2 px-4.5 pb-4.5 pt-3.5 border-t border-white/[0.04] bg-[#080c18]/30 animate-fade-in">
+          <div className="grid gap-2 grid-cols-2 px-4 pb-3 pt-2 border-t border-slate-100 bg-slate-50/50 animate-fade-in">
             <div className="flex flex-col gap-1">
-              <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Channel</span>
+              <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Channel</span>
               <Select
                 value={channelFilter}
                 onChange={(event) =>
@@ -311,7 +236,7 @@ export function ConversationListPanel({
                     event.target.value as "all" | ConversationRecord["channel"],
                   )
                 }
-                className="h-8 rounded-lg border-white/[0.08] bg-white/[0.04] text-[10px] text-slate-300"
+                className="h-8 rounded-lg text-xs"
               >
                 {channelOptions.map((option) => (
                   <option key={option} value={option}>
@@ -322,7 +247,7 @@ export function ConversationListPanel({
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Status</span>
+              <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Status</span>
               <Select
                 value={statusFilter}
                 onChange={(event) =>
@@ -330,7 +255,7 @@ export function ConversationListPanel({
                     event.target.value as "all" | ConversationStatus,
                   )
                 }
-                className="h-8 rounded-lg border-white/[0.08] bg-white/[0.04] text-[10px] text-slate-300"
+                className="h-8 rounded-lg text-xs"
               >
                 <option value="all">All</option>
                 <option value="ai_active">AI Active</option>
@@ -353,7 +278,7 @@ export function ConversationListPanel({
             className="min-h-[18rem] border-none bg-transparent p-4"
           />
         ) : (
-          <div className="divide-y divide-white/[0.04]">
+          <div className="divide-y divide-slate-100">
             {conversations.map((conversation) => {
               const active = selectedId === conversation.id;
               const unread = conversation.unreadCount > 0;
@@ -372,84 +297,72 @@ export function ConversationListPanel({
                   type="button"
                   onClick={() => onSelectConversation(conversation.id)}
                   className={cn(
-                    "relative w-full px-4.5 py-4 text-left transition duration-150 cursor-pointer block",
-                    active ? "bg-white/[0.04]" : "hover:bg-white/[0.02]",
+                    "relative w-full px-4 py-3.5 text-left transition duration-150 cursor-pointer block",
+                    active ? "bg-blue-50/60" : "hover:bg-slate-50",
                   )}
                 >
                   {active && (
-                    <span className="absolute inset-y-0 left-0 w-0.5 bg-[#00d2ff]" />
+                    <span className="absolute inset-y-0 left-0 w-1 bg-blue-600 rounded-r" />
                   )}
 
                   <div className="flex gap-3">
                     {/* Channel logo in solid colored circle */}
                     <div className={cn(
-                      "h-10 w-10 rounded-full flex items-center justify-center shrink-0 border transition-transform duration-200",
-                      active && "scale-105",
-                      conversation.channel === "WhatsApp" ? "bg-emerald-600/10 text-emerald-400 border-emerald-500/20" :
-                      conversation.channel.startsWith("Instagram") ? "bg-fuchsia-600/10 text-fuchsia-400 border-fuchsia-500/20" :
-                      "bg-cyan-600/10 text-cyan-400 border-cyan-500/20"
+                      "h-9 w-9 rounded-full flex items-center justify-center shrink-0 border shadow-2xs font-bold text-xs",
+                      conversation.channel === "WhatsApp" ? "bg-emerald-50 text-emerald-600 border-emerald-200" :
+                      conversation.channel.startsWith("Instagram") ? "bg-fuchsia-50 text-fuchsia-600 border-fuchsia-200" :
+                      "bg-blue-50 text-blue-600 border-blue-200"
                     )}>
-                      <ChannelIcon className="h-5 w-5" />
+                      <ChannelIcon className="h-4 w-4" />
                     </div>
 
                     <div className="min-w-0 flex-1">
                       {/* Name & Time */}
-                      <div className="flex items-center justify-between gap-2.5">
+                      <div className="flex items-center justify-between gap-2">
                         <h3 className={cn(
-                          "truncate text-sm text-slate-200 font-bold",
-                          unread && "text-white"
+                          "truncate text-xs font-bold text-slate-900",
+                          unread && "text-blue-700 font-extrabold"
                         )}>
                           {conversation.name}
                         </h3>
                         <span className={cn(
-                          "text-[10px] text-slate-500 shrink-0 font-medium",
-                          unread && "text-[#00d2ff] font-bold"
+                          "text-[10px] text-slate-400 shrink-0 font-medium",
+                          unread && "text-blue-600 font-bold"
                         )}>
                           {conversation.timestamp}
                         </span>
                       </div>
 
                       {/* Message Preview & Badge count */}
-                      <div className="flex items-start justify-between gap-2.5 mt-1">
+                      <div className="flex items-start justify-between gap-2 mt-1">
                         <p className={cn(
                           "truncate text-xs leading-normal flex-1",
-                          unread ? "text-slate-200 font-semibold" : "text-slate-500"
+                          unread ? "text-slate-900 font-semibold" : "text-slate-500"
                         )}>
                           {conversation.lastMessage}
                         </p>
                         {unread && (
-                          <span className="inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-rose-600 px-1 py-0.5 text-[9px] font-black text-white shrink-0 shadow-[0_2px_6px_rgba(225,29,72,0.3)]">
+                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[9px] font-black text-white shrink-0 shadow-2xs">
                             {conversation.unreadCount}
                           </span>
                         )}
                       </div>
 
                       {/* Brand & Assignment Status */}
-                      <div className="mt-3 flex items-center justify-between text-[10px]">
+                      <div className="mt-2.5 flex items-center justify-between text-[10px]">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-slate-500 font-bold tracking-wide">
+                          <span className="text-slate-500 font-medium truncate max-w-[100px]">
                             {conversation.channel === "WhatsApp" && whatsappAccount
                               ? whatsappAccount.label
                               : businessName || "Workspace"}
                           </span>
-                          <span className={cn(
-                            "px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-wide uppercase border shrink-0",
-                            conversation.sentiment === "positive" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-                            conversation.sentiment === "negative" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
-                            "bg-slate-500/10 text-slate-400 border-slate-500/20"
-                          )}>
-                            {conversation.sentiment === "positive" ? "😊 Positif" :
-                             conversation.sentiment === "negative" ? "😡 Negatif" : "😐 Netral"}
-                          </span>
                         </div>
-                        <span className={cn(
-                          "px-2 py-0.5 rounded text-[9px] font-bold tracking-wide uppercase border",
-                          isAssigned
-                            ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                            : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                        )}>
+                        <Badge
+                          variant={isAssigned ? "default" : "warning"}
+                          className="text-[9px] px-1.5 py-0"
+                        >
                           {isAssigned ? "Assigned" : "Unassigned"}
-                        </span>
+                        </Badge>
                       </div>
                     </div>
                   </div>
@@ -461,7 +374,7 @@ export function ConversationListPanel({
       </div>
 
       {/* Unassigned Chat Count Footer */}
-      <div className="shrink-0 border-t border-white/[0.04] bg-[#080c18]/50 px-4.5 py-3 text-center text-xs font-bold text-slate-500 tracking-wider">
+      <div className="shrink-0 border-t border-slate-100 bg-slate-50/50 px-4 py-2.5 text-center text-xs font-bold text-slate-500">
         Unassigned chat: {summary.needAdminCount}
       </div>
     </aside>

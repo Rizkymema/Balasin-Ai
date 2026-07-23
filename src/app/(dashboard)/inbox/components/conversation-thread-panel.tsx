@@ -28,6 +28,7 @@ import { OUTBOUND_MEDIA_ACCEPT } from "@/constants/media";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { DashboardConfig } from "@/types/dashboard-config";
 import type { ConversationRecord } from "@/types/operations";
@@ -94,25 +95,6 @@ function resolveStatusButtonLabel(conversation: ConversationRecord) {
   }
 
   return "Pause AI";
-}
-
-function resolveStatusTone(status: ConversationRecord["status"]) {
-  switch (status) {
-    case "resolved":
-      return "border-emerald-500/30 bg-emerald-500/15 text-emerald-300";
-    case "assigned_to_admin":
-      return "border-blue-400/30 bg-blue-500/15 text-blue-300";
-    case "waiting_customer":
-      return "border-cyan-400/30 bg-cyan-500/15 text-cyan-300";
-    case "ai_paused":
-      return "border-amber-400/30 bg-amber-500/15 text-amber-300";
-    case "blocked":
-      return "border-red-400/30 bg-red-500/15 text-red-300";
-    case "spam":
-      return "border-slate-500/30 bg-slate-500/15 text-slate-400";
-    default:
-      return "border-cyan-400/30 bg-cyan-500/15 text-cyan-300";
-  }
 }
 
 function formatMediaFileSize(sizeBytes: number) {
@@ -194,10 +176,7 @@ export function ConversationThreadPanel({
       }
     };
 
-    // Scroll immediately
     scrollToBottom();
-
-    // Scroll again after a short delay to account for dynamic contents or images rendering
     const timer = setTimeout(scrollToBottom, 50);
     return () => clearTimeout(timer);
   }, [conversationId, isReplyTyping, messageCount]);
@@ -300,15 +279,11 @@ export function ConversationThreadPanel({
 
   if (!conversation) {
     return (
-      <section className="rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full flex items-center justify-center p-6">
+      <section className="rounded-2xl border border-slate-200 bg-white shadow-2xs lg:h-full flex items-center justify-center p-6">
         <div className="max-w-sm text-center space-y-6">
-          {/* Overlapping Chat Bubble CSS Art */}
           <div className="relative w-32 h-24 mx-auto">
-            {/* White/gray chat bubble behind */}
-            <div className="absolute right-4 bottom-2 bg-slate-700/40 h-14 w-16 rounded-3xl rounded-br-none shadow-md border border-white/5 flex items-center justify-center animate-pulse" />
-            {/* Purple chat bubble in front */}
-            <div className="absolute left-4 top-2 bg-[#8c52ff] h-14 w-16 rounded-3xl rounded-bl-none flex items-center justify-center shadow-lg border border-[#8c52ff]/20 z-10">
-              {/* Three dots loader inside purple bubble */}
+            <div className="absolute right-4 bottom-2 bg-slate-100 h-14 w-16 rounded-3xl rounded-br-none shadow-xs border border-slate-200 flex items-center justify-center animate-pulse" />
+            <div className="absolute left-4 top-2 bg-blue-600 h-14 w-16 rounded-3xl rounded-bl-none flex items-center justify-center shadow-md border border-blue-500 z-10">
               <div className="flex gap-1">
                 <span className="h-1.5 w-1.5 rounded-full bg-white animate-bounce [animation-delay:-0.3s]" />
                 <span className="h-1.5 w-1.5 rounded-full bg-white animate-bounce [animation-delay:-0.15s]" />
@@ -317,7 +292,7 @@ export function ConversationThreadPanel({
             </div>
           </div>
           <div>
-            <h2 className="text-[15px] font-bold text-slate-200 tracking-tight">
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">
               A chat will appear here
             </h2>
             <p className="mt-1.5 text-xs text-slate-500 max-w-[260px] mx-auto leading-relaxed">
@@ -329,8 +304,6 @@ export function ConversationThreadPanel({
     );
   }
 
-  const statusMeta = getConversationStatusMeta(conversation);
-  const StatusIcon = statusMeta.icon;
   const canTakeOver = conversation.status === "ai_active";
   const canPauseAi = conversation.status === "ai_active";
   const canActivateAi =
@@ -339,136 +312,102 @@ export function ConversationThreadPanel({
     conversation.status === "resolved";
   const canResolve =
     conversation.status !== "resolved" && conversation.status !== "spam";
-  const showExpiredBanner = false;
 
   return (
-    <section className="flex min-h-[42rem] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0e1c] lg:h-full lg:min-h-0">
-      {/* Header — minimal: name + created date only */}
-      <div className="shrink-0 border-b border-white/[0.06]">
+    <section className="flex min-h-[42rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs lg:h-full lg:min-h-0">
+      {/* Header */}
+      <div className="shrink-0 border-b border-slate-200 bg-white">
         <div className="flex items-center justify-between gap-3 px-4 py-3">
           {/* Left: back (mobile) + avatar + name + date */}
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            {/* Mobile back button */}
             <button
               type="button"
               onClick={onBackToList}
-              className="inline-flex shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] p-1.5 text-slate-400 lg:hidden"
+              className="inline-flex shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-1.5 text-slate-600 lg:hidden cursor-pointer"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
 
-            {/* Avatar */}
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.06] text-[11px] font-bold text-slate-300">
-              {conversation.name.slice(0, 2).toUpperCase()}
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-extrabold text-white uppercase shadow-2xs">
+              {conversation.name.slice(0, 2)}
             </div>
 
-            {/* Name + created */}
             <div className="min-w-0">
-              <h2 className="truncate text-sm font-semibold text-slate-100">
+              <h2 className="truncate text-xs font-bold text-slate-900">
                 {conversation.name}
               </h2>
               <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] text-slate-500">
                 {conversation.channel === "WhatsApp" && whatsappAccountLabel ? (
                   <>
-                    <span className="inline-flex min-w-0 items-center gap-1 text-emerald-300/80">
+                    <span className="inline-flex min-w-0 items-center gap-1 text-emerald-700 font-semibold">
                       <Smartphone className="h-3 w-3 shrink-0" />
                       <span className="max-w-36 truncate">
                         {whatsappAccountLabel}
                       </span>
                     </span>
-                    <span className="h-1 w-1 shrink-0 rounded-full bg-slate-600" />
+                    <span className="h-1 w-1 shrink-0 rounded-full bg-slate-300" />
                   </>
                 ) : null}
                 <span className="truncate">
-                  Created{" "}
-                {conversation.timestamp
-                  ? (() => {
-                      try {
-                        const d = new Date(conversation.timestamp);
-                        return isNaN(d.getTime())
-                          ? conversation.timestamp
-                          : d.toLocaleDateString("id-ID", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            });
-                      } catch {
-                        return conversation.timestamp;
-                      }
-                    })()
-                  : "—"}
+                  {conversation.timestamp || "—"}
                 </span>
               </div>
             </div>
           </div>
 
           {/* Right: action buttons */}
-          <div className="flex shrink-0 items-center gap-1.5">
-            {/* Toggle context panel */}
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={onToggleContextPanel}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
               title={showContextPanel ? "Tutup Detail" : "Lihat Detail"}
             >
               <PanelRight className="h-4 w-4" />
             </button>
 
-            {/* Pause / Activate AI */}
             <Button
               type="button"
               variant="secondary"
-              className="h-8 rounded-lg border-white/[0.08] bg-white/[0.04] px-3 text-[11px] text-slate-300 hover:bg-white/[0.08]"
+              size="sm"
               onClick={canActivateAi ? onActivateAi : onPauseAi}
               disabled={(!canActivateAi && !canPauseAi) || isSubmitting}
             >
               {resolveStatusButtonLabel(conversation)}
             </Button>
 
-            {/* Resolve */}
             <Button
               type="button"
-              className="h-8 rounded-lg border-transparent bg-[#00d2ff] px-3 text-[11px] font-semibold text-[#050814] hover:bg-[#4de0ff]"
+              variant="primary"
+              size="sm"
               onClick={onResolve}
               disabled={!canResolve || isSubmitting}
             >
               Resolve
             </Button>
 
-            {/* Delete */}
             <button
               type="button"
               onClick={onDeleteConversation}
               disabled={isSubmitting}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-500/15 text-red-400 transition hover:bg-red-500/25 disabled:opacity-50"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100 disabled:opacity-50 cursor-pointer"
               title="Hapus percakapan"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {/* Agennt takeover banner */}
+        {/* Agent takeover banner */}
         {(conversation.status === "assigned_to_admin" ||
           conversation.status === "blocked") && (
-          <div className="border-t border-red-500/20 bg-red-500/10 px-4 py-2">
+          <div className="border-t border-amber-200 bg-amber-50 px-4 py-2">
             <div className="flex items-center gap-2">
-              <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-red-400" />
-              <p className="text-[11px] leading-5 text-red-300">
-                Agennt takeover aktif. AI tidak akan membalas otomatis sampai diaktifkan kembali.
+              <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600" />
+              <p className="text-xs font-semibold text-amber-800">
+                Agent takeover aktif. AI tidak akan membalas otomatis sampai diaktifkan kembali.
               </p>
             </div>
-          </div>
-        )}
-
-        {/* WhatsApp 24h expired banner */}
-        {showExpiredBanner && (
-          <div className="border-t border-orange-500/20 bg-orange-500/10 px-4 py-2">
-            <p className="text-[11px] text-orange-300">
-              WhatsApp window 24 jam expired. Kirim template terlebih dahulu.
-            </p>
           </div>
         )}
       </div>
@@ -476,11 +415,11 @@ export function ConversationThreadPanel({
       {/* Chat Messages Area */}
       <div
         ref={containerRef}
-        className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#080c18] px-4 py-4 sm:px-6"
+        className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50/70 px-4 py-4 sm:px-6"
       >
         <div className="mb-4 flex items-center justify-center">
-          <span className="rounded-full bg-white/[0.06] px-4 py-1 text-[11px] font-medium text-slate-500">
-            Conversation timeline
+          <span className="rounded-full bg-white border border-slate-200 shadow-2xs px-3.5 py-1 text-[10px] font-bold text-slate-500">
+            Timeline Percakapan
           </span>
         </div>
 
@@ -489,7 +428,7 @@ export function ConversationThreadPanel({
             if (message.sender === "system") {
               return (
                 <div key={message.id} className="py-2 flex justify-center">
-                  <span className="rounded-full bg-white/[0.04] border border-white/[0.08] px-3 py-1 text-[10px] font-medium text-slate-400">
+                  <span className="rounded-full bg-white border border-slate-200 shadow-2xs px-3 py-1 text-[10px] font-medium text-slate-500">
                     {message.timestamp} - {message.text}
                   </span>
                 </div>
@@ -512,23 +451,23 @@ export function ConversationThreadPanel({
                 className={cn("flex w-full mb-3 items-end gap-2", isCustomer ? "justify-start" : "justify-end")}
               >
                 {isCustomer && (
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[10px] font-semibold text-slate-300">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 font-bold text-[10px] text-slate-700">
                     {conversation.name.slice(0, 2).toUpperCase()}
                   </div>
                 )}
 
                 <div className="flex flex-col max-w-[75%] sm:max-w-[65%]">
                   {!isCustomer && (
-                    <div className="mb-1 flex items-center justify-end gap-1.5 text-[10px] text-slate-500 px-1">
+                    <div className="mb-1 flex items-center justify-end gap-1.5 text-[10px] text-slate-500 font-medium px-1">
                       <span>{actorLabel}</span>
                     </div>
                   )}
                   <div
                     className={cn(
-                      "relative px-4 py-2.5 shadow-sm flex flex-col",
+                      "relative px-4 py-2.5 shadow-2xs flex flex-col border",
                       isCustomer
-                        ? "bg-[#1e253c] text-slate-200 rounded-2xl rounded-bl-sm border border-white/5"
-                        : "bg-[#00d2ff] text-[#050814] rounded-2xl rounded-br-sm"
+                        ? "bg-white text-slate-900 border-slate-200 rounded-2xl rounded-bl-xs"
+                        : "bg-blue-600 text-white border-blue-600 rounded-2xl rounded-br-xs"
                     )}
                   >
                     {message.media?.kind === "image" && message.media.previewUrl ? (
@@ -536,7 +475,7 @@ export function ConversationThreadPanel({
                         href={message.media.publicUrl ?? message.media.previewUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="mb-2 overflow-hidden rounded-xl border border-black/10"
+                        className="mb-2 overflow-hidden rounded-xl border border-slate-200"
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
@@ -550,23 +489,23 @@ export function ConversationThreadPanel({
                       <video
                         controls
                         preload="metadata"
-                        className="mb-2 max-h-72 w-full rounded-xl border border-black/10 bg-black/40"
+                        className="mb-2 max-h-72 w-full rounded-xl border border-slate-200 bg-slate-900"
                         src={message.media.publicUrl ?? message.media.previewUrl}
                       />
                     ) : null}
                     {shouldShowText ? (
-                      <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{message.text}</p>
+                      <p className="text-xs leading-relaxed whitespace-pre-wrap">{message.text}</p>
                     ) : null}
                     <div
                       className={cn(
-                        "flex items-center gap-1 text-[10px] font-medium self-end mt-1.5",
-                        isCustomer ? "text-slate-400" : "text-[#050814]/70",
+                        "flex items-center gap-1 text-[10px] font-medium self-end mt-1",
+                        isCustomer ? "text-slate-400" : "text-blue-100",
                       )}
                     >
                       <span>{message.timestamp}</span>
                       {!isCustomer && statusInfo ? (
                         <span className="inline-flex items-center">
-                          <statusInfo.icon className="h-3 w-3 ml-0.5" />
+                          <statusInfo.icon className="h-3 w-3 ml-0.5 text-white" />
                         </span>
                       ) : null}
                     </div>
@@ -574,7 +513,7 @@ export function ConversationThreadPanel({
                 </div>
 
                 {!isCustomer && (
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#00d2ff]/10 text-[#00d2ff]">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white font-bold text-xs shadow-2xs">
                     {isAi ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
                   </div>
                 )}
@@ -583,14 +522,14 @@ export function ConversationThreadPanel({
           })}
 
           {conversation.notes.trim() ? (
-            <div className="rounded-xl border border-purple-500/20 bg-purple-500/10 px-4 py-3">
+            <div className="rounded-xl border border-purple-200 bg-purple-50 p-3.5">
               <div className="flex items-start gap-2.5">
-                <StickyNote className="mt-0.5 h-4 w-4 text-purple-400" />
+                <StickyNote className="mt-0.5 h-4 w-4 text-purple-600 shrink-0" />
                 <div>
-                  <p className="text-[12px] font-semibold text-purple-300">
-                    Private note
+                  <p className="text-xs font-bold text-purple-900">
+                    Private Note
                   </p>
-                  <p className="mt-1 text-[13px] leading-6 text-slate-400">
+                  <p className="mt-1 text-xs leading-relaxed text-purple-800">
                     {conversation.notes}
                   </p>
                 </div>
@@ -600,12 +539,12 @@ export function ConversationThreadPanel({
 
           {isReplyTyping ? (
             <div className="flex justify-end">
-              <div className="rounded-2xl border border-[#00d2ff]/20 bg-[#00d2ff]/10 px-4 py-3 text-[13px] text-slate-200">
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs text-blue-900 font-semibold shadow-2xs">
                 <span className="inline-flex items-center gap-2">
                   <span className="flex gap-1">
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#00d2ff] [animation-delay:-0.2s]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#00d2ff] [animation-delay:-0.1s]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#00d2ff]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-600 [animation-delay:-0.2s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-600 [animation-delay:-0.1s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-600" />
                   </span>
                   {conversation.status === "ai_active" ||
                   conversation.status === "waiting_customer"
@@ -618,8 +557,8 @@ export function ConversationThreadPanel({
         </div>
       </div>
 
-      {/* Composer Area — always pinned at bottom */}
-      <div className="shrink-0 border-t border-white/[0.06] bg-[#0a0e1c]">
+      {/* Composer Area */}
+      <div className="shrink-0 border-t border-slate-200 bg-white">
         {/* Collapsible AI Suggestion */}
         {composerMode === "reply" && (
           <AiSuggestionPanel
@@ -633,10 +572,10 @@ export function ConversationThreadPanel({
 
         {/* Main composer input */}
         <div className="px-4 pb-3 pt-2 relative">
-          {/* Slash Command Popover */}
+          {/* Quick reply templates modal */}
           {composerMode === "reply" && showTemplates && (
-            <div className="absolute bottom-full mb-2 left-4 w-80 max-h-64 overflow-y-auto rounded-xl border border-white/[0.1] bg-[#1e253c] p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2">
-              <div className="px-2 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="absolute bottom-full mb-2 left-4 w-80 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl z-50 animate-fade-in">
+              <div className="px-2 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 Quick Replies
               </div>
               <div className="space-y-1 mt-1">
@@ -648,7 +587,7 @@ export function ConversationThreadPanel({
                     <button
                       key={template.id}
                       type="button"
-                      className="w-full flex flex-col items-start px-3 py-2 rounded-lg hover:bg-white/[0.06] transition text-left"
+                      className="w-full flex flex-col items-start px-3 py-2 rounded-lg hover:bg-slate-50 transition text-left cursor-pointer"
                       onClick={() => {
                         const lastSlashIndex = replyText.lastIndexOf("/");
                         if (lastSlashIndex !== -1) {
@@ -659,25 +598,24 @@ export function ConversationThreadPanel({
                       }}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-[12px] font-semibold text-white">{template.name}</span>
-                        <span className="text-[10px] text-cyan-400 border border-cyan-400/30 bg-cyan-400/10 px-1.5 rounded">{template.category}</span>
+                        <span className="text-xs font-bold text-slate-900">{template.name}</span>
+                        <Badge variant="default" className="text-[9px] py-0 px-1">
+                          {template.category}
+                        </Badge>
                       </div>
-                      <span className="text-[11px] text-slate-400 truncate w-full mt-0.5">{template.body}</span>
+                      <span className="text-xs text-slate-500 truncate w-full mt-0.5">{template.body}</span>
                     </button>
                   ))}
-                {templates.filter(t => t.name.toLowerCase().includes(templateSearch) || t.body.toLowerCase().includes(templateSearch)).length === 0 && (
-                  <div className="text-center py-4 text-xs text-slate-500">Tidak ada template ditemukan.</div>
-                )}
               </div>
             </div>
           )}
 
           {composerMode === "reply" ? (
-            <div className="relative flex flex-col rounded-xl border border-white/[0.08] bg-[#0a0e1c] focus-within:border-white/[0.15] transition-colors">
+            <div className="relative flex flex-col rounded-xl border border-slate-200 bg-white focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600/20 transition-all">
               {replyAttachment ? (
-                <div className="border-b border-white/[0.06] px-4 py-3">
-                  <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
-                    <div className="overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.04]">
+                <div className="border-b border-slate-100 px-4 py-3">
+                  <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
                       {replyAttachment.kind === "image" ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -686,33 +624,28 @@ export function ConversationThreadPanel({
                           className="h-16 w-16 object-cover"
                         />
                       ) : (
-                        <div className="flex h-16 w-16 items-center justify-center bg-slate-950 text-cyan-300">
+                        <div className="flex h-16 w-16 items-center justify-center bg-slate-900 text-white">
                           <Video className="h-6 w-6" />
                         </div>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
                         {replyAttachment.kind === "image" ? (
-                          <ImageIcon className="h-4 w-4 text-cyan-300" />
+                          <ImageIcon className="h-4 w-4 text-blue-600" />
                         ) : (
-                          <Video className="h-4 w-4 text-cyan-300" />
+                          <Video className="h-4 w-4 text-blue-600" />
                         )}
                         <span className="truncate">{replyAttachment.fileName}</span>
                       </div>
-                      <p className="mt-1 text-[11px] text-slate-500">
+                      <p className="mt-0.5 text-[11px] text-slate-500">
                         {replyAttachment.mimeType} · {formatMediaFileSize(replyAttachment.sizeBytes)}
-                      </p>
-                      <p className="mt-1 text-[11px] text-slate-400">
-                        {replyAttachment.kind === "image"
-                          ? "Foto akan dikirim ke customer."
-                          : "Video akan dikirim ke customer."}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={onReplyAttachmentRemove}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/[0.06] hover:text-white"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-800 cursor-pointer"
                       aria-label="Hapus lampiran"
                     >
                       <X className="h-4 w-4" />
@@ -726,10 +659,10 @@ export function ConversationThreadPanel({
                 rows={1}
                 placeholder={
                   allowMediaAttachments
-                    ? `Tulis caption opsional. Shift+Enter untuk baris baru, "/" untuk quick reply.`
-                    : `Type "shift + enter" to add a new line. Type "/" to use quick reply`
+                    ? `Tulis balasan... Tekan Enter untuk mengirim, "/" untuk quick reply.`
+                    : `Tekan Enter untuk mengirim, "/" untuk quick reply.`
                 }
-                className="min-h-[44px] max-h-[120px] w-full resize-none border-0 bg-transparent px-4 pt-3 pb-2 text-[13px] leading-relaxed text-slate-200 placeholder:text-slate-500 focus-visible:ring-0 shadow-none"
+                className="min-h-[44px] max-h-[120px] w-full resize-none border-0 bg-transparent px-4 pt-3 pb-2 text-xs leading-relaxed text-slate-900 placeholder:text-slate-400 focus-visible:ring-0 shadow-none"
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
@@ -738,22 +671,22 @@ export function ConversationThreadPanel({
                 }}
                 disabled={isSubmitting || isReplyTyping}
               />
-              <div className="flex items-center justify-between px-3 pb-2 pt-1 border-t border-white/[0.04] bg-white/[0.01]">
+              <div className="flex items-center justify-between px-3 pb-2 pt-1 border-t border-slate-100 bg-slate-50/50">
                 <div className="flex items-center gap-1">
                   <div className="relative">
                     <button
                       type="button"
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                       className={cn(
-                        "inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/[0.06] hover:text-slate-200",
-                        showEmojiPicker && "bg-white/[0.06] text-[#00d2ff]"
+                        "inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-900 cursor-pointer",
+                        showEmojiPicker && "bg-slate-200 text-blue-600"
                       )}
                       title="Sisipkan emoji"
                     >
                       <Smile className="h-4.5 w-4.5" />
                     </button>
                     {showEmojiPicker && (
-                      <div className="absolute bottom-full mb-2 left-0 bg-[#1e253c] border border-white/[0.1] rounded-xl p-2 shadow-2xl z-50 grid grid-cols-5 gap-1.5 w-44 animate-in fade-in slide-in-from-bottom-2">
+                      <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-xl p-2 shadow-xl z-50 grid grid-cols-5 gap-1.5 w-44 animate-fade-in">
                         {["😊", "😂", "👍", "❤️", "🙏", "😉", "😍", "😮", "😢", "😡", "🛠️", "🚗", "🛵", "🔑", "✅"].map((emoji) => (
                           <button
                             key={emoji}
@@ -762,7 +695,7 @@ export function ConversationThreadPanel({
                               onReplyTextChange(replyText + emoji);
                               setShowEmojiPicker(false);
                             }}
-                            className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/[0.06] text-sm transition cursor-pointer"
+                            className="h-7 w-7 flex items-center justify-center rounded hover:bg-slate-100 text-sm transition cursor-pointer"
                           >
                             {emoji}
                           </button>
@@ -771,51 +704,6 @@ export function ConversationThreadPanel({
                     )}
                   </div>
 
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowStickerPicker(!showStickerPicker)}
-                      className={cn(
-                        "inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/[0.06] hover:text-slate-200",
-                        showStickerPicker && "bg-white/[0.06] text-[#00d2ff]"
-                      )}
-                      title="Kirim stiker"
-                    >
-                      <StickyNote className="h-4.5 w-4.5" />
-                    </button>
-                    {showStickerPicker && onSendSticker && (
-                      <div className="absolute bottom-full mb-2 left-0 bg-[#1e253c] border border-white/[0.1] rounded-xl p-3 shadow-2xl z-50 grid grid-cols-3 gap-2 w-72 animate-in fade-in slide-in-from-bottom-2">
-                        {[
-                          { name: "Servis Motor", url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="20" fill="%230e172c" stroke="%2338bdf8" stroke-width="3"/><path d="M30 70 L70 30 M65 25 L75 35 M35 75 L25 65" stroke="%2338bdf8" stroke-width="8" stroke-linecap="round"/><circle cx="50" cy="50" r="10" fill="none" stroke="%2338bdf8" stroke-width="4"/><text x="50" y="85" font-family="sans-serif" font-size="10" font-weight="bold" fill="%2338bdf8" text-anchor="middle">SERVIS MOTOR</text></svg>' },
-                          { name: "Ganti Oli", url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="20" fill="%230e172c" stroke="%23fbbf24" stroke-width="3"/><path d="M50 25 C50 25 70 50 70 65 C70 76 61 80 50 80 C39 80 30 76 30 65 C30 50 50 25 50 25 Z" fill="%23fbbf24"/><text x="50" y="90" font-family="sans-serif" font-size="10" font-weight="bold" fill="%23fbbf24" text-anchor="middle">GANTI OLI</text></svg>' },
-                          { name: "Oke Siap", url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="20" fill="%230e172c" stroke="%2334d399" stroke-width="3"/><text x="50" y="55" font-family="sans-serif" font-size="40" text-anchor="middle">👍</text><text x="50" y="85" font-family="sans-serif" font-size="10" font-weight="bold" fill="%2334d399" text-anchor="middle">OKE SIAP!</text></svg>' },
-                          { name: "Booking Confirmed", url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="20" fill="%230e172c" stroke="%2322d3ee" stroke-width="3"/><rect x="30" y="35" width="40" height="40" rx="5" fill="none" stroke="%2322d3ee" stroke-width="4"/><path d="M30 45 L70 45 M40 25 L40 35 M60 25 L60 35" stroke="%2322d3ee" stroke-width="4" stroke-linecap="round"/><path d="M45 58 L52 65 L62 53" fill="none" stroke="%2334d399" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><text x="50" y="90" font-family="sans-serif" font-size="9" font-weight="bold" fill="%2322d3ee" text-anchor="middle">BOOKING OK</text></svg>' },
-                          { name: "Terima Kasih", url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="20" fill="%230e172c" stroke="%23f472b6" stroke-width="3"/><path d="M12 21.35 C17.55 13 29 13 35.5 20 C42 13 53.45 13 59 21.35 C66 32 50 56 35.5 68 C21 56 5 32 12 21.35 Z" fill="%23f472b6" transform="translate(15, 5)"/><text x="50" y="85" font-family="sans-serif" font-size="9" font-weight="bold" fill="%23f472b6" text-anchor="middle">TERIMA KASIH</text></svg>' },
-                          { name: "Diskon Promo", url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="20" fill="%230e172c" stroke="%23a78bfa" stroke-width="3"/><path d="M30 30 L60 30 L80 50 L50 80 L30 60 Z" fill="none" stroke="%23a78bfa" stroke-width="4" stroke-linejoin="round"/><circle cx="42" cy="42" r="4" fill="%23a78bfa"/><text x="50" y="90" font-family="sans-serif" font-size="9" font-weight="bold" fill="%23a78bfa" text-anchor="middle">DISKON PROMO</text></svg>' },
-                        ].map((st) => (
-                          <button
-                            key={st.name}
-                            type="button"
-                            onClick={() => {
-                              onSendSticker && onSendSticker(st.url);
-                              setShowStickerPicker(false);
-                            }}
-                            className="flex flex-col items-center gap-1.5 p-1.5 rounded-lg border border-white/5 hover:border-cyan-400/30 hover:bg-white/5 transition cursor-pointer"
-                          >
-                            <Image
-                              src={st.url}
-                              alt={st.name}
-                              width={48}
-                              height={48}
-                              className="h-12 w-12 object-contain"
-                              unoptimized
-                            />
-                            <span className="text-[9px] text-slate-400 truncate max-w-full font-semibold">{st.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                   <input
                     id={fileInputId}
                     type="file"
@@ -832,9 +720,9 @@ export function ConversationThreadPanel({
                     htmlFor={fileInputId}
                     aria-disabled={!allowMediaAttachments || isSubmitting || isReplyTyping}
                     className={cn(
-                      "inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400",
+                      "inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500",
                       allowMediaAttachments && !isSubmitting && !isReplyTyping
-                        ? "cursor-pointer hover:bg-white/[0.06] hover:text-slate-200"
+                        ? "cursor-pointer hover:bg-slate-200 hover:text-slate-900"
                         : "cursor-not-allowed opacity-40",
                     )}
                     title={
@@ -846,14 +734,15 @@ export function ConversationThreadPanel({
                     <Paperclip className="h-4.5 w-4.5" />
                   </label>
                 </div>
-                <button
+                <Button
                   type="button"
                   onClick={onSendReply}
                   disabled={(!replyText.trim() && !replyAttachment) || isSubmitting || isReplyTyping}
-                  className="inline-flex h-8 items-center justify-center rounded-lg bg-white/[0.06] px-5 text-[12px] font-semibold text-slate-300 transition hover:bg-white/[0.1] disabled:opacity-50 disabled:hover:bg-white/[0.06] disabled:hover:text-slate-500"
+                  size="sm"
+                  variant="primary"
                 >
                   {replyAttachment ? "Send Media" : "Send"}
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -863,20 +752,21 @@ export function ConversationThreadPanel({
                 onChange={(event) => onNoteDraftChange(event.target.value)}
                 rows={2}
                 placeholder="Tulis catatan internal..."
-                className="min-h-[60px] max-h-[120px] resize-none rounded-xl border-purple-500/20 bg-white/[0.04] px-4 py-2.5 text-[13px] leading-5 text-slate-200"
+                className="min-h-[60px] max-h-[120px] resize-none rounded-xl border-purple-200 bg-purple-50/50 px-4 py-2.5 text-xs text-slate-900"
                 disabled={isSubmitting}
               />
               <div className="flex items-center justify-between">
-                <p className="text-[11px] text-purple-400">
+                <p className="text-[11px] text-purple-700 font-semibold">
                   {noteSaved ? "✓ Catatan tersimpan" : "Catatan hanya terlihat oleh tim internal."}
                 </p>
                 <Button
                   type="button"
-                  className="h-8 rounded-lg border-transparent bg-purple-500 px-3 text-[11px] text-white hover:bg-purple-600"
+                  size="sm"
                   onClick={onSaveNote}
                   disabled={isSubmitting}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
                 >
-                  Simpan
+                  Simpan Note
                 </Button>
               </div>
             </div>
@@ -884,8 +774,8 @@ export function ConversationThreadPanel({
         </div>
 
         {/* Bottom toolbar */}
-        <div className="flex items-center justify-between border-t border-white/[0.04] px-4 py-1.5">
-          <div className="inline-flex rounded-lg bg-white/[0.04] p-0.5">
+        <div className="flex items-center justify-between border-t border-slate-100 px-4 py-2 bg-slate-50/50">
+          <div className="inline-flex rounded-lg bg-slate-200/60 p-0.5">
             {[
               { id: "reply", label: "Reply" },
               { id: "note", label: "Notes" },
@@ -897,10 +787,10 @@ export function ConversationThreadPanel({
                   type="button"
                   onClick={() => onComposerModeChange(tab.id as "reply" | "note")}
                   className={cn(
-                    "rounded-md px-2.5 py-1 text-[10px] font-semibold transition",
+                    "rounded-md px-3 py-1 text-xs font-bold transition cursor-pointer",
                     active
-                      ? "bg-white/[0.08] text-[#00d2ff]"
-                      : "text-slate-500 hover:text-slate-300",
+                      ? "bg-white text-blue-600 shadow-2xs"
+                      : "text-slate-500 hover:text-slate-900",
                   )}
                 >
                   {tab.label}
@@ -909,32 +799,10 @@ export function ConversationThreadPanel({
             })}
           </div>
 
-          <div className="flex items-center gap-2 text-[10px] text-slate-500">
+          <div className="flex items-center gap-2 text-xs text-slate-500">
             <span>Enter kirim · Shift+Enter baris baru</span>
-            <Link
-              href="/tickets"
-              className="rounded-md bg-white/[0.04] px-2 py-1 text-slate-400 hover:bg-white/[0.08]"
-            >
-              Tickets
-            </Link>
-            <Link
-              href="/customers"
-              className="rounded-md bg-white/[0.04] px-2 py-1 text-slate-400 hover:bg-white/[0.08]"
-            >
-              CRM
-            </Link>
           </div>
         </div>
-
-        {showExpiredBanner ? (
-          <div className="flex items-center justify-between border-t border-red-500/20 bg-red-500/10 px-4 py-2 text-[11px] text-red-300">
-            <p>WhatsApp window 24 jam expired. Kirim template dulu.</p>
-            <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-2 py-1 font-semibold text-red-400">
-              <CheckCheck className="h-3 w-3" />
-              HSM
-            </span>
-          </div>
-        ) : null}
       </div>
     </section>
   );
@@ -957,65 +825,73 @@ function AiSuggestionPanel({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="border-b border-white/[0.04]">
+    <div className="border-b border-slate-100 bg-blue-50/30">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-2 text-left transition hover:bg-white/[0.03]"
+        className="flex w-full items-center justify-between px-4 py-2 text-left transition hover:bg-blue-50/60 cursor-pointer"
       >
-        <span className="inline-flex items-center gap-2 text-[11px] font-semibold text-[#00d2ff]">
+        <span className="inline-flex items-center gap-2 text-xs font-bold text-blue-600">
           <Sparkles className="h-3.5 w-3.5" />
           AI Suggested Reply
         </span>
-        <span className="text-[10px] text-slate-500">{open ? "Tutup ▲" : "Buka ▼"}</span>
+        <span className="text-[10px] font-bold text-slate-500">{open ? "Tutup ▲" : "Buka ▼"}</span>
       </button>
 
       {open && (
         <div className="px-4 pb-3">
           {isLoading ? (
-            <div className="flex items-center gap-2 text-[12px] text-slate-400">
+            <div className="flex items-center gap-2 text-xs text-slate-500">
               <span className="flex gap-1">
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#00d2ff] [animation-delay:-0.2s]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#00d2ff] [animation-delay:-0.1s]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#00d2ff]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-600 [animation-delay:-0.2s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-600 [animation-delay:-0.1s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-600" />
               </span>
               AI sedang menyiapkan balasan...
             </div>
           ) : (
-            <p className="text-[12px] leading-5 text-slate-300">{suggestionText}</p>
+            <p className="text-xs leading-relaxed text-slate-800 font-medium">{suggestionText}</p>
           )}
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <button
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            <Button
               type="button"
+              size="sm"
+              variant="primary"
               onClick={() => onUseSuggestion(suggestionText)}
-              className="rounded-md border border-[#00d2ff]/30 bg-[#00d2ff]/10 px-2.5 py-1 text-[10px] font-semibold text-[#00d2ff] transition hover:bg-[#00d2ff]/20"
+              className="text-[11px] h-7 px-2.5"
             >
               Gunakan
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="sm"
+              variant="secondary"
               onClick={() => onSuggestionVariantChange("short")}
-              className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold text-slate-400 transition hover:bg-white/[0.08]"
+              className="text-[11px] h-7 px-2.5"
             >
               Singkat
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="sm"
+              variant="secondary"
               onClick={() => onSuggestionVariantChange("warm")}
-              className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold text-slate-400 transition hover:bg-white/[0.08]"
+              className="text-[11px] h-7 px-2.5"
             >
               Ramah
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="sm"
+              variant="secondary"
               onClick={() => {
                 onSuggestionVariantChange("default");
                 onSuggestionVersionChange((c) => c + 1);
               }}
-              className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold text-slate-400 transition hover:bg-white/[0.08]"
+              className="text-[11px] h-7 px-2.5"
             >
               Ulangi
-            </button>
+            </Button>
           </div>
         </div>
       )}

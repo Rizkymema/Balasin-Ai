@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   parseCustomInstructions,
@@ -463,7 +464,7 @@ export default function KnowledgeBasePage() {
   if (isLoading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
@@ -473,67 +474,66 @@ export default function KnowledgeBasePage() {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Link href="/automation" className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-white transition">
+          <div className="flex items-center gap-2 mb-1">
+            <Link href="/automation" className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 transition">
               <ArrowLeft className="h-3.5 w-3.5" />
               Automation
             </Link>
           </div>
-          <h1 className="flex items-center gap-2.5 text-2xl font-bold text-white">
-            <Database className="h-6 w-6 text-cyan-400" />
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
             Knowledge Base
           </h1>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-slate-500">
             Kelola sumber pengetahuan AI — FAQ, dokumen, URL, dan custom instructions.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-950/20 px-4 py-2.5 text-xs">
-          <MessageSquare className="h-4 w-4 text-cyan-400" />
-          <span className="text-slate-300">
+        <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-semibold text-slate-800 shadow-2xs">
+          <MessageSquare className="h-4 w-4 text-blue-600" />
+          <span>
             {runtimeStatus?.connected ? "Terintegrasi" : "Belum aktif"} dengan{" "}
-            <Link href="/inbox" className="font-bold text-cyan-400 hover:underline">
+            <Link href="/inbox" className="font-bold text-blue-600 hover:underline">
               {runtimeStatus?.conversations ?? 0} Conversations
             </Link>{" "}
             — {runtimeStatus?.activeAiAgents ?? 0} Agent aktif, {runtimeStatus?.chunks ?? 0} chunks siap
           </span>
-          <span className={`flex h-2 w-2 rounded-full ${runtimeStatus?.connected ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
+          <span className={`flex h-2 w-2 rounded-full ${runtimeStatus?.connected ? "bg-emerald-600 animate-pulse" : "bg-amber-500"}`} />
         </div>
       </div>
 
       {/* KB Stats Banner */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
-          { label: "URL Tersinkron", count: urlCount, icon: Link2, color: "cyan" },
-          { label: "Google Sheet", count: sheetCount, icon: Database, color: "emerald" },
-          { label: "File Upload", count: docCount, icon: Upload, color: "purple" },
-          { label: "Teks Fakta", count: textCount, icon: FileText, color: "cyan" },
-        ].map(({ label, count, icon: Icon, color }) => (
-          <div
+          { label: "URL Tersinkron", count: urlCount, icon: Link2 },
+          { label: "Google Sheet", count: sheetCount, icon: Database },
+          { label: "File Upload", count: docCount, icon: Upload },
+          { label: "Teks Fakta", count: textCount, icon: FileText },
+        ].map(({ label, count, icon: Icon }) => (
+          <Card
             key={label}
-            className={`rounded-xl border border-${color}-500/15 bg-${color}-950/10 p-4 text-center`}
+            className="p-4 border-slate-200 bg-white text-center shadow-2xs"
           >
-            <Icon className={`mx-auto mb-1.5 h-5 w-5 text-${color}-400`} />
-            <div className={`text-2xl font-extrabold text-${color}-300`}>{count}</div>
-            <div className="text-[10px] text-slate-500 mt-0.5">{label}</div>
-          </div>
+            <Icon className="mx-auto mb-1 h-5 w-5 text-blue-600" />
+            <div className="text-2xl font-extrabold text-slate-900">{count}</div>
+            <div className="text-xs text-slate-500 font-medium">{label}</div>
+          </Card>
         ))}
       </div>
 
       {syncError && (
-        <div className="rounded-xl border border-red-500/25 bg-red-950/20 p-4 text-xs text-red-200">
-          <div className="mb-1 flex items-center gap-2 font-bold text-red-300">
-            <AlertTriangle className="h-4 w-4" />
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-800 font-semibold">
+          <div className="mb-1 flex items-center gap-2 font-bold text-red-900">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
             Sinkronisasi knowledge gagal sebagian
           </div>
-          <pre className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-red-100/90">
+          <pre className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-red-700">
             {syncError}
           </pre>
         </div>
       )}
 
       {/* Sub Tabs */}
-      <div className="flex border-b border-white/8 space-x-6">
+      <div className="flex border-b border-slate-200 space-x-6">
         {[
           { id: "resources", label: "AI Resources" },
           { id: "instructions", label: "Custom Instructions" },
@@ -541,10 +541,10 @@ export default function KnowledgeBasePage() {
           <button
             key={tab.id}
             onClick={() => setKbSubsection(tab.id)}
-            className={`pb-3 text-xs font-semibold uppercase tracking-wider border-b-2 transition ${
+            className={`pb-3 text-xs font-bold uppercase tracking-wider border-b-2 transition cursor-pointer ${
               kbSubsection === tab.id
-                ? "border-cyan-400 text-cyan-400 font-bold"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-slate-500 hover:text-slate-900"
             }`}
           >
             {tab.label}
@@ -557,54 +557,54 @@ export default function KnowledgeBasePage() {
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
             {/* Existing Sources */}
-            <Card className="glass-panel p-6">
+            <Card className="p-5 border-slate-200 bg-white shadow-2xs">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                 <div>
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-white">Existing Sources</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">Seluruh referensi yang sudah dipelajari AI.</p>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">Existing Sources</h3>
+                  <p className="text-xs text-slate-500">Seluruh referensi yang sudah dipelajari AI.</p>
                 </div>
                 <div className="relative w-full sm:max-w-xs">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                   <Input
                     placeholder="Cari referensi..."
-                    className="h-9 pl-9 text-xs"
+                    className="h-9 pl-9 text-xs border-slate-200 bg-slate-50"
                     value={kbSearchQuery}
                     onChange={(e) => setKbSearchQuery(e.target.value)}
                   />
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {filteredSourceItems.length === 0 ? (
                   <EmptyState
-                    icon={<Database className="h-10 w-10 text-slate-500" />}
+                    icon={<Database className="h-8 w-8 text-slate-400" />}
                     title="Belum ada referensi"
                     description="Gunakan Metode Input di samping kanan untuk memasukkan data."
-                    className="min-h-[200px]"
+                    className="min-h-[180px]"
                   />
                 ) : (
                   filteredSourceItems.map((doc) => (
                     <div
                       key={doc.id}
-                      className="rounded-xl border border-white/6 bg-white/2 p-4 flex items-center justify-between gap-4"
+                      className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 flex items-center justify-between gap-4"
                     >
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cyan-400/10 bg-cyan-950/20 text-cyan-400">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-600 font-bold">
                           {doc.name.endsWith(".txt") ? (
-                            <FileText className="h-4.5 w-4.5" />
+                            <FileText className="h-4 w-4" />
                           ) : doc.sourceType === "google_sheet" ? (
-                            <Database className="h-4.5 w-4.5" />
+                            <Database className="h-4 w-4" />
                           ) : doc.sourceType === "website" ? (
-                            <Link2 className="h-4.5 w-4.5" />
+                            <Link2 className="h-4 w-4" />
                           ) : (
-                            <Upload className="h-4.5 w-4.5" />
+                            <Upload className="h-4 w-4" />
                           )}
                         </div>
                         <div className="min-w-0">
-                          <span className="block truncate text-xs font-bold text-white">{doc.name}</span>
-                          <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-slate-500">
+                          <span className="block truncate text-xs font-bold text-slate-900">{doc.name}</span>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-slate-500">
                             <span>{doc.size}</span>
-                            <span className="rounded-full border border-white/8 px-2 py-0.5 text-[9px] uppercase tracking-wider text-slate-400">
+                            <Badge variant="secondary" className="text-[9px] uppercase">
                               {doc.name.endsWith(".txt")
                                 ? "Text Content"
                                 : doc.sourceType === "google_sheet"
@@ -612,7 +612,7 @@ export default function KnowledgeBasePage() {
                                   : doc.sourceType === "website"
                                     ? "External URL"
                                     : "File Upload"}
-                            </span>
+                            </Badge>
                           </div>
                         </div>
                       </div>
@@ -622,31 +622,33 @@ export default function KnowledgeBasePage() {
                             href={doc.sourceUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-cyan-400/20 px-2.5 text-[10px] font-bold text-cyan-300 transition hover:border-cyan-400/50 hover:bg-cyan-950/30"
+                            className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-bold text-slate-700 hover:bg-slate-100 transition"
                           >
                             Buka
-                            <ExternalLink className="h-3.5 w-3.5" />
+                            <ExternalLink className="h-3 w-3" />
                           </a>
                         )}
                         {doc.isIndexed ? (
-                          <span className="hidden items-center gap-1 rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 sm:flex">
-                            <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                          <Badge variant="success" className="text-[9px]">
+                            <Check className="h-3 w-3 mr-1" />
                             Terserap AI
-                          </span>
+                          </Badge>
                         ) : (
-                          <button
+                          <Button
+                            size="sm"
+                            variant="secondary"
                             onClick={() => void handleResyncKnowledgeSources()}
                             disabled={isSyncingKbSources}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-amber-400/20 px-2.5 text-[10px] font-bold text-amber-300 transition hover:border-amber-400/50 hover:bg-amber-950/30 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="h-7 text-[10px] px-2"
                           >
-                            <RefreshCw className={`h-3.5 w-3.5 ${isSyncingKbSources ? "animate-spin" : ""}`} />
+                            <RefreshCw className={`h-3 w-3 mr-1 ${isSyncingKbSources ? "animate-spin" : ""}`} />
                             Sinkronkan
-                          </button>
+                          </Button>
                         )}
                         {doc.isIndexed && (
                           <button
                             onClick={() => handleDeleteKbDocument(doc.id)}
-                            className="rounded p-1.5 text-slate-500 transition hover:text-red-400"
+                            className="rounded-lg p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
                             aria-label={`Hapus ${doc.name}`}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -660,41 +662,43 @@ export default function KnowledgeBasePage() {
             </Card>
 
             {/* Unanswered Questions */}
-            <Card className="glass-panel p-6 border-amber-500/25">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="h-5 w-5 text-amber-400" />
-                <h3 className="text-sm font-bold uppercase tracking-wider text-white">Unanswered Questions</h3>
+            <Card className="p-5 border-amber-200 bg-amber-50/40 shadow-2xs">
+              <div className="flex items-center gap-2 mb-1.5">
+                <AlertTriangle className="h-4.5 w-4.5 text-amber-600" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900">Unanswered Questions</h3>
               </div>
-              <p className="text-xs text-slate-400 mb-4 leading-normal">
+              <p className="text-xs text-slate-600 mb-4">
                 Pertanyaan pelanggan yang gagal dijawab AI. Tambahkan ke Knowledge Base untuk meningkatkan akurasi.
               </p>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {unansweredQuestions.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.01] p-6 text-center text-xs font-semibold text-slate-500">
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-white p-4 text-center text-xs font-semibold text-slate-500">
                     Tidak ada pertanyaan tak terjawab saat ini. Sistem bekerja sempurna!
                   </div>
                 ) : (
                   unansweredQuestions.map((question) => (
                     <div
                       key={question.id}
-                      className="rounded-xl border border-white/8 bg-white/[0.02] p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                      className="rounded-xl border border-slate-200 bg-white p-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-2xs"
                     >
                       <div>
-                        <p className="text-xs font-semibold text-slate-200">{question.question}</p>
-                        <p className="mt-1 text-[10px] text-slate-500">
+                        <p className="text-xs font-bold text-slate-900">{question.question}</p>
+                        <p className="mt-0.5 text-[10px] text-slate-500 font-medium">
                           Kategori: {question.category} - muncul {question.occurrences}x dari {question.sourceChannel}
                         </p>
                       </div>
                       <div className="flex gap-2 shrink-0">
-                        <Button onClick={() => handleAnswerQuestion(question.question)} className="text-[10px] h-8 px-3 rounded-lg">
+                        <Button onClick={() => handleAnswerQuestion(question.question)} size="sm" variant="primary" className="text-[10px] h-7">
                           Jawab via Text Content
                         </Button>
-                        <button
+                        <Button
                           onClick={() => void handleDismissQuestion(question.id)}
-                          className="text-[10px] h-8 px-3 rounded-lg border border-white/10 text-slate-400 hover:text-white"
+                          size="sm"
+                          variant="secondary"
+                          className="text-[10px] h-7"
                         >
                           Abaikan
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ))
@@ -705,72 +709,72 @@ export default function KnowledgeBasePage() {
 
           {/* Methods Input Side Panel */}
           <div className="space-y-6">
-            <Card className="glass-panel p-5">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-4">Metode Input</h3>
-              <div className="space-y-3">
+            <Card className="p-5 border-slate-200 bg-white shadow-2xs">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-3">Metode Input</h3>
+              <div className="space-y-2.5">
                 {/* External URL Card */}
                 <div
                   onClick={() => setInputMethodActive("url")}
-                  className={`flex items-center justify-between p-4 rounded-xl border transition cursor-pointer ${
+                  className={`flex items-center justify-between p-3.5 rounded-xl border transition cursor-pointer ${
                     inputMethodActive === "url"
-                      ? "border-cyan-400 bg-cyan-950/20"
-                      : "border-white/8 bg-white/[0.02] hover:border-cyan-400/50"
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-slate-200 bg-slate-50/50 hover:bg-slate-100"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-950/50 text-cyan-400 border border-cyan-400/20">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-slate-200 text-blue-600 font-bold">
                       <Link2 className="h-4 w-4" />
                     </div>
                     <div className="text-left">
-                      <p className="text-xs font-bold text-white">External URL</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Tautkan link / katalog online</p>
+                      <p className="text-xs font-bold text-slate-900">External URL</p>
+                      <p className="text-[10px] text-slate-500">Tautkan link / katalog online</p>
                     </div>
                   </div>
-                  <span className="rounded-full border border-cyan-400/20 bg-cyan-950 px-2.5 py-0.5 text-[10px] font-bold text-cyan-300">
+                  <Badge variant="default" className="text-[10px]">
                     {urlCount}
-                  </span>
+                  </Badge>
                 </div>
 
                 {/* Google Sheet Card */}
                 <div
                   onClick={() => setInputMethodActive("sheet")}
-                  className={`flex items-center justify-between p-4 rounded-xl border transition cursor-pointer ${
+                  className={`flex items-center justify-between p-3.5 rounded-xl border transition cursor-pointer ${
                     inputMethodActive === "sheet"
-                      ? "border-cyan-400 bg-cyan-950/20"
-                      : "border-white/8 bg-white/[0.02] hover:border-cyan-400/50"
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-slate-200 bg-slate-50/50 hover:bg-slate-100"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-950/50 text-cyan-400 border border-cyan-400/20">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-slate-200 text-blue-600 font-bold">
                       <Database className="h-4 w-4" />
                     </div>
                     <div className="text-left">
-                      <p className="text-xs font-bold text-white">Google Sheet</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Tautkan katalog / FAQ sheet</p>
+                      <p className="text-xs font-bold text-slate-900">Google Sheet</p>
+                      <p className="text-[10px] text-slate-500">Tautkan katalog / FAQ sheet</p>
                     </div>
                   </div>
-                  <span className="rounded-full border border-cyan-400/20 bg-cyan-950 px-2.5 py-0.5 text-[10px] font-bold text-cyan-300">
+                  <Badge variant="default" className="text-[10px]">
                     {sheetCount}
-                  </span>
+                  </Badge>
                 </div>
 
                 {/* File Upload Card */}
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center justify-between p-4 rounded-xl border border-white/8 bg-white/[0.02] hover:border-cyan-400/50 transition cursor-pointer"
+                  className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-100 transition cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-950/50 text-cyan-400 border border-cyan-400/20">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-slate-200 text-blue-600 font-bold">
                       <Upload className="h-4 w-4" />
                     </div>
                     <div className="text-left">
-                      <p className="text-xs font-bold text-white">File upload</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Unggah PDF / DOCX / CSV</p>
+                      <p className="text-xs font-bold text-slate-900">File upload</p>
+                      <p className="text-[10px] text-slate-500">Unggah PDF / DOCX / CSV</p>
                     </div>
                   </div>
-                  <span className="rounded-full border border-cyan-400/20 bg-cyan-950 px-2.5 py-0.5 text-[10px] font-bold text-cyan-300">
+                  <Badge variant="default" className="text-[10px]">
                     {isUploadingKbFile ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : docCount}
-                  </span>
+                  </Badge>
                 </div>
                 <input
                   type="file"
@@ -783,50 +787,50 @@ export default function KnowledgeBasePage() {
                 {/* Text Content Card */}
                 <div
                   onClick={() => setInputMethodActive("text")}
-                  className={`flex items-center justify-between p-4 rounded-xl border transition cursor-pointer ${
+                  className={`flex items-center justify-between p-3.5 rounded-xl border transition cursor-pointer ${
                     inputMethodActive === "text"
-                      ? "border-cyan-400 bg-cyan-950/20"
-                      : "border-white/8 bg-white/[0.02] hover:border-cyan-400/50"
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-slate-200 bg-slate-50/50 hover:bg-slate-100"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-950/50 text-cyan-400 border border-cyan-400/20">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-slate-200 text-blue-600 font-bold">
                       <FileText className="h-4 w-4" />
                     </div>
                     <div className="text-left">
-                      <p className="text-xs font-bold text-white">Text content</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Ketik fakta manual</p>
+                      <p className="text-xs font-bold text-slate-900">Text content</p>
+                      <p className="text-[10px] text-slate-500">Ketik fakta manual</p>
                     </div>
                   </div>
-                  <span className="rounded-full border border-cyan-400/20 bg-cyan-950 px-2.5 py-0.5 text-[10px] font-bold text-cyan-300">
+                  <Badge variant="default" className="text-[10px]">
                     {textCount}
-                  </span>
+                  </Badge>
                 </div>
               </div>
             </Card>
 
             {/* Form URL */}
             {inputMethodActive === "url" && (
-              <Card className="glass-panel p-5 space-y-3.5">
-                <div className="flex items-center justify-between border-b border-white/8 pb-2">
-                  <span className="text-xs font-bold text-white uppercase tracking-wider">Input External URL</span>
-                  <button onClick={() => setInputMethodActive("none")} className="text-[10px] text-slate-500 hover:text-white">
+              <Card className="p-5 border-slate-200 bg-white space-y-3 shadow-2xs">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">Input External URL</span>
+                  <button onClick={() => setInputMethodActive("none")} className="text-xs font-semibold text-slate-400 hover:text-slate-900 cursor-pointer">
                     Batal
                   </button>
                 </div>
                 <form onSubmit={handleSyncKbUrl} className="space-y-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-semibold text-slate-300">Tautan (Satu per baris)</label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-900">Tautan (Satu per baris)</label>
                     <Textarea
                       placeholder="https://johangarage.com/profile"
                       value={kbUrlInput}
                       onChange={(e) => setKbUrlInput(e.target.value)}
                       rows={3}
-                      className="text-xs"
+                      className="text-xs bg-slate-50"
                       required
                     />
                   </div>
-                  <Button type="submit" disabled={isSyncingKbSources} className="w-full text-xs h-9">
+                  <Button type="submit" variant="primary" disabled={isSyncingKbSources} className="w-full text-xs h-9">
                     {isSyncingKbSources ? (
                       <>
                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -842,29 +846,29 @@ export default function KnowledgeBasePage() {
 
             {/* Form Google Sheet */}
             {inputMethodActive === "sheet" && (
-              <Card className="glass-panel p-5 space-y-3.5">
-                <div className="flex items-center justify-between border-b border-white/8 pb-2">
-                  <span className="text-xs font-bold text-white uppercase tracking-wider">Input Google Sheet</span>
-                  <button onClick={() => setInputMethodActive("none")} className="text-[10px] text-slate-500 hover:text-white">
+              <Card className="p-5 border-slate-200 bg-white space-y-3 shadow-2xs">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">Input Google Sheet</span>
+                  <button onClick={() => setInputMethodActive("none")} className="text-xs font-semibold text-slate-400 hover:text-slate-900 cursor-pointer">
                     Batal
                   </button>
                 </div>
                 <form onSubmit={handleSyncKbSheet} className="space-y-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-semibold text-slate-300">Link Google Sheet (Satu per baris)</label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-900">Link Google Sheet (Satu per baris)</label>
                     <Textarea
                       placeholder="https://docs.google.com/spreadsheets/d/..."
                       value={kbSheetInput}
                       onChange={(e) => setKbSheetInput(e.target.value)}
                       rows={3}
-                      className="text-xs"
+                      className="text-xs bg-slate-50"
                       required
                     />
-                    <p className="text-[10px] leading-relaxed text-slate-500">
+                    <p className="text-[10px] leading-relaxed text-slate-500 font-medium">
                       Sheet harus bisa dibuka dengan akses anyone with the link can view agar server dapat membaca CSV.
                     </p>
                   </div>
-                  <Button type="submit" disabled={isSyncingKbSources} className="w-full text-xs h-9">
+                  <Button type="submit" variant="primary" disabled={isSyncingKbSources} className="w-full text-xs h-9">
                     {isSyncingKbSources ? (
                       <>
                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -880,36 +884,36 @@ export default function KnowledgeBasePage() {
 
             {/* Form Text Fact Ingest */}
             {inputMethodActive === "text" && (
-              <Card className="glass-panel p-5 space-y-3.5">
-                <div className="flex items-center justify-between border-b border-white/8 pb-2">
-                  <span className="text-xs font-bold text-white uppercase tracking-wider">Ketik Fakta Manual</span>
-                  <button onClick={() => setInputMethodActive("none")} className="text-[10px] text-slate-500 hover:text-white">
+              <Card className="p-5 border-slate-200 bg-white space-y-3 shadow-2xs">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">Ketik Fakta Manual</span>
+                  <button onClick={() => setInputMethodActive("none")} className="text-xs font-semibold text-slate-400 hover:text-slate-900 cursor-pointer">
                     Batal
                   </button>
                 </div>
                 <form onSubmit={handleIngestKbText} className="space-y-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-semibold text-slate-300">Nama Fakta / Pemicu</label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-900">Nama Fakta / Pemicu</label>
                     <Input
                       placeholder="Contoh: Jadwal Buka Kantor"
                       value={kbTextTitle}
                       onChange={(e) => setKbTextTitle(e.target.value)}
-                      className="h-9 text-xs"
+                      className="h-9 text-xs bg-slate-50"
                       required
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-semibold text-slate-300">Isi Konten Teks</label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-900">Isi Konten Teks</label>
                     <Textarea
                       placeholder="Contoh: Kami buka setiap hari Senin-Sabtu pukul 08:00-17:00."
                       value={kbTextContent}
                       onChange={(e) => setKbTextContent(e.target.value)}
                       rows={4}
-                      className="text-xs"
+                      className="text-xs bg-slate-50"
                       required
                     />
                   </div>
-                  <Button type="submit" disabled={isIngestingText} className="w-full text-xs h-9">
+                  <Button type="submit" variant="primary" disabled={isIngestingText} className="w-full text-xs h-9">
                     {isIngestingText ? (
                       <>
                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -924,14 +928,14 @@ export default function KnowledgeBasePage() {
             )}
 
             {isSaved && (
-              <div className="flex items-center gap-1.5 rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-3 text-xs font-bold text-emerald-400">
-                <Check className="h-4 w-4" />
+              <div className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800">
+                <Check className="h-4 w-4 text-emerald-600" />
                 Knowledge Base diperbarui! AI Inbox langsung menggunakan data baru ini.
               </div>
             )}
             {ingestSuccess && (
-              <div className="flex items-center gap-1.5 rounded-xl border border-cyan-400/20 bg-cyan-950/20 p-3 text-xs font-bold text-cyan-200">
-                <Check className="h-4 w-4" />
+              <div className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs font-bold text-blue-800">
+                <Check className="h-4 w-4 text-blue-600" />
                 {ingestSuccess}
               </div>
             )}
@@ -941,10 +945,10 @@ export default function KnowledgeBasePage() {
 
       {/* SubSection: Custom Instructions */}
       {kbSubsection === "instructions" && (
-        <Card className="glass-panel p-6 max-w-3xl">
+        <Card className="p-6 border-slate-200 bg-white max-w-3xl shadow-2xs">
           <div className="mb-6">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-white">Custom Instructions</h3>
-            <p className="text-xs text-slate-400 mt-1">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">Custom Instructions</h3>
+            <p className="text-xs text-slate-500 mt-1">
               Atur instruksi tingkat tinggi sistem prompt AI untuk mengontrol identitas, nada, dan batasan respons.
             </p>
             {runtimeStatus && (
@@ -954,69 +958,66 @@ export default function KnowledgeBasePage() {
                   ["Tone", runtimeStatus.toneConfigured],
                   ["Guardrails", runtimeStatus.guardrailsConfigured],
                 ].map(([label, active]) => (
-                  <span
+                  <Badge
                     key={String(label)}
-                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
-                      active
-                        ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-300"
-                        : "border-amber-400/25 bg-amber-500/10 text-amber-300"
-                    }`}
+                    variant={active ? "success" : "warning"}
+                    className="text-[10px]"
                   >
-                    {active ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                    {active ? <Check className="h-3 w-3 mr-1" /> : <AlertTriangle className="h-3 w-3 mr-1" />}
                     {label}: {active ? "Aktif" : "Belum diisi"}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             )}
           </div>
 
-          <form onSubmit={handleSaveInstructions} className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">1. Persona Configuration (Identitas Bot)</label>
+          <form onSubmit={handleSaveInstructions} className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">1. Persona Configuration (Identitas Bot)</label>
               <Textarea
                 placeholder="Contoh: Kamu adalah asisten customer service yang ramah dan ahli seputar layanan bisnis kami..."
                 value={personaConfig}
                 onChange={(e) => setPersonaConfig(e.target.value)}
                 rows={3}
-                className="text-xs"
+                className="text-xs bg-slate-50"
               />
-              <p className="text-[10px] text-slate-500 leading-normal">Menjelaskan identitas bot dan konteks operasional bisnis.</p>
+              <p className="text-[10px] text-slate-500 font-medium">Menjelaskan identitas bot dan konteks operasional bisnis.</p>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">2. Tone of Voice (Gaya Bahasa)</label>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">2. Tone of Voice (Gaya Bahasa)</label>
               <Textarea
                 placeholder="Contoh: Gunakan bahasa santai yang ramah, panggil pelanggan dengan sapaan 'Kak'..."
                 value={toneOfVoice}
                 onChange={(e) => setToneOfVoice(e.target.value)}
                 rows={3}
-                className="text-xs"
+                className="text-xs bg-slate-50"
               />
-              <p className="text-[10px] text-slate-500 leading-normal">Menentukan gaya penulisan, sapaan, dan nada emosi.</p>
+              <p className="text-[10px] text-slate-500 font-medium">Menentukan gaya penulisan, sapaan, dan nada emosi.</p>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">3. Guardrails / Aturan Keamanan</label>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-900">3. Guardrails / Aturan Keamanan</label>
               <Textarea
                 placeholder="Contoh: Dilarang memberikan estimasi harga sebelum mengetahui detail kebutuhan customer..."
                 value={guardrails}
                 onChange={(e) => setGuardrails(e.target.value)}
                 rows={3}
-                className="text-xs"
+                className="text-xs bg-slate-50"
               />
-              <p className="text-[10px] text-slate-500 leading-normal">Instruksi mutlak untuk mencegah bot mengarang info palsu.</p>
+              <p className="text-[10px] text-slate-500 font-medium">Instruksi mutlak untuk mencegah bot mengarang info palsu.</p>
             </div>
 
-            <div className="flex items-center justify-between border-t border-white/8 pt-4">
+            <div className="flex items-center justify-between border-t border-slate-100 pt-4">
               {isSaved ? (
-                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
                   <Check className="h-4 w-4" />
                   Instruksi kustom berhasil disimpan!
                 </span>
               ) : (
                 <div />
               )}
-               <Button type="submit" disabled={isSavingInstructions} className="px-6 h-9.5 text-xs">
+              <Button type="submit" variant="primary" disabled={isSavingInstructions} className="px-6 h-9 text-xs font-bold">
                 {isSavingInstructions ? (
                   <>
                     <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />

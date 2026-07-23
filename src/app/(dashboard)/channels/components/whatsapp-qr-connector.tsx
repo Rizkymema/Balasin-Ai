@@ -27,14 +27,10 @@ function statusLabel(status: WhatsAppQrSession["status"]) {
   return "Terputus";
 }
 
-function statusClass(status: WhatsAppQrSession["status"]) {
-  if (status === "connected") {
-    return "border-emerald-400/20 bg-emerald-950/30 text-emerald-300";
-  }
-  if (status === "connecting") {
-    return "border-amber-400/20 bg-amber-950/30 text-amber-300";
-  }
-  return "border-white/10 bg-white/[0.04] text-slate-400";
+function statusBadgeVariant(status: WhatsAppQrSession["status"]) {
+  if (status === "connected") return "success";
+  if (status === "connecting") return "warning";
+  return "secondary";
 }
 
 export function WhatsAppQrConnector() {
@@ -199,34 +195,34 @@ export function WhatsAppQrConnector() {
   };
 
   return (
-    <div className="rounded-xl border border-cyan-400/15 bg-cyan-950/10 p-5 space-y-4">
+    <div className="rounded-2xl border border-blue-100 bg-blue-50/30 p-5 space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <QrCode className="h-4 w-4 text-cyan-300" />
-            <h4 className="text-sm font-bold text-white">Tambah WhatsApp dengan QR Code</h4>
-            <Badge className="border-cyan-400/20 bg-cyan-400/10 text-cyan-300 text-[9px]">Evolution API</Badge>
+            <QrCode className="h-4.5 w-4.5 text-blue-600" />
+            <h4 className="text-sm font-bold text-slate-900">Tambah WhatsApp dengan QR Code</h4>
+            <Badge variant="default" className="text-[10px]">Evolution API</Badge>
           </div>
-          <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">
             API key gateway hanya berada di server. Browser hanya menerima QR dan status sesi.
             Konfigurasi Meta Cloud API yang sudah ada tetap terpisah dan tidak dihapus.
           </p>
         </div>
-        <Button type="button" onClick={() => void handleConnect()} disabled={isBusy || !configured} className="h-9 shrink-0 gap-2 text-xs">
+        <Button type="button" onClick={() => void handleConnect()} disabled={isBusy || !configured} variant="primary" size="sm" className="shrink-0 gap-2">
           {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <QrCode className="h-3.5 w-3.5" />}
           Hubungkan via QR
         </Button>
       </div>
 
       {!configured && !isLoading && (
-        <div className="rounded-lg border border-amber-400/20 bg-amber-950/20 p-3 text-[11px] text-amber-200">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 font-medium">
           Gateway QR belum dikonfigurasi. Admin perlu mengisi `WHATSAPP_QR_API_URL`, `WHATSAPP_QR_API_KEY`, dan `WHATSAPP_QR_WEBHOOK_SECRET` di environment server/Vercel satu kali.
         </div>
       )}
 
       {activeSession && (
         <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-          <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-white/10 bg-white p-3">
+          <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
             {qrCode ? (
               <Image
                 src={qrCode.startsWith("data:") ? qrCode : `data:image/png;base64,${qrCode}`}
@@ -242,37 +238,37 @@ export function WhatsAppQrConnector() {
                 <p className="mt-2 text-xs font-bold">WhatsApp terhubung</p>
               </div>
             ) : (
-              <div className="text-center text-slate-500">
+              <div className="text-center text-slate-400">
                 <QrCode className="mx-auto h-12 w-12" />
-                <p className="mt-2 text-xs">Klik refresh untuk mengambil QR</p>
+                <p className="mt-2 text-xs font-medium">Klik refresh untuk mengambil QR</p>
               </div>
             )}
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-bold text-white">{activeSession.label}</p>
-                <p className="font-mono text-[10px] text-slate-500">{activeSession.instanceName}</p>
+                <p className="text-xs font-bold text-slate-900">{activeSession.label}</p>
+                <p className="font-mono text-[11px] text-slate-500">{activeSession.instanceName}</p>
               </div>
-              <Badge className={`${statusClass(activeSession.status)} text-[10px]`}>{statusLabel(activeSession.status)}</Badge>
+              <Badge variant={statusBadgeVariant(activeSession.status)} className="text-[10px]">{statusLabel(activeSession.status)}</Badge>
             </div>
-            <p className="text-xs leading-relaxed text-slate-400">
-              Buka WhatsApp di ponsel, pilih <strong className="text-slate-200">Perangkat tertaut</strong>, lalu <strong className="text-slate-200">Tautkan perangkat</strong> dan scan QR di kiri.
+            <p className="text-xs leading-relaxed text-slate-600">
+              Buka WhatsApp di ponsel, pilih <strong className="text-slate-900">Perangkat tertaut</strong>, lalu <strong className="text-slate-900">Tautkan perangkat</strong> dan scan QR di kiri.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" onClick={() => void handleRefresh()} disabled={isBusy || activeSession.status === "connected"} className="h-8 gap-1.5 text-[11px]">
-                <RefreshCw className="h-3.5 w-3.5" /> Refresh QR
+              <Button type="button" variant="secondary" size="sm" onClick={() => void handleRefresh()} disabled={isBusy || activeSession.status === "connected"}>
+                <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refresh QR
               </Button>
-              <Button type="button" variant="secondary" onClick={() => void handleWebhook()} disabled={isBusy} className="h-8 gap-1.5 text-[11px]">
-                <Webhook className="h-3.5 w-3.5" /> Daftarkan webhook
+              <Button type="button" variant="secondary" size="sm" onClick={() => void handleWebhook()} disabled={isBusy}>
+                <Webhook className="h-3.5 w-3.5 mr-1" /> Daftarkan webhook
               </Button>
-              <Button type="button" variant="secondary" onClick={() => void handleLogout(activeSession)} disabled={isBusy} className="h-8 gap-1.5 border-red-500/20 text-[11px] text-red-300 hover:bg-red-950/20">
-                <LogOut className="h-3.5 w-3.5" /> Putuskan
+              <Button type="button" variant="destructive" size="sm" onClick={() => void handleLogout(activeSession)} disabled={isBusy}>
+                <LogOut className="h-3.5 w-3.5 mr-1" /> Putuskan
               </Button>
             </div>
             {webhookUrl && (
-              <div className="flex items-start gap-2 rounded-lg border border-emerald-400/15 bg-emerald-950/10 p-3 text-[10px] text-emerald-200">
-                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800 font-medium">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
                 Webhook aman terdaftar ke runtime chatbot. URL secret tidak ditampilkan di panel.
               </div>
             )}
@@ -281,28 +277,28 @@ export function WhatsAppQrConnector() {
       )}
 
       {sessions.length > 0 && (
-        <div className="space-y-2 border-t border-white/8 pt-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Sesi QR tersimpan</p>
+        <div className="space-y-2 border-t border-slate-200 pt-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sesi QR tersimpan</p>
           <div className="grid gap-2 md:grid-cols-2">
             {sessions.map((session) => (
               <button
                 key={session.id}
                 type="button"
                 onClick={() => { setActiveSessionId(session.id); setQrCode(""); }}
-                className={`flex items-center justify-between rounded-lg border p-3 text-left transition ${session.id === activeSessionId ? "border-cyan-400/30 bg-cyan-400/10" : "border-white/8 bg-white/[0.02] hover:bg-white/[0.05]"}`}
+                className={`flex items-center justify-between rounded-xl border p-3 text-left transition cursor-pointer ${session.id === activeSessionId ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-white hover:bg-slate-50"}`}
               >
                 <span>
-                  <span className="block text-xs font-semibold text-white">{session.label}</span>
-                  <span className="block text-[10px] text-slate-500">{session.phoneNumber || session.instanceName}</span>
+                  <span className="block text-xs font-bold text-slate-900">{session.label}</span>
+                  <span className="block text-[11px] text-slate-500">{session.phoneNumber || session.instanceName}</span>
                 </span>
-                <Badge className={`${statusClass(session.status)} text-[9px]`}>{statusLabel(session.status)}</Badge>
+                <Badge variant={statusBadgeVariant(session.status)} className="text-[9px]">{statusLabel(session.status)}</Badge>
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {message && <p className="text-xs text-cyan-200">{message}</p>}
+      {message && <p className="text-xs font-bold text-blue-700">{message}</p>}
     </div>
   );
 }

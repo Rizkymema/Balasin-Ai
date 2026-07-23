@@ -513,15 +513,17 @@ export function InboxWorkspace() {
       />
 
       {data.conversations.length === 0 ? (
-        <section className="flex min-h-0 flex-1 rounded-xl border border-white/[0.06] bg-[#0a0e1c] p-6">
+        <section className="flex min-h-0 flex-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs">
           <div className="min-h-[36rem] flex-1 lg:min-h-0">
-            <div className="flex h-full min-h-[36rem] items-center justify-center rounded-xl border border-dashed border-white/[0.08] bg-white/[0.02] lg:min-h-0">
+            <div className="flex h-full min-h-[36rem] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 lg:min-h-0">
               <div className="max-w-md text-center">
-                <MessageSquare className="mx-auto h-10 w-10 text-[#00d2ff]" />
-                <h2 className="mt-4 text-xl font-semibold text-slate-200">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600 mx-auto mb-3">
+                  <MessageSquare className="h-7 w-7" />
+                </div>
+                <h2 className="text-base font-bold text-slate-900">
                   Inbox masih kosong
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
+                <p className="mt-1 text-xs leading-relaxed text-slate-500 font-medium">
                   Belum ada percakapan masuk. Hubungkan channel atau kirim test
                   inbound dari halaman Channels agar chat mulai masuk ke unified
                   inbox.

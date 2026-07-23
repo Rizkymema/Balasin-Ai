@@ -28,6 +28,7 @@ import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import {
   parseCustomInstructions,
   serializeCustomInstructions,
@@ -206,9 +207,9 @@ export default function DashboardPage() {
       label: "OMNICHANNEL ACTIVE",
       value: `${data.conversations.length}`,
       icon: MessageSquare,
-      color: "text-white bg-[var(--color-surface-hover)] border-[var(--color-border-hover)]",
+      color: "text-blue-600 bg-blue-50 border-blue-200",
       note: connectedChannels.length > 0 ? connectedChannels.join(", ") : "Tidak ada channel aktif",
-      badgeColor: "bg-white/10 text-white border-white/20 font-bold",
+      badgeColor: "bg-blue-50 text-blue-700 border-blue-200 font-bold",
       badgeText: `${connectedChannels.length} Live`,
     },
     {
@@ -216,21 +217,21 @@ export default function DashboardPage() {
       value: config.aiAgent.autoReplyEnabled ? "ON" : "OFF",
       icon: Zap,
       color: config.aiAgent.autoReplyEnabled
-        ? "text-[var(--color-success)] bg-[var(--color-success)]/10 border-[var(--color-success)]/20"
-        : "text-[var(--color-warning)] bg-[var(--color-warning)]/10 border-[var(--color-warning)]/20",
+        ? "text-emerald-600 bg-emerald-50 border-emerald-200"
+        : "text-amber-600 bg-amber-50 border-amber-200",
       note: `Confidence threshold ${config.aiAgent.confidenceThreshold}%`,
       badgeColor: config.aiAgent.autoReplyEnabled
-        ? "bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/20"
-        : "bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-[var(--color-warning)]/20",
+        ? "bg-emerald-50 text-emerald-700 border-emerald-200 font-bold"
+        : "bg-amber-50 text-amber-700 border-amber-200 font-bold",
       badgeText: `Mode ${config.aiAgent.safetyMode}`,
     },
     {
       label: "TIKET TERBUKA",
       value: `${data.tickets.filter((ticket) => ticket.status !== "resolved").length}`,
       icon: Ticket,
-      color: "text-[var(--color-warning)] bg-[var(--color-warning)]/10 border-[var(--color-warning)]/20",
+      color: "text-amber-600 bg-amber-50 border-amber-200",
       note: "Handoff, keluhan & eskalasi",
-      badgeColor: "bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-[var(--color-warning)]/20",
+      badgeColor: "bg-amber-50 text-amber-700 border-amber-200 font-bold",
       badgeText: `${automationCoverage}% Auto-Rule`,
     },
   ].filter(Boolean);
@@ -332,22 +333,22 @@ export default function DashboardPage() {
   const checklistPercentage = Math.round((completedChecklist / setupChecklist.length) * 100);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 md:p-5">
-        <div className="relative z-10 space-y-1">
+      <div className="relative overflow-hidden rounded-2xl border border-blue-100 bg-white p-5 md:p-6 shadow-2xs">
+        <div className="relative z-10 space-y-2">
           <div className="flex items-center gap-2">
-            <Badge className="border-[var(--color-success)]/20 bg-[var(--color-success)]/10 text-[var(--color-success)] text-[9px] px-1.5 py-0">
+            <Badge variant="success" className="text-[10px]">
               Sistem Aktif
             </Badge>
-            <span className="text-[10px] text-[var(--color-muted)] font-medium">
+            <span className="text-xs text-slate-500 font-medium">
               Timezone: {config.workspace.timezone}
             </span>
           </div>
-          <h1 className="text-xl font-bold text-white md:text-2xl tracking-tight">
-            Selamat datang di Workspace <span className="text-white font-black">{config.workspace.name}</span>
+          <h1 className="text-xl font-bold text-slate-900 md:text-2xl tracking-tight">
+            Selamat datang di Workspace <span className="text-blue-600 font-black">{config.workspace.name}</span>
           </h1>
-          <p className="max-w-2xl text-xs leading-relaxed text-[var(--color-muted)] font-normal">
+          <p className="max-w-2xl text-xs md:text-sm leading-relaxed text-slate-600 font-normal">
             Kelola interaksi pelanggan, automasi AI assistant, basis pengetahuan FAQ, booking slot, dan ticket eskalasi dalam satu panel kontrol terpusat yang aman dan andal.
           </p>
         </div>
@@ -359,24 +360,24 @@ export default function DashboardPage() {
           const Icon = stat.icon;
 
           return (
-            <Card key={stat.label} className="relative overflow-hidden p-4 h-[120px] bg-[var(--color-surface)] hover:border-[var(--color-border-hover)] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10 transition-all duration-200 flex flex-col justify-between">
+            <Card key={stat.label} className="relative overflow-hidden p-5 h-[120px] bg-white border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[9px] font-extrabold uppercase tracking-widest text-[var(--color-muted)]">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                   {stat.label}
                 </span>
-                <div className={`flex h-6.5 w-6.5 items-center justify-center rounded border ${stat.color}`}>
-                  <Icon className="h-3 w-3" />
+                <div className={`flex h-7 w-7 items-center justify-center rounded-lg border ${stat.color}`}>
+                  <Icon className="h-3.5 w-3.5" />
                 </div>
               </div>
               <div className="flex items-baseline justify-between mt-1">
-                <span className="font-sans text-2xl font-extrabold text-white tracking-tight">
+                <span className="font-heading text-2xl font-black text-slate-900 tracking-tight">
                   {stat.value}
                 </span>
-                <span className={`rounded-md border px-1.5 py-0.5 text-[8px] font-bold ${stat.badgeColor}`}>
+                <span className={`rounded-lg border px-2 py-0.5 text-[9px] font-bold ${stat.badgeColor}`}>
                   {stat.badgeText}
                 </span>
               </div>
-              <p className="text-[10px] text-[var(--color-muted)] truncate" title={stat.note}>
+              <p className="text-xs text-slate-500 truncate" title={stat.note}>
                 {stat.note}
               </p>
             </Card>
@@ -385,45 +386,45 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content Layout Grid */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
         {/* Left Column: Control Center & Checklist */}
-        <div className="lg:col-span-3 space-y-4">
+        <div className="lg:col-span-3 space-y-6">
           {/* Operational Control Center */}
-          <Card className="p-4 md:p-5 bg-[var(--color-surface)]">
-            <div className="border-b border-[var(--color-border)] pb-2 mb-3">
-              <h3 className="text-sm font-bold tracking-tight text-white">
+          <Card className="p-5 md:p-6 bg-white border border-slate-200">
+            <div className="border-b border-slate-100 pb-3 mb-4">
+              <h3 className="text-base font-bold tracking-tight text-slate-900">
                 Pusat Kendali Operasional
               </h3>
-              <p className="mt-0.5 text-[11px] text-[var(--color-muted)]">
+              <p className="mt-0.5 text-xs text-slate-500">
                 Akses cepat ke berbagai modul utama untuk mengelola respon dan layanan bisnis Anda.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-4">
               {controlCenterCards.map((card) => {
                 const Icon = card.icon;
                 return (
                   <Link
                     key={card.title}
                     href={card.href}
-                    className="flex flex-col justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-strong)]/35 p-3 transition-all duration-300 hover:border-[var(--color-border-hover)] hover:bg-[var(--color-surface-hover)]/30 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/25 group"
+                    className="flex flex-col justify-between rounded-xl border border-slate-200 bg-slate-50/50 p-4 transition-all duration-150 hover:border-blue-300 hover:bg-blue-50/40 hover:-translate-y-0.5 hover:shadow-md group"
                   >
                     <div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-5.5 w-5.5 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white">
-                          <Icon className="h-2.5 w-2.5" />
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 border border-blue-200 text-blue-700">
+                          <Icon className="h-3.5 w-3.5" />
                         </div>
-                        <h4 className="text-xs font-bold text-white tracking-tight group-hover:text-white transition-colors duration-150">
+                        <h4 className="text-xs font-bold text-slate-900 tracking-tight group-hover:text-blue-600 transition-colors duration-150">
                           {card.title}
                         </h4>
                       </div>
-                      <p className="mt-1.5 text-[10.5px] leading-relaxed text-[var(--color-muted)]">
+                      <p className="mt-2 text-xs leading-relaxed text-slate-500">
                         {card.detail}
                       </p>
                     </div>
-                    <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-white group-hover:text-slate-300 transition-colors duration-150">
+                    <div className="mt-3 flex items-center gap-1 text-xs font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-150">
                       Buka Modul
-                      <ArrowRight className="h-3 w-3 transform group-hover:translate-x-0.5 transition-transform duration-150" />
+                      <ArrowRight className="h-3.5 w-3.5 transform group-hover:translate-x-1 transition-transform duration-150" />
                     </div>
                   </Link>
                 );
@@ -432,32 +433,32 @@ export default function DashboardPage() {
           </Card>
 
           {/* Setup Checklist Progress */}
-          <Card className="p-4 md:p-5 bg-[var(--color-surface)] border border-[var(--color-border)]">
-            <div className="border-b border-[var(--color-border)] pb-2 mb-3">
+          <Card className="p-5 md:p-6 bg-white border border-slate-200">
+            <div className="border-b border-slate-100 pb-3 mb-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
-                  <h3 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
-                    <Zap className="h-4 w-4 text-white animate-pulse" />
+                  <h3 className="text-base font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                    <Zap className="h-4.5 w-4.5 text-blue-600 animate-pulse" />
                     Panduan Cepat Mulai Balesin AI
                   </h3>
-                  <p className="mt-0.5 text-[11px] text-[var(--color-muted)]">
+                  <p className="mt-0.5 text-xs text-slate-500">
                     Ikuti 5 langkah mudah berikut untuk mengaktifkan asisten AI pintar di bisnis Anda.
                   </p>
                 </div>
-                <Badge className="border border-white/20 bg-white/10 text-white font-bold px-2 py-0.5 text-[10px] shrink-0 self-start sm:self-center">
+                <Badge variant="default" className="shrink-0 self-start sm:self-center">
                   {completedChecklist} dari {setupChecklist.length} Siap
                 </Badge>
               </div>
 
               {/* Progress Bar */}
-              <div className="mt-3">
-                <div className="flex justify-between text-[9px] font-bold text-[var(--color-muted)] mb-1.5 uppercase tracking-wider">
+              <div className="mt-4">
+                <div className="flex justify-between text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
                   <span>Kelengkapan Sistem</span>
                   <span>{checklistPercentage}%</span>
                 </div>
-                <div className="h-1.5 w-full bg-[var(--color-surface-strong)] rounded-full overflow-hidden border border-[var(--color-border)] p-[1px]">
+                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200 p-[1px]">
                   <div
-                    className="h-full bg-gradient-to-r from-white to-slate-400 rounded-full transition-all duration-500 ease-out"
+                    className="h-full bg-blue-600 rounded-full transition-all duration-500 ease-out"
                     style={{ width: `${checklistPercentage}%` }}
                   />
                 </div>
@@ -465,7 +466,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Interactive Timeline Roadmap */}
-            <div className="relative border-l border-white/10 ml-2.5 pl-5 space-y-4">
+            <div className="relative border-l border-slate-200 ml-3 pl-6 space-y-4">
               {[
                 {
                   step: 1,
@@ -512,34 +513,34 @@ export default function DashboardPage() {
                 return (
                   <div key={item.step} className="relative group">
                     {/* Circle Indicator */}
-                    <div className={`absolute -left-[29px] top-1 flex h-[16px] w-[16px] items-center justify-center rounded-full border transition-all duration-200 ${
+                    <div className={`absolute -left-[33px] top-1 flex h-4 w-4 items-center justify-center rounded-full border transition-all duration-200 ${
                       isStepComplete
-                        ? "bg-[var(--color-success)] border-[var(--color-success)] text-slate-950"
-                        : "bg-[var(--color-surface)] border-slate-600 text-slate-500"
+                        ? "bg-emerald-500 border-emerald-500 text-white"
+                        : "bg-white border-slate-300 text-slate-400"
                     }`}>
                       {isStepComplete ? (
-                        <CheckCircle2 className="h-3 w-3 text-slate-950 stroke-[3px]" />
+                        <Check className="h-2.5 w-2.5 stroke-[3px]" />
                       ) : (
-                        <span className="text-[8px] font-bold">{item.step}</span>
+                        <span className="text-[9px] font-bold">{item.step}</span>
                       )}
                     </div>
 
                     {/* Content Area */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-white/5 bg-white/[0.01] p-3 transition-all duration-150 group-hover:border-white/10 group-hover:bg-white/[0.02]">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/40 p-3.5 transition-all duration-150 group-hover:border-slate-300 group-hover:bg-slate-50">
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
                           <h4 className={`text-xs font-bold tracking-tight transition-colors duration-150 ${
-                            isStepComplete ? "text-emerald-400" : "text-white"
+                            isStepComplete ? "text-emerald-700" : "text-slate-900"
                           }`}>
                             Langkah {item.step}: {item.title}
                           </h4>
                           {isStepComplete && (
-                            <span className="rounded bg-emerald-500/10 border border-emerald-500/20 px-1 py-0.2 text-[8px] font-bold text-emerald-400 uppercase tracking-wider">
+                            <Badge variant="success" className="text-[9px] py-0 px-1.5">
                               Selesai
-                            </span>
+                            </Badge>
                           )}
                         </div>
-                        <p className="text-[11px] leading-relaxed text-[var(--color-muted)] max-w-xl">
+                        <p className="text-xs leading-relaxed text-slate-500 max-w-xl">
                           {item.desc}
                         </p>
                       </div>
@@ -547,26 +548,26 @@ export default function DashboardPage() {
                       {item.href ? (
                         <Link
                           href={item.href}
-                          className={`inline-flex items-center justify-center h-7.5 px-3 rounded-lg text-[10px] font-bold tracking-tight transition-all shrink-0 ${
+                          className={`inline-flex items-center justify-center h-8 px-3 rounded-lg text-xs font-bold transition-all shrink-0 ${
                             isStepComplete
-                              ? "bg-white/5 border border-white/8 text-slate-300 hover:bg-white/10"
-                              : "bg-white text-black hover:bg-slate-200 shadow-sm"
+                              ? "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                              : "bg-blue-600 text-white hover:bg-blue-700 shadow-2xs"
                           }`}
                         >
                           {item.actionText}
-                          <ArrowRight className="h-3 w-3 ml-1 transform transition-transform group-hover:translate-x-0.5" />
+                          <ArrowRight className="h-3.5 w-3.5 ml-1 transform transition-transform group-hover:translate-x-0.5" />
                         </Link>
                       ) : (
                         <button
                           onClick={item.onClick}
-                          className={`inline-flex items-center justify-center h-7.5 px-3 rounded-lg text-[10px] font-bold tracking-tight transition-all shrink-0 ${
+                          className={`inline-flex items-center justify-center h-8 px-3 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
                             isStepComplete
-                              ? "bg-white/5 border border-white/8 text-slate-300 hover:bg-white/10"
-                              : "bg-white text-black hover:bg-slate-200 shadow-sm"
+                              ? "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                              : "bg-blue-600 text-white hover:bg-blue-700 shadow-2xs"
                           }`}
                         >
                           {item.actionText}
-                          <ArrowRight className="h-3 w-3 ml-1 transform transition-transform group-hover:translate-x-0.5" />
+                          <ArrowRight className="h-3.5 w-3.5 ml-1 transform transition-transform group-hover:translate-x-0.5" />
                         </button>
                       )}
                     </div>
@@ -578,37 +579,37 @@ export default function DashboardPage() {
         </div>
 
         {/* Right Column: API Credentials Info & Workspace Snapshot (Sticky Sidebar) */}
-        <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-4 h-fit">
+        <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-4 h-fit">
           {/* Security & Env Configuration Card */}
-          <Card className="p-4 md:p-5 bg-[var(--color-surface)] border border-[var(--color-border)]">
-            <div className="flex items-center gap-2 border-b border-[var(--color-border)] pb-2.5 mb-3">
-              <ShieldCheck className="h-4.5 w-4.5 text-[var(--color-success)]" />
-              <h3 className="text-xs font-bold tracking-tight text-white">
+          <Card className="p-5 bg-white border border-slate-200">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-3">
+              <ShieldCheck className="h-4.5 w-4.5 text-emerald-600" />
+              <h3 className="text-xs font-bold tracking-tight text-slate-900">
                 Kredensial & Integrasi Aman
               </h3>
             </div>
-            <p className="text-[11px] leading-relaxed text-[var(--color-muted)]">
+            <p className="text-xs leading-relaxed text-slate-500">
               Untuk menjamin keamanan operasional, seluruh token API pihak ketiga, secret token webhook, App URL, dan session key tidak disimpan di database, melainkan dikelola langsung melalui variabel lingkungan server (*environment variables*).
             </p>
-            <div className="mt-3 space-y-1.5 border-t border-[var(--color-border)] pt-3">
-              <div className="flex items-center justify-between text-[10px] py-0.5">
-                <span className="text-[var(--color-muted)] font-medium">App Environment</span>
-                <Badge className="bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/20 text-[9px] px-1.5 py-0">
+            <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
+              <div className="flex items-center justify-between text-xs py-0.5">
+                <span className="text-slate-500 font-medium">App Environment</span>
+                <Badge variant="success" className="text-[9px]">
                   Secure Live
                 </Badge>
               </div>
-              <div className="flex items-center justify-between text-[10px] py-0.5">
-                <span className="text-[var(--color-muted)] font-medium">AI Provider API Key</span>
-                <span className="font-mono text-slate-300">
+              <div className="flex items-center justify-between text-xs py-0.5">
+                <span className="text-slate-500 font-medium">AI Provider API Key</span>
+                <span className="font-mono text-slate-700 text-[11px]">
                   {config.aiProvider.enabled && config.aiProvider.apiKey.trim()
                     ? "••••••••••••••••"
                     : "Not Configured"}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-[10px] py-0.5">
-                <span className="text-[var(--color-muted)] font-medium">Workspace Status</span>
-                <span className="text-[var(--color-success)] font-semibold flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)] animate-pulse" />
+              <div className="flex items-center justify-between text-xs py-0.5">
+                <span className="text-slate-500 font-medium">Workspace Status</span>
+                <span className="text-emerald-600 font-bold flex items-center gap-1.5 text-xs">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                   Online
                 </span>
               </div>
@@ -616,54 +617,54 @@ export default function DashboardPage() {
           </Card>
 
           {/* System Workspace Snapshot */}
-          <Card className="p-4 md:p-5 bg-[var(--color-surface)]">
-            <h3 className="text-[10px] font-extrabold uppercase tracking-widest text-white border-b border-[var(--color-border)] pb-2.5 mb-3">
+          <Card className="p-5 bg-white border border-slate-200">
+            <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-3 mb-3">
               Snapshot Workspace
             </h3>
-            <div className="space-y-2.5">
-              <div className="flex items-start gap-2.5 text-xs">
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-white">
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 text-xs">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-bold text-blue-700">
                   WS
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-white text-[10px]">Workspace</p>
-                  <p className="text-[10px] text-[var(--color-muted)] mt-0.5 truncate">
+                  <p className="font-bold text-slate-900 text-xs">Workspace</p>
+                  <p className="text-xs text-slate-500 mt-0.5 truncate">
                     {config.workspace.name} ({config.workspace.industry})
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-2.5 text-xs">
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-white">
+              <div className="flex items-start gap-3 text-xs">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-bold text-blue-700">
                   AI
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-white text-[10px]">Asisten Bot</p>
-                  <p className="text-[10px] text-[var(--color-muted)] mt-0.5 truncate">
+                  <p className="font-bold text-slate-900 text-xs">Asisten Bot</p>
+                  <p className="text-xs text-slate-500 mt-0.5 truncate">
                     {config.aiAgent.name} | {config.aiAgent.blacklist.length} blacklist kata
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-2.5 text-xs">
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-white">
+              <div className="flex items-start gap-3 text-xs">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-bold text-blue-700">
                   TK
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-white text-[10px]">Support Desk</p>
-                  <p className="text-[10px] text-[var(--color-muted)] mt-0.5">
+                  <p className="font-bold text-slate-900 text-xs">Support Desk</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
                     {data.tickets.filter((t) => t.status === "in_progress").length} tiket diproses operator
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-2.5 text-xs">
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-white">
+              <div className="flex items-start gap-3 text-xs">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-bold text-blue-700">
                   BC
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-white text-[10px]">Kampanye Broadcast</p>
-                  <p className="text-[10px] text-[var(--color-muted)] mt-0.5">
+                  <p className="font-bold text-slate-900 text-xs">Kampanye Broadcast</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
                     {data.broadcasts.filter((item) => item.status === "sent").length} terkirim | {data.broadcasts.filter((item) => item.status === "scheduled").length} dijadwalkan
                   </p>
                 </div>
@@ -677,11 +678,11 @@ export default function DashboardPage() {
       <Modal
         isOpen={activeEditModal === "profile"}
         onClose={() => setActiveEditModal("none")}
-        title="Atur Profil & Jam Buka Bengkel"
+        title="Atur Profil & Jam Buka Bisnis"
       >
         <form onSubmit={handleSaveProfile} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nama Bisnis / Perusahaan</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nama Bisnis / Perusahaan</label>
             <Input
               value={profileName}
               onChange={(e) => setProfileName(e.target.value)}
@@ -690,7 +691,7 @@ export default function DashboardPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Industri</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Industri</label>
             <Input
               value={profileIndustry}
               onChange={(e) => setProfileIndustry(e.target.value)}
@@ -699,17 +700,17 @@ export default function DashboardPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Email Dukungan</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Email Dukungan</label>
             <Input
               type="email"
               value={profileEmail}
               onChange={(e) => setProfileEmail(e.target.value)}
-              placeholder="Contoh: support@johangarage.com"
+              placeholder="Contoh: support@workspace.com"
               required
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jam Operasional</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Jam Operasional</label>
             <Input
               value={profileHours}
               onChange={(e) => setProfileHours(e.target.value)}
@@ -718,7 +719,7 @@ export default function DashboardPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Alamat Lengkap</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Alamat Lengkap</label>
             <Textarea
               value={profileAddress}
               onChange={(e) => setProfileAddress(e.target.value)}
@@ -727,7 +728,7 @@ export default function DashboardPage() {
               required
             />
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
+          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
             <Button
               type="button"
               variant="secondary"
@@ -736,15 +737,8 @@ export default function DashboardPage() {
             >
               Batal
             </Button>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                "Simpan Perubahan"
-              )}
+            <Button type="submit" isLoading={isSaving} variant="primary">
+              Simpan Perubahan
             </Button>
           </div>
         </form>
@@ -757,17 +751,17 @@ export default function DashboardPage() {
         title="Hubungkan Saluran Chat"
       >
         <form onSubmit={handleSaveChannels} className="space-y-5">
-          <p className="text-xs text-[var(--color-muted)] leading-relaxed">
+          <p className="text-xs text-slate-500 leading-relaxed">
             Aktifkan fitur balas otomatis AI untuk masing-masing saluran komunikasi berikut setelah Anda menyambungkannya:
           </p>
           
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* WhatsApp */}
-            <div className="flex items-center justify-between p-3.5 rounded-lg border border-white/5 bg-white/[0.01]">
+            <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">
               <div className="space-y-0.5">
-                <p className="text-xs font-bold text-white">WhatsApp Business</p>
-                <p className="text-[10px] text-[var(--color-muted)]">
-                  Status koneksi saat ini: <span className={config?.channels?.whatsapp?.status === "connected" ? "text-emerald-400 font-bold" : "text-amber-400 font-bold"}>
+                <p className="text-xs font-bold text-slate-900">WhatsApp Business</p>
+                <p className="text-[11px] text-slate-500">
+                  Status koneksi saat ini: <span className={config?.channels?.whatsapp?.status === "connected" ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>
                     {config?.channels?.whatsapp?.status === "connected" ? "Terhubung" : "Belum Terhubung"}
                   </span>
                 </p>
@@ -776,16 +770,16 @@ export default function DashboardPage() {
                 type="checkbox"
                 checked={whatsappAutoReply}
                 onChange={(e) => setWhatsappAutoReply(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
+                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
               />
             </div>
 
             {/* Instagram */}
-            <div className="flex items-center justify-between p-3.5 rounded-lg border border-white/5 bg-white/[0.01]">
+            <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">
               <div className="space-y-0.5">
-                <p className="text-xs font-bold text-white">Instagram DM</p>
-                <p className="text-[10px] text-[var(--color-muted)]">
-                  Status koneksi saat ini: <span className={config?.channels?.instagram?.status === "connected" ? "text-emerald-400 font-bold" : "text-amber-400 font-bold"}>
+                <p className="text-xs font-bold text-slate-900">Instagram DM</p>
+                <p className="text-[11px] text-slate-500">
+                  Status koneksi saat ini: <span className={config?.channels?.instagram?.status === "connected" ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>
                     {config?.channels?.instagram?.status === "connected" ? "Terhubung" : "Belum Terhubung"}
                   </span>
                 </p>
@@ -794,26 +788,26 @@ export default function DashboardPage() {
                 type="checkbox"
                 checked={instagramAutoReply}
                 onChange={(e) => setInstagramAutoReply(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
+                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
               />
             </div>
 
             {/* Web Chat */}
-            <div className="flex items-center justify-between p-3.5 rounded-lg border border-white/5 bg-white/[0.01]">
+            <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">
               <div className="space-y-0.5">
-                <p className="text-xs font-bold text-white">Live Web Chat Widget</p>
-                <p className="text-[10px] text-[var(--color-muted)]">Aktifkan widget obrolan di halaman website utama.</p>
+                <p className="text-xs font-bold text-slate-900">Live Web Chat Widget</p>
+                <p className="text-[11px] text-slate-500">Aktifkan widget obrolan di halaman website utama.</p>
               </div>
               <input
                 type="checkbox"
                 checked={webchatEnabled}
                 onChange={(e) => setWebchatEnabled(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
+                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
+          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
             <Button
               type="button"
               variant="secondary"
@@ -822,15 +816,8 @@ export default function DashboardPage() {
             >
               Batal
             </Button>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                "Simpan Saluran"
-              )}
+            <Button type="submit" isLoading={isSaving} variant="primary">
+              Simpan Saluran
             </Button>
           </div>
         </form>
@@ -844,12 +831,12 @@ export default function DashboardPage() {
         className="max-w-2xl"
       >
         <form onSubmit={handleSaveInstructions} className="space-y-4">
-          <p className="text-xs text-[var(--color-muted)] leading-relaxed">
+          <p className="text-xs text-slate-500 leading-relaxed">
             Tulis persona, gaya bahasa, dan batasan agar AI dapat melayani pelanggan dengan tepat sesuai standar bisnis Anda.
           </p>
 
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">1. Persona & Identitas</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">1. Persona & Identitas</label>
             <Textarea
               value={personaText}
               onChange={(e) => setPersonaText(e.target.value)}
@@ -860,18 +847,18 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">2. Gaya Bahasa (Tone of Voice)</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">2. Gaya Bahasa (Tone of Voice)</label>
             <Textarea
               value={toneText}
               onChange={(e) => setToneText(e.target.value)}
-              placeholder="Contoh: Menggunakan panggilan 'pren' atau 'besti'. Santai ala komunitas anak motor, satset..."
+              placeholder="Contoh: Menggunakan panggilan 'Kak' atau 'Sahabat'. Sopan dan profesional..."
               rows={3}
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">3. Aturan & Batasan (Guardrails)</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">3. Aturan & Batasan (Guardrails)</label>
             <Textarea
               value={guardrailsText}
               onChange={(e) => setGuardrailsText(e.target.value)}
@@ -881,7 +868,7 @@ export default function DashboardPage() {
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
+          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
             <Button
               type="button"
               variant="secondary"
@@ -890,15 +877,8 @@ export default function DashboardPage() {
             >
               Batal
             </Button>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                "Simpan Instruksi"
-              )}
+            <Button type="submit" isLoading={isSaving} variant="primary">
+              Simpan Instruksi
             </Button>
           </div>
         </form>
@@ -912,24 +892,24 @@ export default function DashboardPage() {
       >
         <form onSubmit={handleSaveBot} className="space-y-5">
           {/* Auto Reply Toggle */}
-          <div className="flex items-center justify-between p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-strong)]/30">
+          <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50/50">
             <div className="space-y-0.5">
-              <p className="text-sm font-bold text-white">Status Balas Otomatis AI</p>
-              <p className="text-[11px] text-[var(--color-muted)]">Nyalakan agar AI otomatis membalas chat pelanggan secara real-time.</p>
+              <p className="text-xs font-bold text-slate-900">Status Balas Otomatis AI</p>
+              <p className="text-[11px] text-slate-500">Nyalakan agar AI otomatis membalas chat pelanggan secara real-time.</p>
             </div>
             <input
               type="checkbox"
               checked={autoReplyEnabled}
               onChange={(e) => setAutoReplyEnabled(e.target.checked)}
-              className="h-5 w-5 rounded border-slate-600 bg-slate-700 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
             />
           </div>
 
           {/* Confidence Threshold */}
           <div className="space-y-2">
-            <div className="flex justify-between text-xs font-semibold text-slate-400">
+            <div className="flex justify-between text-xs font-semibold text-slate-600">
               <span className="uppercase tracking-wider">Confidence Threshold ({confidenceThreshold}%)</span>
-              <span className="text-[11px] text-[var(--color-muted)]">Akurasi minimum AI</span>
+              <span className="text-[11px] text-slate-500">Akurasi minimum AI</span>
             </div>
             <input
               type="range"
@@ -937,28 +917,27 @@ export default function DashboardPage() {
               max="99"
               value={confidenceThreshold}
               onChange={(e) => setConfidenceThreshold(Number(e.target.value))}
-              className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[var(--color-brand)]"
+              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
             />
-            <p className="text-[10px] text-[var(--color-muted)] leading-relaxed">
+            <p className="text-[11px] text-slate-500 leading-relaxed">
               Semakin tinggi batas akurasi, semakin selektif bot membalas. Pesan di bawah batas ini akan otomatis dilemparkan ke Inbox untuk dibalas admin secara manual.
             </p>
           </div>
 
           {/* Safety Mode */}
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Mode Keamanan Balasan</label>
-            <select
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Mode Keamanan Balasan</label>
+            <Select
               value={safetyMode}
               onChange={(e) => setSafetyMode(e.target.value as "strict" | "balanced" | "aggressive")}
-              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-[var(--color-brand)]"
             >
               <option value="strict">Strict (Sangat Ketat)</option>
               <option value="balanced">Balanced (Sedang/Seimbang)</option>
               <option value="aggressive">Aggressive (Bebas/Agresif)</option>
-            </select>
+            </Select>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
+          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
             <Button
               type="button"
               variant="secondary"
@@ -967,15 +946,8 @@ export default function DashboardPage() {
             >
               Batal
             </Button>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                "Aktifkan Pengaturan"
-              )}
+            <Button type="submit" isLoading={isSaving} variant="primary">
+              Aktifkan Pengaturan
             </Button>
           </div>
         </form>

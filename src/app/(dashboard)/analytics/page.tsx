@@ -23,6 +23,7 @@ import {
   type AnalyticsRange,
 } from "@/lib/dashboard-operations";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function AnalyticsPage() {
   const { config } = useDashboardConfig();
@@ -109,26 +110,26 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-white">
-            <BarChart2 className="h-6 w-6 text-cyan-400" />
+          <h1 className="flex items-center gap-2.5 text-2xl font-extrabold text-slate-900 tracking-tight">
+            <BarChart2 className="h-6 w-6 text-blue-600" />
             Analytics & Laporan
           </h1>
-          <p className="mt-1 text-xs text-slate-400">
-            Analytics sekarang membaca data operasional yang sama dengan inbox, customer,
-            booking, AI, ticket, broadcast, dan channel dashboard.
+          <p className="mt-1 text-xs text-slate-500">
+            Analytics membaca data operasional terpusat dari inbox, customer, booking, AI, ticket, dan channel.
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px]">
-            <span className="flex items-center gap-1.5 text-emerald-300">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-medium">
+            <span className="flex items-center gap-1.5 text-emerald-700 font-bold">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-600" />
               Live update aktif
             </span>
+            <span className="text-slate-400">•</span>
             <span className="text-slate-500">Sinkron terakhir: {updatedAt}</span>
-            {error && <span className="text-rose-300">{error}</span>}
+            {error && <span className="text-red-600 font-semibold">{error}</span>}
           </div>
         </div>
 
-        <div className="flex items-center gap-3 self-start">
-          <div className="rounded-lg border border-white/8 bg-white/4 p-1">
+        <div className="flex items-center gap-2 self-start">
+          <div className="rounded-xl border border-slate-200 bg-white p-1 shadow-2xs">
             {(
               [
                 { key: "24h", label: "Hari Ini" },
@@ -139,10 +140,10 @@ export default function AnalyticsPage() {
               <button
                 key={item.key}
                 onClick={() => setTimeRange(item.key)}
-                className={`rounded px-3 py-1 text-xs font-semibold ${
+                className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${
                   timeRange === item.key
-                    ? "bg-cyan-950 text-cyan-400"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-slate-500 hover:text-slate-900"
                 }`}
               >
                 {item.label}
@@ -150,20 +151,21 @@ export default function AnalyticsPage() {
             ))}
           </div>
 
-          <button className="flex h-9 items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-4 text-xs font-semibold text-white transition duration-200 hover:bg-white/8">
+          <Button variant="secondary" size="sm" className="gap-1.5">
             <Download className="h-4 w-4" />
             Ekspor CSV
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={() => void refreshData()}
             disabled={isLoading}
-            className="flex h-9 items-center gap-1.5 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-3 text-xs font-semibold text-cyan-300 transition duration-200 hover:bg-cyan-400/20 disabled:cursor-wait disabled:opacity-60"
-            title="Sinkronkan data analytics sekarang"
+            className="gap-1.5"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
             Sinkronkan
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -171,22 +173,24 @@ export default function AnalyticsPage() {
         {cards.map((card) => {
           const Icon = card.icon;
           return (
-            <Card key={card.label} className="glass-panel flex flex-col justify-between p-5">
+            <Card key={card.label} className="flex flex-col justify-between p-5 border-slate-200 bg-white shadow-2xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400">{card.label}</span>
-                <Icon className="h-4.5 w-4.5 text-cyan-400" />
+                <span className="text-xs font-bold text-slate-500">{card.label}</span>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                  <Icon className="h-4 w-4" />
+                </div>
               </div>
-              <div className="mt-4">
-                <span className="font-heading text-2xl font-bold text-white">
+              <div className="mt-3">
+                <span className="text-2xl font-extrabold text-slate-900">
                   {card.value}
                 </span>
                 <div className="mt-1 flex items-center gap-1.5">
-                  <span className="flex items-center gap-0.5 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400">
+                  <span className="flex items-center gap-0.5 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
                     <ArrowUpRight className="h-3 w-3" />
                     {card.change}
                   </span>
                 </div>
-                <p className="mt-3 text-[11px] leading-5 text-slate-500">{card.detail}</p>
+                <p className="mt-2.5 text-xs leading-relaxed text-slate-500 font-medium">{card.detail}</p>
               </div>
             </Card>
           );
@@ -194,35 +198,35 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="glass-panel space-y-4 rounded-xl p-5 lg:col-span-2">
-          <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-white">
-            <TrendingUp className="h-4 w-4 text-cyan-400" />
+        <Card className="space-y-4 rounded-2xl p-5 border-slate-200 bg-white shadow-2xs lg:col-span-2">
+          <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-900">
+            <TrendingUp className="h-4 w-4 text-blue-600" />
             Statistik Chat Masuk
           </h3>
           <div className="relative h-64">
-            <svg viewBox="0 0 600 220" className="h-full w-full overflow-visible text-slate-700">
-              <line x1="30" y1="30" x2="580" y2="30" stroke="rgba(255,255,255,0.03)" strokeDasharray="3" />
-              <line x1="30" y1="90" x2="580" y2="90" stroke="rgba(255,255,255,0.03)" strokeDasharray="3" />
-              <line x1="30" y1="150" x2="580" y2="150" stroke="rgba(255,255,255,0.03)" strokeDasharray="3" />
-              <line x1="30" y1="200" x2="580" y2="200" stroke="rgba(255,255,255,0.08)" />
+            <svg viewBox="0 0 600 220" className="h-full w-full overflow-visible text-slate-400">
+              <line x1="30" y1="30" x2="580" y2="30" stroke="#e2e8f0" strokeDasharray="3" />
+              <line x1="30" y1="90" x2="580" y2="90" stroke="#e2e8f0" strokeDasharray="3" />
+              <line x1="30" y1="150" x2="580" y2="150" stroke="#e2e8f0" strokeDasharray="3" />
+              <line x1="30" y1="200" x2="580" y2="200" stroke="#cbd5e1" />
 
-              <text x="15" y="35" fill="currentColor" className="text-[9px] font-bold text-slate-500" textAnchor="end">
+              <text x="15" y="35" fill="currentColor" className="text-[9px] font-bold text-slate-400" textAnchor="end">
                 {trendMax}
               </text>
-              <text x="15" y="95" fill="currentColor" className="text-[9px] font-bold text-slate-500" textAnchor="end">
+              <text x="15" y="95" fill="currentColor" className="text-[9px] font-bold text-slate-400" textAnchor="end">
                 {Math.round(trendMax * 0.6)}
               </text>
-              <text x="15" y="155" fill="currentColor" className="text-[9px] font-bold text-slate-500" textAnchor="end">
+              <text x="15" y="155" fill="currentColor" className="text-[9px] font-bold text-slate-400" textAnchor="end">
                 {Math.round(trendMax * 0.3)}
               </text>
-              <text x="15" y="205" fill="currentColor" className="text-[9px] font-bold text-slate-500" textAnchor="end">
+              <text x="15" y="205" fill="currentColor" className="text-[9px] font-bold text-slate-400" textAnchor="end">
                 0
               </text>
 
               <polyline
                 points={trendLine}
                 fill="none"
-                stroke="#22d3ee"
+                stroke="#2563eb"
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -234,17 +238,17 @@ export default function AnalyticsPage() {
                   key={item.label}
                   cx={item.x}
                   cy={item.y}
-                  r="3.5"
-                  fill="#020611"
-                  stroke="#22d3ee"
-                  strokeWidth="2"
+                  r="4"
+                  fill="#ffffff"
+                  stroke="#2563eb"
+                  strokeWidth="2.5"
                 />
               ))}
 
               <defs>
                 <linearGradient id="analyticsGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.2" />
-                  <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#2563eb" stopOpacity="0.15" />
+                  <stop offset="100%" stopColor="#2563eb" stopOpacity="0" />
                 </linearGradient>
               </defs>
 
@@ -256,7 +260,7 @@ export default function AnalyticsPage() {
                     x={item.x}
                     y="216"
                     fill="currentColor"
-                    className="text-[8px] font-bold text-slate-500"
+                    className="text-[9px] font-bold text-slate-500"
                     textAnchor="middle"
                   >
                     {item.label}
@@ -264,23 +268,23 @@ export default function AnalyticsPage() {
                 ))}
             </svg>
           </div>
-        </div>
+        </Card>
 
-        <div className="glass-panel flex h-[340px] flex-col justify-between rounded-xl p-5">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+        <Card className="flex flex-col justify-between rounded-2xl p-5 border-slate-200 bg-white shadow-2xs">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
             Breakdown Channel
           </h3>
 
-          <div className="space-y-4">
+          <div className="space-y-4 my-4">
             {summary.channelBreakdown.map((item) => (
               <div key={item.channel} className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-300">{item.channel}</span>
-                  <span className="font-bold text-white">{item.count}</span>
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-slate-700">{item.channel}</span>
+                  <span className="text-slate-900">{item.count}</span>
                 </div>
-                <div className="h-2 rounded-full bg-white/8">
+                <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
                   <div
-                    className="h-2 rounded-full bg-cyan-400"
+                    className="h-2 rounded-full bg-blue-600"
                     style={{
                       width: `${(item.count / Math.max(summary.channelBreakdown.reduce((t, c) => t + c.count, 0), 1)) * 100}%`,
                     }}
@@ -290,27 +294,27 @@ export default function AnalyticsPage() {
             ))}
           </div>
 
-          <div className="space-y-3 border-t border-white/8 pt-4 text-xs text-slate-400">
+          <div className="space-y-2 border-t border-slate-100 pt-3 text-xs text-slate-500 font-medium">
             <div className="flex items-center gap-2">
-              <Wifi className="h-4 w-4 text-cyan-300" />
-              Channel yang aktif di dashboard ikut mempengaruhi komposisi analytics.
+              <Wifi className="h-4 w-4 text-blue-600 shrink-0" />
+              Channel aktif ikut mempengaruhi komposisi analytics.
             </div>
             <div className="flex items-center gap-2">
-              <Bot className="h-4 w-4 text-cyan-300" />
-              Automation dan AI config memakai sumber data yang sama, jadi laporan lebih konsisten.
+              <Bot className="h-4 w-4 text-blue-600 shrink-0" />
+              Automation dan AI config memakai sumber data terpadu.
             </div>
           </div>
-        </div>
+        </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         {reportCards.map((card) => (
-          <Card key={card.label} className="glass-panel p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <Card key={card.label} className="p-5 border-slate-200 bg-white shadow-2xs">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
               {card.label}
             </p>
-            <p className="mt-3 text-3xl font-bold text-white">{card.value}</p>
-            <p className="mt-4 text-xs leading-6 text-slate-400">{card.detail}</p>
+            <p className="mt-2 text-2xl font-extrabold text-slate-900">{card.value}</p>
+            <p className="mt-2 text-xs leading-relaxed text-slate-500 font-medium">{card.detail}</p>
           </Card>
         ))}
       </div>

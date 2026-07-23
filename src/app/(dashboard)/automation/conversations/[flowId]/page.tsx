@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useDashboardConfig } from "@/hooks/use-dashboard-config";
 import { Input } from "@/components/ui/input";
 import type {
@@ -694,24 +695,24 @@ export default function ConversationFlowBuilderPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-[65vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
 
   if (!flow) {
     return (
-      <div className="rounded-2xl border border-red-400/15 bg-red-400/[0.04] p-8 text-center">
-        <AlertTriangle className="mx-auto h-8 w-8 text-red-400" />
-        <p className="mt-3 text-sm font-bold text-white">
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+        <AlertTriangle className="mx-auto h-8 w-8 text-red-600" />
+        <p className="mt-3 text-sm font-bold text-slate-900">
           Conversation Flow tidak dapat dibuka
         </p>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-slate-500">
           {error || "Flow tidak ditemukan."}
         </p>
         <Link
           href="/automation"
-          className="mt-4 inline-flex text-xs font-bold text-cyan-400"
+          className="mt-4 inline-flex text-xs font-bold text-blue-600 hover:underline"
         >
           Kembali ke Conversations
         </Link>
@@ -723,25 +724,26 @@ export default function ConversationFlowBuilderPage() {
   const warningCount = validation?.warnings.length ?? 0;
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#050506]">
-      <header className="z-20 flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-[#090a0f]/95 px-3 md:px-5 backdrop-blur-xl">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-100">
+      {/* SaaS Light Topbar */}
+      <header className="z-20 flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-3 md:px-5 shadow-2xs">
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <Link
             href="/automation"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white/10 hover:text-white"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
             title="Kembali ke Automations"
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
 
-          <div className="h-4 w-px bg-white/10 shrink-0" />
+          <div className="h-4 w-px bg-slate-200 shrink-0" />
 
           {/* Workspace & Flow Title */}
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="hidden sm:inline text-xs font-medium text-slate-400 shrink-0">
-              Workspace: <strong className="text-white">{config?.workspace?.name || "Workspace Utama"}</strong>
+            <span className="hidden sm:inline text-xs font-semibold text-slate-500 shrink-0">
+              Workspace: <strong className="text-slate-900">{config?.workspace?.name || "Workspace Utama"}</strong>
             </span>
-            <span className="hidden sm:inline text-slate-600">/</span>
+            <span className="hidden sm:inline text-slate-300">/</span>
 
             <Input
               value={flow.name}
@@ -749,29 +751,26 @@ export default function ConversationFlowBuilderPage() {
                 setFlow({ ...flow, name: event.target.value });
                 markChanged();
               }}
-              className="h-8 max-w-[200px] sm:max-w-[280px] md:max-w-[340px] border-transparent bg-transparent px-2 text-xs md:text-sm font-bold text-white transition hover:border-white/10 focus:border-cyan-400 focus:bg-white/5"
+              className="h-8 max-w-[200px] sm:max-w-[280px] md:max-w-[340px] border-slate-200 bg-white px-2 text-xs md:text-sm font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
             />
 
-            <span
-              className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${
-                flow.status === "Published"
-                  ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-                  : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
-              }`}
+            <Badge
+              variant={flow.status === "Published" ? "success" : "warning"}
+              className="shrink-0 text-[9px]"
             >
               {flow.status}
-            </span>
+            </Badge>
 
             {/* Auto-Save & Details */}
-            <div className="hidden lg:flex items-center gap-2 text-[11px] text-slate-400 pl-2">
-              <span className="text-slate-600">•</span>
+            <div className="hidden lg:flex items-center gap-2 text-xs text-slate-500 pl-2">
+              <span className="text-slate-300">•</span>
               <span className="flex items-center gap-1.5 font-medium">
                 {saveState === "saving" ? (
-                  <Loader2 className="h-3 w-3 animate-spin text-cyan-400" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
                 ) : saveState === "saved" ? (
-                  <Cloud className="h-3 w-3 text-emerald-400" />
+                  <Cloud className="h-3.5 w-3.5 text-emerald-600" />
                 ) : (
-                  <CloudOff className="h-3 w-3 text-amber-400" />
+                  <CloudOff className="h-3.5 w-3.5 text-amber-600" />
                 )}
                 {saveState === "saving"
                   ? "Saving..."
@@ -785,77 +784,65 @@ export default function ConversationFlowBuilderPage() {
           </div>
         </div>
 
-        {/* Header Action Buttons & Status */}
+        {/* Header Action Buttons */}
         <div className="flex items-center gap-2 shrink-0">
           {(errorCount > 0 || warningCount > 0) && (
             <button
               type="button"
               onClick={() => setActivePanel("inspector")}
-              className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[11px] font-bold text-red-300 transition hover:bg-red-500/20"
+              className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700 transition hover:bg-red-100 cursor-pointer"
             >
-              <AlertTriangle className="h-3 w-3" />
+              <AlertTriangle className="h-3.5 w-3.5" />
               <span>{errorCount} error</span>
             </button>
           )}
 
           <Button
             variant="secondary"
+            size="sm"
             onClick={() => void discardDraft()}
             disabled={!flow.hasUnpublishedChanges && saveState === "saved"}
-            className="h-8 gap-1.5 border-white/10 bg-white/5 px-3 text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
+            <RotateCcw className="h-3.5 w-3.5 mr-1" />
             <span className="hidden sm:inline">Discard</span>
           </Button>
 
           <Button
             variant="secondary"
+            size="sm"
             onClick={() => setActivePanel("preview")}
-            className="h-8 gap-1.5 border-cyan-500/30 bg-cyan-500/10 px-3 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/20"
           >
-            <FlaskConical className="h-3.5 w-3.5 text-cyan-400" />
+            <FlaskConical className="h-3.5 w-3.5 text-blue-600 mr-1" />
             <span>Test Flow</span>
           </Button>
 
           <Button
+            variant="primary"
+            size="sm"
             onClick={() => void publishFlow()}
             disabled={isPublishing || saveState === "conflict"}
-            className="h-8 gap-1.5 border-0 bg-cyan-400 px-4 text-xs font-bold text-slate-950 shadow-sm shadow-cyan-400/20 hover:bg-cyan-300"
           >
             {isPublishing ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
             ) : (
-              <Send className="h-3.5 w-3.5" />
+              <Send className="h-3.5 w-3.5 mr-1" />
             )}
             <span>
               {isPublishing ? "Publishing..." : "Publish"}
             </span>
           </Button>
-
-          <div className="h-4 w-px bg-white/10 mx-1 hidden sm:block" />
-
-          {/* System active badge */}
-          <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium text-slate-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Sistem aktif
-          </div>
-
-          {/* Profile badge */}
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-400/15 text-[10px] font-black text-cyan-300 border border-cyan-400/30">
-            ME
-          </div>
         </div>
       </header>
 
       {error && (
-        <div className="flex items-center gap-2 border-b border-red-400/15 bg-red-400/[0.06] px-4 py-2 text-[11px] text-red-300">
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+        <div className="flex items-center gap-2 border-b border-red-200 bg-red-50 px-4 py-2 text-xs text-red-800 font-semibold">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
           {error}
           {saveState === "conflict" && (
             <button
               type="button"
               onClick={() => void loadFlow()}
-              className="ml-auto font-bold underline"
+              className="ml-auto font-bold underline cursor-pointer"
             >
               Reload Draft
             </button>
@@ -863,8 +850,9 @@ export default function ConversationFlowBuilderPage() {
         </div>
       )}
 
+      {/* Main Flow Canvas Viewport */}
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        <main className="absolute inset-0 bg-[#f4f7fb]">
+        <main className="absolute inset-0 bg-slate-50">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -906,40 +894,37 @@ export default function ConversationFlowBuilderPage() {
               color="#cbd5e1"
             />
             <Panel position="top-left" className="!m-3">
-              <div className="flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/90 p-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.08)] backdrop-blur-md">
+              <div className="flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-1.5 rounded-xl border border-slate-200 bg-white/95 p-1.5 shadow-xs backdrop-blur-md">
                 <button
                   type="button"
                   onClick={() => setIsPaletteOpen((current) => !current)}
-                  className={`flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold transition ${isPaletteOpen ? "border-cyan-400 bg-cyan-50 text-cyan-700 shadow-sm" : "border-slate-200/80 bg-white text-slate-700 hover:border-cyan-300 hover:bg-slate-50 hover:text-cyan-700"}`}
+                  className={`flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-bold transition cursor-pointer ${isPaletteOpen ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
                 >
-                  <Blocks className="h-3.5 w-3.5" />
+                  <Blocks className="h-3.5 w-3.5 text-blue-600" />
                   Add puzzle
                 </button>
                 <button
                   type="button"
                   onClick={() => setActivePanel("preview")}
-                  className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200/80 bg-white px-2.5 text-xs font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-slate-50 hover:text-blue-700"
+                  className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 cursor-pointer"
                 >
-                  <FlaskConical className="h-3.5 w-3.5" />
+                  <FlaskConical className="h-3.5 w-3.5 text-blue-600" />
                   AI Training
                 </button>
                 <button
                   type="button"
                   onClick={arrangeFlow}
-                  className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200/80 bg-white px-2.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-slate-50 hover:text-emerald-700"
+                  className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 cursor-pointer"
                 >
-                  <WandSparkles className="h-3.5 w-3.5" />
+                  <WandSparkles className="h-3.5 w-3.5 text-emerald-600" />
                   <span className="hidden sm:inline">Rapikan Flow</span>
                 </button>
                 <span className="hidden h-5 w-px bg-slate-200 sm:block" />
-                <span className="rounded-md bg-slate-100/90 border border-slate-200/50 px-2 py-1 text-[10px] font-semibold text-slate-600">
+                <span className="rounded-md bg-slate-100 border border-slate-200 px-2 py-1 text-[10px] font-bold text-slate-600">
                   {knowledge.documents} docs
                 </span>
-                <span className="rounded-md bg-slate-100/90 border border-slate-200/50 px-2 py-1 text-[10px] font-semibold text-slate-600">
+                <span className="rounded-md bg-slate-100 border border-slate-200 px-2 py-1 text-[10px] font-bold text-slate-600">
                   {knowledge.faqs} FAQ
-                </span>
-                <span className="hidden rounded-md bg-slate-100/90 border border-slate-200/50 px-2 py-1 text-[10px] font-semibold text-slate-600 md:inline">
-                  {workspace.timezone}
                 </span>
               </div>
             </Panel>
@@ -948,25 +933,25 @@ export default function ConversationFlowBuilderPage() {
               nodeStrokeColor="transparent"
               nodeBorderRadius={6}
               maskColor="rgba(15, 23, 42, 0.08)"
-              maskStrokeColor="#0284c7"
+              maskStrokeColor="#2563eb"
               maskStrokeWidth={2}
               zoomable
               pannable
-              className="!hidden md:!block !rounded-2xl !border !border-slate-200/80 !bg-white/95 !shadow-[0_12px_36px_rgba(15,23,42,0.12)] !backdrop-blur-md !overflow-hidden [&_svg]:!bg-slate-50/70 [&_svg]:!rounded-2xl"
+              className="!hidden md:!block !rounded-2xl !border !border-slate-200 !bg-white/95 !shadow-md !backdrop-blur-md !overflow-hidden [&_svg]:!bg-slate-50/70 [&_svg]:!rounded-2xl"
             />
             <Controls
               position="top-right"
-              className="!mt-3 !mr-3 !overflow-hidden !rounded-xl !border !border-slate-200/80 !bg-white !shadow-lg [&_button]:!border-slate-200/60 [&_button]:!bg-white [&_button]:!fill-slate-700"
+              className="!mt-3 !mr-3 !overflow-hidden !rounded-xl !border !border-slate-200 !bg-white !shadow-xs [&_button]:!border-slate-200 [&_button]:!bg-white [&_button]:!fill-slate-700"
             />
           </ReactFlow>
         </main>
 
         {isPaletteOpen && (
-          <div className="absolute top-20 bottom-4 left-4 z-30 w-[min(280px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0c] shadow-[0_24px_80px_rgba(15,23,42,0.35)] [&>aside]:h-full [&>aside]:border-0">
+          <div className="absolute top-20 bottom-4 left-4 z-30 w-[min(280px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl [&>aside]:h-full [&>aside]:border-0">
             <button
               type="button"
               onClick={() => setIsPaletteOpen(false)}
-              className="absolute top-3 right-3 z-10 rounded-lg p-1.5 text-slate-500 transition hover:bg-white/8 hover:text-white"
+              className="absolute top-3 right-3 z-10 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
               aria-label="Tutup node library"
             >
               <X className="h-4 w-4" />
@@ -981,12 +966,12 @@ export default function ConversationFlowBuilderPage() {
         )}
 
         {activePanel && (
-          <aside className="absolute top-4 right-4 bottom-4 z-30 flex min-h-0 w-[min(390px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0c]/98 shadow-[0_24px_80px_rgba(15,23,42,0.38)] backdrop-blur-xl">
-            <div className="grid grid-cols-[1fr_1fr_auto] border-b border-white/8 p-2">
+          <aside className="absolute top-4 right-4 bottom-4 z-30 flex min-h-0 w-[min(390px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl backdrop-blur-xl">
+            <div className="grid grid-cols-[1fr_1fr_auto] border-b border-slate-100 p-2">
               <button
                 type="button"
                 onClick={() => setActivePanel("inspector")}
-                className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold transition ${activePanel === "inspector" ? "bg-white/8 text-white" : "text-slate-500 hover:text-slate-300"}`}
+                className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition cursor-pointer ${activePanel === "inspector" ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:text-slate-900"}`}
               >
                 <PanelRight className="h-3.5 w-3.5" />
                 Inspector
@@ -994,7 +979,7 @@ export default function ConversationFlowBuilderPage() {
               <button
                 type="button"
                 onClick={() => setActivePanel("preview")}
-                className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold transition ${activePanel === "preview" ? "bg-cyan-400/10 text-cyan-300" : "text-slate-500 hover:text-slate-300"}`}
+                className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition cursor-pointer ${activePanel === "preview" ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:text-slate-900"}`}
               >
                 <FlaskConical className="h-3.5 w-3.5" />
                 Test
@@ -1002,7 +987,7 @@ export default function ConversationFlowBuilderPage() {
               <button
                 type="button"
                 onClick={() => setActivePanel(null)}
-                className="ml-1 flex h-8 w-8 items-center justify-center self-center rounded-lg text-slate-500 transition hover:bg-white/8 hover:text-white"
+                className="ml-1 flex h-8 w-8 items-center justify-center self-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
                 aria-label="Tutup panel"
               >
                 <X className="h-4 w-4" />
@@ -1022,8 +1007,8 @@ export default function ConversationFlowBuilderPage() {
                   {validation &&
                     (validation.errors.length > 0 ||
                       validation.warnings.length > 0) && (
-                      <div className="max-h-44 overflow-y-auto border-t border-white/8 p-3">
-                        <p className="text-[9px] font-black tracking-[0.14em] text-slate-500 uppercase">
+                      <div className="max-h-44 overflow-y-auto border-t border-slate-100 p-3">
+                        <p className="text-[9px] font-extrabold tracking-wider text-slate-400 uppercase">
                           Validation
                         </p>
                         {[...validation.errors, ...validation.warnings]
@@ -1035,7 +1020,7 @@ export default function ConversationFlowBuilderPage() {
                               onClick={() =>
                                 issue.nodeId && setSelectedNodeId(issue.nodeId)
                               }
-                              className={`mt-2 block w-full rounded-lg px-2.5 py-2 text-left text-[10px] ${issue.severity === "error" ? "bg-red-400/[0.06] text-red-300" : "bg-amber-400/[0.06] text-amber-300"}`}
+                              className={`mt-2 block w-full rounded-lg px-2.5 py-2 text-left text-xs font-medium cursor-pointer ${issue.severity === "error" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}
                             >
                               {issue.message}
                             </button>
@@ -1061,12 +1046,12 @@ export default function ConversationFlowBuilderPage() {
         )}
       </div>
 
-      <footer className="flex h-7 shrink-0 items-center justify-between border-t border-white/10 bg-[#090a0f] px-4 text-[10px] font-medium text-slate-500">
+      <footer className="flex h-7 shrink-0 items-center justify-between border-t border-slate-200 bg-white px-4 text-[10px] font-bold text-slate-500">
         <span>
           {nodes.length} nodes / {edges.length} edges
         </span>
-        <span className="flex items-center gap-1.5 text-slate-400">
-          <Check className="h-3 w-3 text-emerald-400" />
+        <span className="flex items-center gap-1 text-slate-500 font-semibold">
+          <Check className="h-3 w-3 text-emerald-600" />
           Preview is sandboxed. Runtime hanya memakai Published graph.
         </span>
       </footer>
