@@ -4,6 +4,7 @@ import {
   getKnowledgeChunks,
 } from "@/server/repositories/dashboard-repository";
 import { jsonOk, requireApiSession } from "@/server/http";
+import { parseCustomInstructions } from "@/lib/custom-instructions";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,9 @@ export async function GET() {
     .filter((value): value is string => Boolean(value))
     .sort()
     .at(-1) ?? null;
+  const customInstructions = parseCustomInstructions(
+    config.aiAgent.replyInstructions,
+  );
 
   return jsonOk({
     connected: config.aiAgent.autoReplyEnabled,
@@ -36,6 +40,9 @@ export async function GET() {
     customInstructionsApplied: Boolean(
       config.aiAgent.replyInstructions.trim(),
     ),
+    personaConfigured: Boolean(customInstructions.persona),
+    toneConfigured: Boolean(customInstructions.tone),
+    guardrailsConfigured: Boolean(customInstructions.guardrails),
     faqs: config.knowledgeBase.faqs.length,
     documents: readyDocuments.length,
     chunks: chunks.length,

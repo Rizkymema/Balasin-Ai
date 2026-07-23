@@ -5,6 +5,7 @@ import {
 } from "@/server/repositories/dashboard-repository";
 import { syncKnowledgeSources } from "@/server/services/knowledge-source-sync";
 import { KNOWLEDGE_SOURCE_MAX_URLS } from "@/constants/knowledge-security";
+import { parseCustomInstructions } from "@/lib/custom-instructions";
 import type { DashboardConfig } from "@/types/dashboard-config";
 
 function normalizeUrls(urls: unknown) {
@@ -74,6 +75,9 @@ export async function saveDashboardConfigAndIntegrate(
   if (knowledgeSourcesChanged) {
     sourceSync = await syncKnowledgeSources(await getDashboardConfigRecord());
   }
+  const customInstructions = parseCustomInstructions(
+    nextConfig.aiAgent.replyInstructions,
+  );
 
   return {
     config: await getDashboardConfigPublicRecord(),
@@ -84,6 +88,9 @@ export async function saveDashboardConfigAndIntegrate(
       customInstructionsApplied: Boolean(
         nextConfig.aiAgent.replyInstructions.trim(),
       ),
+      personaConfigured: Boolean(customInstructions.persona),
+      toneConfigured: Boolean(customInstructions.tone),
+      guardrailsConfigured: Boolean(customInstructions.guardrails),
     },
   };
 }

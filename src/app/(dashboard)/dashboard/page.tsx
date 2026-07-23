@@ -28,6 +28,10 @@ import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  parseCustomInstructions,
+  serializeCustomInstructions,
+} from "@/lib/custom-instructions";
 
 export default function DashboardPage() {
   const { config, patchConfig, refreshConfig } = useDashboardConfig();
@@ -67,20 +71,10 @@ export default function DashboardPage() {
     setProfileHours(config.workspace.businessHours || "");
 
     // Custom Instructions parsing
-    const rawPrompt = config.aiAgent.replyInstructions || "";
-    const personaMatch = rawPrompt.match(/\[PERSONA\]\r?\n([\s\S]*?)(?=\r?\n+\[TONE\]|$)/i);
-    const toneMatch = rawPrompt.match(/\[TONE\]\r?\n([\s\S]*?)(?=\r?\n+\[GUARDRAILS\]|$)/i);
-    const guardMatch = rawPrompt.match(/\[GUARDRAILS\]\r?\n([\s\S]*?)$/i);
-
-    if (personaMatch || toneMatch || guardMatch) {
-      setPersonaText(personaMatch ? personaMatch[1].trim() : "");
-      setToneText(toneMatch ? toneMatch[1].trim() : "");
-      setGuardrailsText(guardMatch ? guardMatch[1].trim() : "");
-    } else {
-      setPersonaText(rawPrompt);
-      setToneText("");
-      setGuardrailsText("");
-    }
+    const sections = parseCustomInstructions(config.aiAgent.replyInstructions || "");
+    setPersonaText(sections.persona);
+    setToneText(sections.tone);
+    setGuardrailsText(sections.guardrails);
 
     // Channels
     setWhatsappAutoReply(config.channels.whatsapp.autoReply);
@@ -121,7 +115,11 @@ export default function DashboardPage() {
     e.preventDefault();
     setIsSaving(true);
     try {
-      const assembledPrompt = `[PERSONA]\n${personaText.trim()}\n\n[TONE]\n${toneText.trim()}\n\n[GUARDRAILS]\n${guardrailsText.trim()}`;
+      const assembledPrompt = serializeCustomInstructions({
+        persona: personaText,
+        tone: toneText,
+        guardrails: guardrailsText,
+      });
       await patchConfig((current) => ({
         ...current,
         aiAgent: {

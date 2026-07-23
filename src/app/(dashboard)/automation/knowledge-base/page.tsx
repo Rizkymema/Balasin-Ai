@@ -24,6 +24,10 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  parseCustomInstructions,
+  serializeCustomInstructions,
+} from "@/lib/custom-instructions";
 
 function isGoogleSheetUrl(url: string) {
   return /docs\.google\.com\/spreadsheets/i.test(url);
@@ -43,6 +47,9 @@ type RuntimeIntegrationStatus = {
   conversations: number;
   activeAiAgents: number;
   customInstructionsApplied: boolean;
+  personaConfigured: boolean;
+  toneConfigured: boolean;
+  guardrailsConfigured: boolean;
   faqs: number;
   documents: number;
   chunks: number;
@@ -91,20 +98,10 @@ export default function KnowledgeBasePage() {
   useEffect(() => {
     if (isLoading || !config || isInitializedRef.current) return;
     isInitializedRef.current = true;
-    const rawPrompt = config.aiAgent.replyInstructions || "";
-    const personaMatch = rawPrompt.match(/\[PERSONA\]\r?\n([\s\S]*?)(?=\r?\n+\[TONE\]|$)/i);
-    const toneMatch = rawPrompt.match(/\[TONE\]\r?\n([\s\S]*?)(?=\r?\n+\[GUARDRAILS\]|$)/i);
-    const guardMatch = rawPrompt.match(/\[GUARDRAILS\]\r?\n([\s\S]*?)$/i);
-
-    if (personaMatch || toneMatch || guardMatch) {
-      setPersonaConfig(personaMatch ? personaMatch[1].trim() : "");
-      setToneOfVoice(toneMatch ? toneMatch[1].trim() : "");
-      setGuardrails(guardMatch ? guardMatch[1].trim() : "");
-    } else {
-      setPersonaConfig(rawPrompt);
-      setToneOfVoice("");
-      setGuardrails("");
-    }
+    const sections = parseCustomInstructions(config.aiAgent.replyInstructions || "");
+    setPersonaConfig(sections.persona);
+    setToneOfVoice(sections.tone);
+    setGuardrails(sections.guardrails);
   }, [config, isLoading]);
 
   useEffect(() => {
@@ -443,7 +440,11 @@ export default function KnowledgeBasePage() {
     event.preventDefault();
     setIsSavingInstructions(true);
     try {
-      const assembledPrompt = `[PERSONA]\n${personaConfig.trim()}\n\n[TONE]\n${toneOfVoice.trim()}\n\n[GUARDRAILS]\n${guardrails.trim()}`;
+      const assembledPrompt = serializeCustomInstructions({
+        persona: personaConfig,
+        tone: toneOfVoice,
+        guardrails,
+      });
       await patchConfig((current) => ({
         ...current,
         aiAgent: { ...current.aiAgent, replyInstructions: assembledPrompt },
@@ -946,6 +947,27 @@ export default function KnowledgeBasePage() {
             <p className="text-xs text-slate-400 mt-1">
               Atur instruksi tingkat tinggi sistem prompt AI untuk mengontrol identitas, nada, dan batasan respons.
             </p>
+            {runtimeStatus && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {[
+                  ["Persona", runtimeStatus.personaConfigured],
+                  ["Tone", runtimeStatus.toneConfigured],
+                  ["Guardrails", runtimeStatus.guardrailsConfigured],
+                ].map(([label, active]) => (
+                  <span
+                    key={String(label)}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
+                      active
+                        ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-300"
+                        : "border-amber-400/25 bg-amber-500/10 text-amber-300"
+                    }`}
+                  >
+                    {active ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                    {label}: {active ? "Aktif" : "Belum diisi"}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSaveInstructions} className="space-y-5">

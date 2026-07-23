@@ -11,6 +11,7 @@ import {
 import { formatClockTime } from "@/lib/time";
 import {
   analyzeSentiment,
+  applyConfiguredResponsePolicy,
   generateReplyDecision,
   type ReplyContext,
   type ReplyDecision,
@@ -549,6 +550,7 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
         decision = {
           ...decision,
           reply: graphMessages.join("\n\n") || decision.reply,
+          instructionsApplied: false,
           needsHuman: decision.needsHuman || afterAi.needsHuman,
           status:
             decision.needsHuman || afterAi.needsHuman
@@ -573,6 +575,12 @@ export async function processIncomingMessage(input: NormalizedIncomingMessage) {
       reply: "",
     };
   }
+
+  decision = await applyConfiguredResponsePolicy(
+    input.messageText,
+    decision,
+    effectiveConfig,
+  );
 
   if (decision.knowledgeGap) {
     try {
