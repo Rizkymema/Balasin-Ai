@@ -43,8 +43,6 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/inbox", label: "Unified Inbox", icon: MessageSquare },
   { href: "/customers", label: "Contacts / CRM", icon: Users2 },
-  // { href: "/products-services", label: "Products & Services", icon: Package2 },
-  // { href: "/booking", label: "Booking", icon: CalendarRange },
   { href: "/broadcast", label: "Broadcast / Campaign", icon: SendHorizontal },
   { href: "/channels", label: "Channels", icon: Wifi },
   { href: "/analytics", label: "Reports", icon: BarChart2 },
@@ -123,8 +121,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isSavingAccount, setIsSavingAccount] = useState(false);
   const [accountSuccessMsg, setAccountSuccessMsg] = useState("");
   const [accountErrorMsg, setAccountErrorMsg] = useState("");
-  // Always initialize to false so server and client render the same HTML.
-  // The real persisted value is loaded from localStorage after mount.
+  
   const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
@@ -159,7 +156,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setTooltipState({
       label,
       top: rect.top + rect.height / 2,
-      left: rect.right + 12, // 12px gap to the right of the item
+      left: rect.right + 12,
       visible: true,
     });
   };
@@ -266,7 +263,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     void loadWorkspace();
     void loadUnreadCount();
 
-    // Poll unread count every 15 seconds
     const interval = setInterval(() => {
       if (mounted) void loadUnreadCount();
     }, 15000);
@@ -338,11 +334,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
   ];
 
-
-
   return (
     <div className={`app-dashboard-shell relative flex h-screen overflow-hidden bg-slate-50 text-slate-900 transition-all duration-300 ${isAiOpen && !isFlowBuilderRoute ? "md:pr-96" : ""}`}>
-      {/* MOBILE SIDEBAR DRAWEROVERLAY */}
+      {/* MOBILE SIDEBAR OVERLAY */}
       {isSidebarOpen && !isFlowBuilderRoute && (
         <div
           className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-xs md:hidden"
@@ -360,7 +354,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
           <div className={`h-14 flex items-center border-b border-slate-200 ${isMainSidebarCollapsed ? "justify-center px-4" : "justify-between px-6"}`}>
-            <Link href="/dashboard" className="flex items-center gap-2.5">
+            <Link 
+              href="/dashboard" 
+              className="flex items-center gap-2.5"
+              onMouseEnter={(e) => handleMouseEnter(e, "Balesin Desk Dashboard")}
+              onMouseLeave={handleMouseLeave}
+              title={isMainSidebarCollapsed ? "Balesin Desk Dashboard" : undefined}
+            >
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 text-white shrink-0 shadow-xs">
                 <Building2 className="h-4.5 w-4.5" />
               </div>
@@ -372,7 +372,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Link>
             <button
               onClick={() => setIsSidebarOpen(false)}
-              className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 md:hidden"
+              className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 md:hidden cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
@@ -385,9 +385,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 hasMounted && isMainSidebarCollapsed ? (
                   <>
                     <div
-                      onMouseEnter={(e) => handleMouseEnter(e, businessName)}
+                      onMouseEnter={(e) => handleMouseEnter(e, `Workspace: ${businessName}`)}
                       onMouseLeave={handleMouseLeave}
                       onClick={handleMouseLeave}
+                      title={`Workspace: ${businessName}`}
                       className="hidden md:flex h-10 w-10 mx-auto cursor-pointer items-center justify-center rounded-xl border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all duration-150 font-black text-xs shadow-2xs"
                     >
                       {businessName.substring(0, 2).toUpperCase()}
@@ -434,18 +435,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </span>
                 </div>
               }
-              align={isMainSidebarCollapsed ? "left" : "left"}
+              align="left"
               className="w-full"
             />
           </div>
 
           {/* Navigation Links */}
           <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto custom-scrollbar">
-            {/* Main nav items BEFORE automation (Dashboard, Inbox, Contacts, Products, Booking) */}
-            {NAV_ITEMS.slice(0, 5).map((item) => {
+            {/* Main nav items (Dashboard, Inbox, Contacts) */}
+            {NAV_ITEMS.slice(0, 3).map((item) => {
               const Icon = item.icon;
               const isActive = pathname.startsWith(item.href) && (item.href === "/dashboard" ? pathname === "/dashboard" : true);
-              // For Unified Inbox: use live unread count
               const dynamicBadge = item.href === "/inbox"
                 ? (inboxUnreadCount > 0 ? String(inboxUnreadCount) : undefined)
                 : undefined;
@@ -460,6 +460,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     setIsSidebarOpen(false);
                     handleMouseLeave();
                   }}
+                  title={isMainSidebarCollapsed ? translatedLabel : undefined}
                   className={`group relative flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition duration-150 ${
                     isActive
                       ? "bg-blue-50 border border-blue-200 text-blue-700 font-bold shadow-2xs"
@@ -498,6 +499,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     onMouseEnter={(e) => handleMouseEnter(e, t.automation)}
                     onMouseLeave={handleMouseLeave}
                     onClick={() => { setIsSidebarOpen(false); handleMouseLeave(); }}
+                    title={isMainSidebarCollapsed ? t.automation : undefined}
                     className={`group relative flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition duration-150 ${
                       isAutomationActive
                         ? "bg-blue-50 border border-blue-200 text-blue-700 font-bold shadow-2xs"
@@ -552,7 +554,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             })()}
 
             {/* Remaining nav items (Broadcast, Channels, Reports, Settings) */}
-            {NAV_ITEMS.slice(5).map((item) => {
+            {NAV_ITEMS.slice(3).map((item) => {
               const Icon = item.icon;
               const isActive = pathname.startsWith(item.href);
               const translatedLabel = getNavLabel(item.href, item.label, t);
@@ -566,6 +568,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     setIsSidebarOpen(false);
                     handleMouseLeave();
                   }}
+                  title={isMainSidebarCollapsed ? translatedLabel : undefined}
                   className={`group relative flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition duration-150 ${
                     isActive
                       ? "bg-blue-50 border border-blue-200 text-blue-700 font-bold shadow-2xs"
@@ -607,20 +610,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* TOPBAR */}
         {!isFlowBuilderRoute && (
           <header className="app-dashboard-topbar z-30 flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-6 shadow-2xs">
-            <div className="flex items-center gap-4 min-w-0">
+            <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={() => setIsSidebarOpen(true)}
                 className={`p-2 -ml-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 md:hidden shrink-0 ${isFlowBuilderRoute ? "hidden" : ""}`}
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3.5 py-1 text-xs font-semibold shadow-2xs">
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  {t.systemActive}
                 </span>
-                <span className="text-slate-500">{t.workspace}:</span>
-                <span className="text-slate-900 font-bold truncate max-w-[180px] sm:max-w-none">{businessName}</span>
+
+                <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 shadow-2xs">
+                  <span className="text-slate-400">TZ:</span>
+                  <span className="text-slate-800 font-bold">{language === "id" ? "Asia/Jakarta" : "UTC+7"}</span>
+                </span>
               </div>
             </div>
 
@@ -636,7 +643,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 >
                   <Bell className="h-5 w-5" />
                   {notificationCount > 0 && (
-                    <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 text-white px-1 text-[9px] font-extrabold shadow-2xs">
+                    <span className="absolute -top-0.5 -right-0.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-blue-600 text-white px-1 text-[10px] font-extrabold shadow-xs">
                       {notificationCount > 99 ? "99+" : notificationCount}
                     </span>
                   )}
@@ -712,12 +719,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
               </div>
 
-              {/* Status Indicator */}
-              <div className="hidden sm:flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                {t.systemActive}
-              </div>
-
               {/* Unified User Profile Dropdown */}
               <div className="relative">
                 <button
@@ -773,8 +774,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             isFlowBuilderRoute
               ? "flex min-h-0 flex-col overflow-hidden p-0"
               : isInboxRoute
-              ? "flex min-h-0 flex-col overflow-y-auto p-3 lg:overflow-hidden lg:p-4"
-              : "overflow-y-auto custom-scrollbar p-4 md:p-6"
+              ? "flex min-h-0 flex-col overflow-y-auto p-4 lg:overflow-hidden lg:p-6"
+              : "overflow-y-auto custom-scrollbar p-5 sm:p-6 md:p-8"
           }`}
         >
           <div
