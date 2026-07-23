@@ -383,8 +383,8 @@ export default function SettingsPage() {
     <div className="space-y-6">
       {/* Title */}
       <div>
-        <h1 className="flex items-center gap-2.5 text-2xl font-bold text-[var(--color-text)]">
-          <Settings className="h-6 w-6 text-[var(--color-brand)]" />
+        <h1 className="flex items-center gap-2.5 text-2xl font-bold text-white">
+          <Settings className="h-6 w-6 text-white" />
           Settings & Workspace Configuration
         </h1>
         <p className="mt-1 text-xs text-[var(--color-muted)]">
@@ -407,11 +407,11 @@ export default function SettingsPage() {
                 onClick={() => setActiveSetting("profile")}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-bold transition-all duration-200 cursor-pointer ${
                   activeSetting === "profile"
-                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
-                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
+                    ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white shadow-sm"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-white hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
-                <Building2 className={`h-4 w-4 ${activeSetting === "profile" ? "text-[var(--color-brand)]" : "text-[var(--color-muted)]"}`} />
+                <Building2 className={`h-4 w-4 ${activeSetting === "profile" ? "text-white" : "text-[var(--color-muted)]"}`} />
                 <span>Workspace Profile</span>
               </button>
 
@@ -420,8 +420,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveSetting("users")}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "users"
-                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
-                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
+                    ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white shadow-sm"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-white hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <User className="h-4 w-4" />
@@ -433,8 +433,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveSetting("agents")}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "agents"
-                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
-                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
+                    ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white shadow-sm"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-white hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <UserCheck className="h-4 w-4" />
@@ -446,8 +446,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveSetting("sla")}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "sla"
-                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
-                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
+                    ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white shadow-sm"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-white hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <Clock className="h-4 w-4" />
@@ -459,8 +459,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveSetting("inbox")}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "inbox"
-                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
-                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
+                    ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white shadow-sm"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-white hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <Inbox className="h-4 w-4" />
@@ -472,8 +472,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveSetting("security")}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "security"
-                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
-                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
+                    ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white shadow-sm"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-white hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <Shield className="h-4 w-4" />
@@ -493,15 +493,15 @@ export default function SettingsPage() {
                 onClick={() => setActiveSetting("call")}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "call"
-                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
-                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
+                    ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white shadow-sm"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-white hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <Phone className="h-4 w-4 text-amber-400" />
                   <span>Call (Telepon)</span>
                 </div>
-                <Badge className="bg-[var(--color-brand)] text-slate-950 text-[8px] font-extrabold px-1.5 py-0.5 rounded">NEW</Badge>
+                <Badge className="bg-white text-black text-[8px] font-extrabold px-1.5 py-0.5 rounded">NEW</Badge>
               </button>
 
               {/* Contact Info */}
@@ -509,8 +509,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveSetting("contacts")}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "contacts"
-                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
-                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
+                    ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white shadow-sm"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-white hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <Database className="h-4 w-4" />
@@ -522,8 +522,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveSetting("survey")}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "survey"
-                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
-                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
+                    ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white shadow-sm"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-white hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <SlidersHorizontal className="h-4 w-4" />
@@ -535,8 +535,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveSetting("ticket")}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "ticket"
-                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
-                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
+                    ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white shadow-sm"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-white hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <ListChecks className="h-4 w-4" />
@@ -548,8 +548,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveSetting("logs")}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "logs"
-                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
-                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
+                    ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white shadow-sm"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-white hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <History className="h-4 w-4" />
@@ -569,8 +569,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveSetting("token_bot")}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeSetting === "token_bot"
-                    ? "bg-[var(--color-brand)]/15 border border-[var(--color-brand)]/35 text-[var(--color-brand)] shadow-[0_0_12px_rgba(10,132,255,0.12)]"
-                    : "border border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
+                    ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white shadow-sm"
+                    : "border border-transparent text-[var(--color-muted)] hover:text-white hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <FileCode className="h-4 w-4 text-emerald-400" />
@@ -588,10 +588,10 @@ export default function SettingsPage() {
           {activeSetting === "profile" && (
             <div className="space-y-6">
               {/* Workspace Profile Form */}
-              <form onSubmit={handleSaveWorkspace} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/70 max-w-3xl space-y-5 p-6 md:p-8 backdrop-blur-md shadow-xl transition-all hover:border-[var(--color-border-hover)]">
-                <div className="border-b border-[var(--color-border)]/60 pb-4 mb-4">
-                  <h3 className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-widest text-[var(--color-brand)]">
-                    <Building2 className="h-4.5 w-4.5 text-[var(--color-brand)]" />
+              <form onSubmit={handleSaveWorkspace} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] max-w-3xl space-y-5 p-6 md:p-8 backdrop-blur-md shadow-xl transition-all hover:border-[var(--color-border-hover)]">
+                <div className="border-b border-[var(--color-border)] pb-4 mb-4">
+                  <h3 className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-widest text-white">
+                    <Building2 className="h-4.5 w-4.5 text-white" />
                     {t.profileSettingsTitle}
                   </h3>
                   <p className="text-[11px] text-[var(--color-muted)] mt-1.5">{t.profileSettingsDesc}</p>
@@ -646,7 +646,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-5 border-t border-[var(--color-border)]/60">
+                <div className="flex items-center justify-between pt-5 border-t border-[var(--color-border)]">
                   {isSavedWorkspace ? (
                     <span className="flex items-center gap-1.5 text-xs font-bold text-[var(--color-success)] animate-fade-in">
                       <Check className="h-4 w-4" /> {t.successSaveProfile}
@@ -654,7 +654,7 @@ export default function SettingsPage() {
                   ) : (
                     <div />
                   )}
-                  <Button type="submit" className="px-6 font-bold shadow-[0_0_15px_rgba(10,132,255,0.25)]">
+                  <Button type="submit" className="px-6 font-bold bg-white text-black hover:bg-slate-200 border-transparent shadow-md">
                     <Save className="mr-2 h-4 w-4" /> {t.saveProfile}
                   </Button>
                 </div>

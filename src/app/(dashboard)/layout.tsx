@@ -325,8 +325,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       label: businessName,
       onClick: () => {},
-      icon: <Building2 className="h-4 w-4 text-[var(--color-brand)]" />,
-      className: "bg-[var(--color-brand)]/10 text-[var(--color-brand)] font-bold border border-[var(--color-brand)]/20",
+      icon: <Building2 className="h-4 w-4 text-white" />,
+      className: "bg-[var(--color-surface-hover)] text-white font-bold border border-[var(--color-border-hover)]",
     },
     {
       label: language === "id" ? "Tambah Workspace" : "Add Workspace",
@@ -334,7 +334,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         localStorage.removeItem("balesin_onboarded");
         router.push("/step-1");
       },
-      icon: <Plus className="h-4 w-4" />,
+      icon: <Plus className="h-4 w-4 text-[var(--color-text)]" />,
     },
   ];
 
@@ -361,11 +361,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Sidebar Header */}
           <div className={`h-14 flex items-center border-b border-[var(--color-border)] ${isMainSidebarCollapsed ? "justify-center px-4" : "justify-between px-6"}`}>
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-brand)] shrink-0 shadow-[0_0_10px_rgba(10,132,255,0.15)]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--color-border-hover)] bg-[var(--color-surface-hover)] text-white shrink-0 shadow-sm">
                 <Building2 className="h-4.5 w-4.5" />
               </div>
               {hasMounted && (
-                <span className={`font-heading font-bold text-lg whitespace-nowrap ${isMainSidebarCollapsed ? "md:hidden" : ""}`}>
+                <span className={`font-heading font-bold text-lg whitespace-nowrap text-white ${isMainSidebarCollapsed ? "md:hidden" : ""}`}>
                   Balesin<span className="text-slate-400"> Desk</span>
                 </span>
               )}
@@ -388,36 +388,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       onMouseEnter={(e) => handleMouseEnter(e, businessName)}
                       onMouseLeave={handleMouseLeave}
                       onClick={handleMouseLeave}
-                      className="hidden md:flex h-10 w-10 mx-auto cursor-pointer items-center justify-center rounded-xl border border-[var(--color-brand)]/30 bg-[var(--color-brand)]/10 hover:bg-[var(--color-brand)]/20 transition-all duration-200 text-[var(--color-brand)] font-black text-xs shadow-[0_0_12px_rgba(10,132,255,0.15)]"
+                      className="hidden md:flex h-10 w-10 mx-auto cursor-pointer items-center justify-center rounded-xl border border-[var(--color-border-hover)] bg-white text-black hover:bg-slate-200 transition-all duration-200 font-black text-xs shadow-sm"
                     >
                       {businessName.substring(0, 2).toUpperCase()}
                     </div>
-                    <div className="flex md:hidden items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 hover:bg-[var(--color-surface)] hover:border-[var(--color-border-hover)] px-3 py-2 transition-all duration-200 cursor-pointer shadow-sm">
+                    <div className="flex md:hidden items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-hover)] px-3 py-2 transition-all duration-200 cursor-pointer shadow-sm">
                       <div className="flex items-center gap-2.5 max-w-[170px]">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand)]/15 text-[var(--color-brand)] border border-[var(--color-brand)]/30 text-xs font-extrabold font-heading shadow-[0_0_8px_rgba(10,132,255,0.12)]">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white text-black border border-white/20 text-xs font-extrabold font-heading shadow-sm">
                           {businessName.substring(0, 2).toUpperCase()}
                         </div>
-                        <span className="text-xs font-bold text-[var(--color-text)] truncate">
+                        <span className="text-xs font-bold text-white truncate">
                           {businessName}
                         </span>
                       </div>
-                      <ChevronDown className="h-3.5 w-3.5 text-[var(--color-muted)]" />
+                      <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
                     </div>
                   </>
                 ) : (
-                  <div className="flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 hover:bg-[var(--color-surface)] hover:border-[var(--color-brand)]/40 px-3 py-2 transition-all duration-200 cursor-pointer shadow-sm group">
+                  <div className="flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-hover)] px-3 py-2 transition-all duration-200 cursor-pointer shadow-sm group">
                     <div className="flex items-center gap-2.5 max-w-[170px]">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand)]/15 text-[var(--color-brand)] border border-[var(--color-brand)]/30 text-xs font-extrabold font-heading shadow-[0_0_8px_rgba(10,132,255,0.12)]">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white text-black border border-white/20 text-xs font-extrabold font-heading shadow-sm">
                         {businessName.substring(0, 2).toUpperCase()}
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className="text-[9px] uppercase tracking-wider font-bold text-[var(--color-muted)]">Workspace</span>
-                        <span className="text-xs font-bold text-[var(--color-text)] truncate group-hover:text-[var(--color-brand)] transition-colors">
+                        <span className="text-xs font-bold text-white truncate transition-colors">
                           {businessName}
                         </span>
                       </div>
                     </div>
-                    <ChevronDown className="h-3.5 w-3.5 text-[var(--color-muted)] group-hover:text-[var(--color-text)] transition-colors" />
+                    <ChevronDown className="h-3.5 w-3.5 text-[var(--color-muted)] group-hover:text-white transition-colors" />
                   </div>
                 )
               }
@@ -426,7 +426,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <span className="text-[9px] uppercase tracking-widest font-bold text-[var(--color-muted)]">Workspace Aktif</span>
-                    <span className="text-xs font-bold text-[var(--color-text)] truncate">{businessName}</span>
+                    <span className="text-xs font-bold text-white truncate">{businessName}</span>
                   </div>
                   <span className="flex h-2 w-2 relative shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-success)] opacity-75"></span>
