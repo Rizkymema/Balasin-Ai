@@ -40,7 +40,7 @@ export function Dropdown({ trigger, items, align = "right", className, header }:
       {isOpen && (
         <div
           className={cn(
-            "absolute z-50 mt-2 w-60 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-2xl backdrop-blur-xl animate-fade-in",
+            "absolute z-50 mt-2 w-60 animate-fade-in rounded-2xl border border-[var(--color-border)] bg-white p-1.5 shadow-[var(--shadow-floating)]",
             align === "right" ? "right-0" : "left-0"
           )}
         >
@@ -59,12 +59,12 @@ export function Dropdown({ trigger, items, align = "right", className, header }:
               className={cn(
                 "group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-xs font-semibold transition-all duration-150 cursor-pointer",
                 item.danger
-                  ? "text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
-                  : "text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] hover:text-white",
+                  ? "text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                  : "text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]",
                 item.className
               )}
             >
-              {item.icon && <span className="text-[var(--color-text)] group-hover:text-white transition-colors">{item.icon}</span>}
+              {item.icon && <span className="text-[var(--color-muted)] transition-colors group-hover:text-[var(--color-brand)]">{item.icon}</span>}
               <span className="flex-1 truncate">{item.label}</span>
             </button>
           ))}

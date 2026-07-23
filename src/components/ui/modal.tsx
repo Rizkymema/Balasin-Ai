@@ -33,23 +33,23 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+        className="absolute inset-0 bg-slate-950/35 backdrop-blur-[2px] transition-opacity duration-300"
         onClick={onClose}
       />
 
       {/* Modal Container */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-2xl animate-fade-in md:p-8",
+          "relative z-10 w-full max-w-lg animate-fade-in rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-[var(--shadow-floating)] md:p-8",
           className,
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4 mb-4">
+        <div className="mb-5 flex items-center justify-between border-b border-[var(--color-border)] pb-4">
           {title && <h3 className="text-lg font-bold text-[var(--color-text)]">{title}</h3>}
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-[var(--color-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition duration-200"
+            className="rounded-lg p-1.5 text-[var(--color-muted)] transition duration-200 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
           >
             <X className="h-5 w-5" />
           </button>

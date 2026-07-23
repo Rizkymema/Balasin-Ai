@@ -2,35 +2,41 @@
 @import "@xyflow/react/dist/style.css";
 
 :root {
-  --color-bg: #000000;
-  --color-surface: #121214;
-  --color-surface-hover: #1c1c1e;
-  --color-surface-strong: #0a0a0c;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-hover: rgba(255, 255, 255, 0.16);
-  --color-text: #f5f5f7;
-  --color-muted: #86868b;
-  --color-brand: #0a84ff;
-  --color-brand-hover: #2997ff;
-  --color-brand-blue: #0066cc;
-  --color-success: #30d158;
-  --color-warning: #ff9f0a;
+  --color-bg: #f5f7fb;
+  --color-surface: #ffffff;
+  --color-surface-hover: #eef4ff;
+  --color-surface-strong: #ffffff;
+  --color-border: #e2e8f0;
+  --color-border-hover: #cbd5e1;
+  --color-text: #0f172a;
+  --color-muted: #64748b;
+  --color-brand: #2563eb;
+  --color-brand-hover: #1d4ed8;
+  --color-brand-blue: #1d4ed8;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-info-soft: #eff6ff;
+  --color-success-soft: #f0fdf4;
+  --color-warning-soft: #fffbeb;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.035);
+  --shadow-floating: 0 18px 45px rgba(15, 23, 42, 0.14);
 }
 
 .theme-light {
-  --color-bg: #ffffff;
-  --color-surface: #f5f5f7;
-  --color-surface-hover: #e8e8ed;
+  --color-bg: #f5f7fb;
+  --color-surface: #ffffff;
+  --color-surface-hover: #eef4ff;
   --color-surface-strong: #ffffff;
-  --color-border: rgba(0, 0, 0, 0.08);
-  --color-border-hover: rgba(0, 0, 0, 0.16);
-  --color-text: #1d1d1f;
-  --color-muted: #4b5563;
-  --color-brand: #0071e3;
-  --color-brand-hover: #0077ed;
-  --color-brand-blue: #0066cc;
-  --color-success: #30d158;
-  --color-warning: #ff9f0a;
+  --color-border: #e2e8f0;
+  --color-border-hover: #cbd5e1;
+  --color-text: #0f172a;
+  --color-muted: #64748b;
+  --color-brand: #2563eb;
+  --color-brand-hover: #1d4ed8;
+  --color-brand-blue: #1d4ed8;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
 }
 
 @theme inline {
@@ -51,7 +57,10 @@ body {
   margin: 0;
   color: var(--color-text);
   font-family: var(--app-font-body);
-  background-color: var(--color-bg);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(37, 99, 235, 0.055), transparent 26rem),
+    var(--color-bg);
+  text-rendering: optimizeLegibility;
 }
 
 h1,
@@ -74,34 +83,33 @@ select option {
 }
 
 ::selection {
-  background: rgba(20, 184, 166, 0.2);
-  color: white;
+  background: rgba(37, 99, 235, 0.18);
+  color: #0f172a;
 }
 
-/* Professional solid panels replacing glassmorphism */
 .glass-panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
 }
 
 .glass-panel-strong {
   background: var(--color-surface-strong);
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
 }
 
-/* Solid high-contrast text styles replacing gradients */
 .text-gradient-cyan {
-  color: var(--color-text);
+  color: var(--color-brand);
 }
 
 .text-gradient-gold {
   color: var(--color-warning);
 }
 
-/* Custom Webkit scrollbars */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -109,19 +117,18 @@ select option {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: #cbd5e1;
   border-radius: 9999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(20, 184, 166, 0.2);
+  background: #94a3b8;
 }
 
-/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -130,10 +137,278 @@ select option {
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: fadeIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* Custom subtle border glow for active elements */
 .glow-brand {
-  box-shadow: 0 0 12px rgba(10, 132, 255, 0.06);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.65);
+  outline-offset: 2px;
+}
+
+/*
+ * Light-theme compatibility layer.
+ * Existing feature pages use dark-theme utility colors directly. These
+ * presentation-only mappings keep those pages readable while the product
+ * transitions to shared semantic tokens.
+ */
+.app-light-theme [class~="text-white"],
+.app-light-theme [class~="text-slate-100"] {
+  color: #0f172a;
+}
+
+.app-light-theme [class~="text-slate-200"],
+.app-light-theme [class~="text-slate-300"] {
+  color: #334155;
+}
+
+.app-light-theme [class~="text-slate-400"],
+.app-light-theme [class~="text-slate-500"],
+.app-light-theme [class~="text-slate-600"] {
+  color: #64748b;
+}
+
+.app-light-theme [class~="text-cyan-200"],
+.app-light-theme [class~="text-cyan-300"],
+.app-light-theme [class~="text-cyan-400"],
+.app-light-theme [class~="text-cyan-500"],
+.app-light-theme [class~="text-cyan-100/70"],
+.app-light-theme [class~="text-cyan-200/80"],
+.app-light-theme [class~="text-cyan-400/80"],
+.app-light-theme [class~="text-blue-300"],
+.app-light-theme [class~="text-blue-400"] {
+  color: #2563eb;
+}
+
+.app-light-theme [class~="text-emerald-200"],
+.app-light-theme [class~="text-emerald-300"],
+.app-light-theme [class~="text-emerald-400"],
+.app-light-theme [class~="text-emerald-300/80"],
+.app-light-theme [class~="text-emerald-400/80"] {
+  color: #15803d;
+}
+
+.app-light-theme [class~="text-amber-200"],
+.app-light-theme [class~="text-amber-300"],
+.app-light-theme [class~="text-amber-400"],
+.app-light-theme [class~="text-amber-100/70"],
+.app-light-theme [class~="text-amber-100/80"],
+.app-light-theme [class~="text-amber-300/80"],
+.app-light-theme [class~="text-amber-400/80"] {
+  color: #b45309;
+}
+
+.app-light-theme [class~="text-red-100/90"] {
+  color: #b91c1c;
+}
+
+.app-light-theme [class~="border-white/5"],
+.app-light-theme [class~="border-white/6"],
+.app-light-theme [class~="border-white/8"],
+.app-light-theme [class~="border-white/10"],
+.app-light-theme [class~="border-white/12"],
+.app-light-theme [class~="border-white/20"],
+.app-light-theme [class~="border-white/[0.04]"],
+.app-light-theme [class~="border-white/[0.06]"],
+.app-light-theme [class~="border-white/[0.08]"],
+.app-light-theme [class~="border-white/[0.1]"],
+.app-light-theme [class~="border-white/[0.15]"],
+.app-light-theme [class~="divide-white/4"],
+.app-light-theme [class~="divide-white/5"],
+.app-light-theme [class~="divide-white/8"] {
+  border-color: #e2e8f0;
+}
+
+.app-light-theme [class~="bg-white/2"],
+.app-light-theme [class~="bg-white/4"],
+.app-light-theme [class~="bg-white/5"],
+.app-light-theme [class~="bg-white/6"],
+.app-light-theme [class~="bg-white/8"],
+.app-light-theme [class~="bg-white/10"],
+.app-light-theme [class~="bg-white/[0.01]"],
+.app-light-theme [class~="bg-white/[0.02]"],
+.app-light-theme [class~="bg-white/[0.03]"],
+.app-light-theme [class~="bg-white/[0.04]"],
+.app-light-theme [class~="bg-white/[0.06]"],
+.app-light-theme [class~="bg-[#00d2ff]/[0.02]"],
+.app-light-theme [class~="bg-[#00d2ff]/[0.06]"],
+.app-light-theme [class~="bg-[#00d2ff]/10"],
+.app-light-theme [class~="bg-[#00d2ff]/15"],
+.app-light-theme [class~="bg-[#00d2ff]/20"] {
+  background-color: #f8fafc;
+}
+
+.app-light-theme [class~="bg-black/10"],
+.app-light-theme [class~="bg-black/20"],
+.app-light-theme [class~="bg-black/30"],
+.app-light-theme [class~="bg-black/35"],
+.app-light-theme [class~="bg-black/40"],
+.app-light-theme [class~="bg-slate-900"],
+.app-light-theme [class~="bg-slate-900/60"],
+.app-light-theme [class~="bg-slate-950"] {
+  background-color: #f8fafc;
+}
+
+.app-light-theme [class~="bg-slate-700"],
+.app-light-theme [class~="bg-slate-800"] {
+  background-color: #cbd5e1;
+}
+
+.app-light-theme [class~="bg-[#020611]"],
+.app-light-theme [class~="bg-[#020611]/80"],
+.app-light-theme [class~="bg-[#020512]"],
+.app-light-theme [class~="bg-[#050506]"],
+.app-light-theme [class~="bg-[#080c18]"],
+.app-light-theme [class~="bg-[#080c18]/30"],
+.app-light-theme [class~="bg-[#080c18]/50"],
+.app-light-theme [class~="bg-[#090a0f]"],
+.app-light-theme [class~="bg-[#090a0f]/95"],
+.app-light-theme [class~="bg-[#0a0f18]/30"],
+.app-light-theme [class~="bg-[#0d1117]"],
+.app-light-theme [class~="bg-[#0f151d]"] {
+  background-color: #f5f7fb;
+}
+
+.app-light-theme [class~="bg-[#030408]/80"],
+.app-light-theme [class~="bg-[#04091a]"],
+.app-light-theme [class~="bg-[#04091a]/40"],
+.app-light-theme [class~="bg-[#070b19]"],
+.app-light-theme [class~="bg-[#091223]"],
+.app-light-theme [class~="bg-[#0a0a0c]"],
+.app-light-theme [class~="bg-[#0a0a0c]/98"],
+.app-light-theme [class~="bg-[#0a0e1c]"],
+.app-light-theme [class~="bg-[#0c101f]"],
+.app-light-theme [class~="bg-[#0c1020]/40"],
+.app-light-theme [class~="bg-[#111821]"],
+.app-light-theme [class~="bg-[#111821]/90"],
+.app-light-theme [class~="bg-[#161324]"],
+.app-light-theme [class~="bg-[#17202b]"],
+.app-light-theme [class~="bg-[#1e253c]"] {
+  background-color: #ffffff;
+}
+
+.app-light-theme [class~="bg-[#0d1c33]"] {
+  background-color: #eff6ff;
+}
+
+.app-light-theme [class~="bg-cyan-950"],
+.app-light-theme [class~="bg-cyan-950/20"],
+.app-light-theme [class~="bg-cyan-950/30"],
+.app-light-theme [class~="bg-cyan-950/40"],
+.app-light-theme [class~="bg-cyan-950/50"] {
+  background-color: #eff6ff;
+}
+
+.app-light-theme [class~="bg-emerald-950/20"],
+.app-light-theme [class~="bg-emerald-950/30"],
+.app-light-theme [class~="bg-emerald-950/40"] {
+  background-color: #f0fdf4;
+}
+
+.app-light-theme [class~="bg-amber-950/10"],
+.app-light-theme [class~="bg-amber-950/20"],
+.app-light-theme [class~="bg-amber-950/30"] {
+  background-color: #fffbeb;
+}
+
+.app-light-theme [class~="bg-red-950/20"] {
+  background-color: #fef2f2;
+}
+
+.app-light-theme [class~="bg-white"][class~="text-black"],
+.app-light-theme [class~="bg-white"][class~="text-slate-950"] {
+  background-color: var(--color-brand);
+  color: #ffffff;
+}
+
+.app-light-theme [class~="bg-[var(--color-brand)]"][class~="text-white"],
+.app-light-theme [class~="bg-[var(--color-success)]"][class~="text-white"],
+.app-light-theme [class~="bg-[#1877f2]"][class~="text-white"],
+.app-light-theme [class~="bg-cyan-500"][class~="text-white"],
+.app-light-theme [class~="bg-cyan-500"][class~="text-slate-950"],
+.app-light-theme [class~="bg-cyan-400"][class~="text-slate-950"],
+.app-light-theme [class~="bg-blue-600"][class~="text-white"],
+.app-light-theme [class~="bg-emerald-500"][class~="text-white"] {
+  color: #ffffff;
+}
+
+.app-light-theme [class~="bg-[#00d2ff]"] {
+  background-color: var(--color-brand);
+}
+
+.app-light-theme [class~="bg-[#00d2ff]"][class~="text-[#050814]"] {
+  color: #ffffff;
+}
+
+.app-light-theme [class~="text-[#00d2ff]"] {
+  color: var(--color-brand);
+}
+
+.app-light-theme [class~="hover:text-white"]:hover,
+.app-light-theme [class~="hover:text-slate-200"]:hover,
+.app-light-theme [class~="hover:text-slate-300"]:hover {
+  color: #0f172a;
+}
+
+.app-light-theme [class~="hover:bg-white/5"]:hover,
+.app-light-theme [class~="hover:bg-white/8"]:hover,
+.app-light-theme [class~="hover:bg-white/10"]:hover,
+.app-light-theme [class~="hover:bg-white/[0.04]"]:hover,
+.app-light-theme [class~="hover:bg-white/[0.06]"]:hover {
+  background-color: #eef4ff;
+}
+
+.app-light-theme [class~="placeholder-slate-500"]::placeholder,
+.app-light-theme [class~="placeholder-slate-600"]::placeholder {
+  color: #94a3b8;
+}
+
+.app-light-theme [class~="shadow-2xl"] {
+  box-shadow: var(--shadow-floating);
+}
+
+.app-light-theme [class~="divide-white/4"] > :not(:last-child),
+.app-light-theme [class~="divide-white/5"] > :not(:last-child),
+.app-light-theme [class~="divide-white/8"] > :not(:last-child) {
+  border-color: #e2e8f0;
+}
+
+.app-dashboard-shell {
+  background:
+    radial-gradient(circle at 82% -10%, rgba(37, 99, 235, 0.08), transparent 22rem),
+    #f5f7fb;
+}
+
+.app-dashboard-sidebar {
+  box-shadow: 10px 0 30px rgba(15, 23, 42, 0.025);
+}
+
+.app-dashboard-topbar {
+  background-color: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1593,10 +1593,10 @@ struct ChatView: View {
                 /* === NOT CONNECTED STATE === */
                 <div className="space-y-5">
                   {/* OAuth Connect Card */}
-                  <div className="rounded-xl border border-white/10 bg-[#04091a] p-6 space-y-5">
+                  <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-[var(--shadow-card)]">
                     {/* Icon + title */}
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-2xl bg-emerald-950/50 border border-emerald-500/25 flex items-center justify-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50">
                         <MessageCircle className="h-6 w-6 text-emerald-400" />
                       </div>
                       <div>
@@ -1606,7 +1606,7 @@ struct ChatView: View {
                     </div>
 
                     {/* Flow steps */}
-                    <div className="rounded-xl border border-emerald-500/10 bg-emerald-950/10 p-4">
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4">
                       <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
                         <Zap className="h-3 w-3" /> Flow OAuth (1 klik)
                       </p>
@@ -1619,7 +1619,7 @@ struct ChatView: View {
                           "Sistem menyimpan Phone Number ID otomatis ✓",
                         ].map((step, i) => (
                           <li key={i} className="flex items-start gap-2.5 text-[11px] text-slate-300">
-                            <span className="flex-shrink-0 h-4 w-4 rounded-full bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center text-[8px] font-extrabold text-emerald-400">
+                            <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-white text-[8px] font-extrabold text-emerald-700">
                               {i + 1}
                             </span>
                             {step}
@@ -1658,7 +1658,7 @@ struct ChatView: View {
                       type="button"
                       onClick={() => void handleOAuthWhatsApp()}
                       disabled={isWaConnecting}
-                      className="w-full h-11 bg-[#1877f2] hover:bg-[#1565d8] text-white font-bold text-sm gap-2.5 transition-all"
+                      className="h-11 w-full gap-2.5 bg-[#1877f2] text-sm font-bold !text-white transition-all hover:bg-[#1565d8]"
                     >
                       {isWaConnecting ? (
                         <><Loader2 className="h-4 w-4 animate-spin" /> Menghubungkan...</>

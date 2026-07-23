@@ -341,7 +341,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   return (
-    <div className={`relative h-screen bg-[var(--color-bg)] text-[var(--color-text)] flex overflow-hidden transition-all duration-300 ${isAiOpen && !isFlowBuilderRoute ? "md:pr-96" : ""}`}>
+    <div className={`app-dashboard-shell relative flex h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text)] transition-all duration-300 ${isAiOpen && !isFlowBuilderRoute ? "md:pr-96" : ""}`}>
       {/* MOBILE SIDEBAR DRAWEROVERLAY */}
       {isSidebarOpen && !isFlowBuilderRoute && (
         <div
@@ -353,7 +353,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* SIDEBAR LEFT */}
       {!isFlowBuilderRoute && (
       <aside
-        className={`fixed inset-y-0 left-0 z-45 border-r border-[var(--color-border)] bg-[var(--color-surface-strong)] transition-all duration-300 md:translate-x-0 md:static ${
+        className={`app-dashboard-sidebar fixed inset-y-0 left-0 z-45 border-r border-[var(--color-border)] bg-[var(--color-surface-strong)] transition-all duration-300 md:static md:translate-x-0 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } ${isMainSidebarCollapsed ? "md:w-20 w-64" : "w-64"}`}
       >
@@ -608,7 +608,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* TOPBAR */}
         {!isFlowBuilderRoute && (
-          <header className="h-14 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 z-30 shrink-0">
+          <header className="app-dashboard-topbar z-30 flex h-14 shrink-0 items-center justify-between border-b border-[var(--color-border)] px-4 backdrop-blur-xl md:px-6">
             <div className="flex items-center gap-4 min-w-0">
               <button
                 onClick={() => setIsSidebarOpen(true)}
