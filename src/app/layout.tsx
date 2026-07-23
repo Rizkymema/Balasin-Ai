@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import { Inter } from "next/font/google";
 
 import { RootShell } from "@/components/layout/root-shell";
 import { siteConfig } from "@/constants/site";
@@ -8,17 +8,17 @@ import { resolveAppUrl } from "@/lib/app-url";
 
 import "./globals.css";
 
-const manrope = Manrope({
+const inter = Inter({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-manrope",
+  variable: "--font-inter",
 });
 
 const rootFontVariables: CSSProperties = {
   "--app-font-body":
-    'var(--font-manrope), "Segoe UI", sans-serif',
+    'var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
   "--app-font-heading":
-    'var(--font-manrope), "Segoe UI", sans-serif',
+    'var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
   "--app-font-mono": '"SF Mono", "SFMono-Regular", "Consolas", "JetBrains Mono", monospace',
 } as CSSProperties;
 
@@ -39,7 +39,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${manrope.variable} app-light-theme min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] antialiased`}
+        className={`${inter.variable} app-light-theme min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] antialiased`}
         style={rootFontVariables}
         suppressHydrationWarning
       >
