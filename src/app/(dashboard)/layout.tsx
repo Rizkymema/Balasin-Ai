@@ -462,23 +462,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   }}
                   className={`group relative flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition duration-150 ${
                     isActive
-                      ? "bg-[var(--color-surface)] border border-[var(--color-brand)]/25 text-[var(--color-brand)]"
+                      ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white font-bold"
                       : "text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white"
                   } ${isMainSidebarCollapsed ? "md:justify-center md:px-1" : ""}`}
                 >
                   <span className="flex items-center gap-3">
-                    <Icon className={`h-4.5 w-4.5 ${isActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
+                    <Icon className={`h-4.5 w-4.5 ${isActive ? "text-white" : "text-slate-400"}`} />
                     <span className={isMainSidebarCollapsed ? "md:hidden" : ""}>
                       {translatedLabel}
                     </span>
                   </span>
-                  <span className={`flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-brand)] text-[10px] font-bold text-slate-950 ${
+                  <span className={`flex h-5 w-5 items-center justify-center rounded-full bg-white text-black text-[10px] font-bold ${
                     dynamicBadge ? "" : "hidden"
                   } ${isMainSidebarCollapsed ? "md:hidden" : ""}`}>
                     {dynamicBadge}
                   </span>
                   {isMainSidebarCollapsed && dynamicBadge && (
-                    <span className="hidden md:flex absolute top-1 right-1 h-4 w-4 items-center justify-center rounded-full bg-[var(--color-brand)] text-[8px] font-bold text-slate-950 shadow-[0_1px_4px_rgba(0,0,0,0.4)]">
+                    <span className="hidden md:flex absolute top-1 right-1 h-4 w-4 items-center justify-center rounded-full bg-white text-black text-[8px] font-bold shadow-sm">
                       {dynamicBadge}
                     </span>
                   )}
@@ -500,12 +500,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     onClick={() => { setIsSidebarOpen(false); handleMouseLeave(); }}
                     className={`group relative flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition duration-150 ${
                       isAutomationActive
-                        ? "bg-[var(--color-surface)] border border-[var(--color-brand)]/25 text-[var(--color-brand)]"
+                        ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white font-bold"
                         : "text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white"
                     } ${isMainSidebarCollapsed ? "md:justify-center md:px-1" : ""}`}
                   >
                     <span className="flex items-center gap-3">
-                      <Workflow className={`h-4.5 w-4.5 ${isAutomationActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
+                      <Workflow className={`h-4.5 w-4.5 ${isAutomationActive ? "text-white" : "text-slate-400"}`} />
                       <span className={isMainSidebarCollapsed ? "md:hidden" : ""}>
                         {t.automation}
                       </span>
@@ -529,7 +529,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             onClick={() => setIsSidebarOpen(false)}
                             className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition duration-150 ${
                               subActive
-                                ? "text-[var(--color-brand)] bg-[var(--color-surface)]"
+                                ? "text-white bg-[var(--color-surface-hover)]"
                                 : "text-slate-500 hover:text-slate-200 hover:bg-white/[0.04]"
                             }`}
                           >
@@ -538,7 +538,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                               {translatedSubLabel}
                             </span>
                             {sub.badge && (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[var(--color-brand)]/10 text-[var(--color-brand)] border border-[var(--color-brand)]/20 uppercase tracking-wider">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white text-black uppercase tracking-wider">
                                 {sub.badge}
                               </span>
                             )}
@@ -568,12 +568,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   }}
                   className={`group relative flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition duration-150 ${
                     isActive
-                      ? "bg-[var(--color-surface)] border border-[var(--color-brand)]/25 text-[var(--color-brand)]"
+                      ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white font-bold"
                       : "text-slate-400 hover:bg-[var(--color-surface-hover)] hover:text-white"
                   } ${isMainSidebarCollapsed ? "md:justify-center md:px-1" : ""}`}
                 >
                   <span className="flex items-center gap-3">
-                    <Icon className={`h-4.5 w-4.5 ${isActive ? "text-[var(--color-brand)]" : "text-slate-400"}`} />
+                    <Icon className={`h-4.5 w-4.5 ${isActive ? "text-white" : "text-slate-400"}`} />
                     <span className={isMainSidebarCollapsed ? "md:hidden" : ""}>
                       {translatedLabel}
                     </span>
@@ -618,11 +618,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
               <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/70 px-3.5 py-1 text-xs font-semibold backdrop-blur-md shadow-sm">
                 <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-brand)] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-brand)]"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-success)] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-success)]"></span>
                 </span>
                 <span className="text-[var(--color-muted)]">{t.workspace}:</span>
-                <span className="text-[var(--color-text)] font-bold truncate max-w-[180px] sm:max-w-none">{businessName}</span>
+                <span className="text-white font-bold truncate max-w-[180px] sm:max-w-none">{businessName}</span>
               </div>
             </div>
 
@@ -638,7 +638,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 >
                   <Bell className="h-5 w-5" />
                   {notificationCount > 0 && (
-                    <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-brand)] px-1 text-[9px] font-bold text-slate-950">
+                    <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-white text-black px-1 text-[9px] font-extrabold shadow-sm">
                       {notificationCount > 99 ? "99+" : notificationCount}
                     </span>
                   )}
@@ -660,7 +660,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             Inbox dan aktivitas yang perlu ditindaklanjuti
                           </p>
                         </div>
-                        <span className="rounded-full bg-[var(--color-brand)]/10 px-2 py-1 text-[10px] font-bold text-[var(--color-brand)]">
+                        <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-bold text-white border border-white/10">
                           {notificationCount} aktif
                         </span>
                       </div>
@@ -685,10 +685,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                               className="group flex gap-3 rounded-xl px-3 py-3 transition hover:bg-[var(--color-surface-hover)]"
                             >
                               <span
-                                className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${notification.priority === "high" ? "bg-rose-400" : "bg-[var(--color-brand)]"}`}
+                                className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${notification.priority === "high" ? "bg-rose-400" : "bg-white"}`}
                               />
                               <span className="min-w-0">
-                                <span className="block text-xs font-bold text-[var(--color-text)] group-hover:text-[var(--color-brand)]">
+                                <span className="block text-xs font-bold text-[var(--color-text)] group-hover:text-white">
                                   {notification.title}
                                 </span>
                                 <span className="mt-1 block line-clamp-2 text-[11px] leading-4 text-[var(--color-muted)]">
@@ -704,7 +704,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <Link
                           href="/inbox"
                           onClick={() => setIsNotificationOpen(false)}
-                          className="block rounded-lg px-3 py-2 text-center text-xs font-bold text-[var(--color-brand)] transition hover:bg-[var(--color-brand)]/10"
+                          className="block rounded-lg px-3 py-2 text-center text-xs font-bold text-white transition hover:bg-white/10"
                         >
                           Buka Unified Inbox
                         </Link>
@@ -726,7 +726,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                   className="flex items-center gap-2 p-1 rounded-full hover:bg-[var(--color-surface-hover)] border border-transparent hover:border-[var(--color-border)] transition duration-200 cursor-pointer"
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-brand)]/10 text-[var(--color-brand)] font-bold text-xs border border-[var(--color-brand)]/20 uppercase">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-black font-extrabold text-xs border border-white/20 uppercase shadow-sm">
                     {userEmail.slice(0, 2)}
                   </div>
                   <ChevronDown className="h-3.5 w-3.5 text-[var(--color-muted)] mr-1 hidden sm:inline" />

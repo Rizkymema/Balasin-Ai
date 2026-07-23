@@ -208,9 +208,9 @@ export default function DashboardPage() {
       label: "OMNICHANNEL ACTIVE",
       value: `${data.conversations.length}`,
       icon: MessageSquare,
-      color: "text-[var(--color-brand)] bg-[var(--color-brand)]/10 border-[var(--color-brand)]/20",
+      color: "text-white bg-[var(--color-surface-hover)] border-[var(--color-border-hover)]",
       note: connectedChannels.length > 0 ? connectedChannels.join(", ") : "Tidak ada channel aktif",
-      badgeColor: "bg-[var(--color-brand)]/10 text-[var(--color-brand)] border-[var(--color-brand)]/20",
+      badgeColor: "bg-white/10 text-white border-white/20 font-bold",
       badgeText: `${connectedChannels.length} Live`,
     },
     {
@@ -235,17 +235,6 @@ export default function DashboardPage() {
       badgeColor: "bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-[var(--color-warning)]/20",
       badgeText: `${automationCoverage}% Auto-Rule`,
     },
-    /*
-    {
-      label: "KATALOG & LAYANAN",
-      value: `${data.products.length + data.services.length}`,
-      icon: Package2,
-      color: "text-[var(--color-success)] bg-[var(--color-success)]/10 border-[var(--color-success)]/20",
-      note: `${data.services.length} layanan | ${data.products.length} produk terdaftar`,
-      badgeColor: "bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/20",
-      badgeText: `${data.products.length} Produk`,
-    },
-    */
   ].filter(Boolean);
 
   const controlCenterCards = [
@@ -261,14 +250,6 @@ export default function DashboardPage() {
       href: "/inbox",
       icon: MessageSquare,
     },
-    /*
-    {
-      title: "Katalog & Layanan",
-      detail: "Kelola daftar produk, paket servis operasional, sparepart, dan sinkronisasi reservasi.",
-      href: "/products-services",
-      icon: Package2,
-    },
-    */
     {
       title: "Integrasi Channel",
       detail: "Hubungkan akun WhatsApp, Instagram, Live Chat, dan pantau status koneksi saluran media sosial.",
@@ -315,14 +296,6 @@ export default function DashboardPage() {
         config.knowledgeBase.websiteUrls.length > 0,
       note: `${config.knowledgeBase.websiteUrls.length} URL | ${config.knowledgeBase.documents.length} dokumen`,
     },
-    /*
-    {
-      title: "Katalog Produk & Servis",
-      href: "/products-services",
-      complete: data.products.length > 0 && data.services.length > 0,
-      note: `${data.products.length} produk | ${data.services.length} layanan`,
-    },
-    */
     {
       title: "Integrasi Channel",
       href: "/channels",
@@ -374,7 +347,7 @@ export default function DashboardPage() {
             </span>
           </div>
           <h1 className="text-xl font-bold text-white md:text-2xl tracking-tight">
-            Selamat datang di Workspace <span className="text-[var(--color-brand)]">{config.workspace.name}</span>
+            Selamat datang di Workspace <span className="text-white font-black">{config.workspace.name}</span>
           </h1>
           <p className="max-w-2xl text-xs leading-relaxed text-[var(--color-muted)] font-normal">
             Kelola interaksi pelanggan, automasi AI assistant, basis pengetahuan FAQ, booking slot, dan ticket eskalasi dalam satu panel kontrol terpusat yang aman dan andal.
@@ -439,10 +412,10 @@ export default function DashboardPage() {
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <div className="flex h-5.5 w-5.5 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[var(--color-brand)]">
+                        <div className="flex h-5.5 w-5.5 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border-hover)] text-white">
                           <Icon className="h-2.5 w-2.5" />
                         </div>
-                        <h4 className="text-xs font-bold text-white tracking-tight group-hover:text-[var(--color-brand)] transition-colors duration-150">
+                        <h4 className="text-xs font-bold text-white tracking-tight group-hover:text-white transition-colors duration-150">
                           {card.title}
                         </h4>
                       </div>
@@ -450,7 +423,7 @@ export default function DashboardPage() {
                         {card.detail}
                       </p>
                     </div>
-                    <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-[var(--color-brand)] group-hover:text-[var(--color-brand-hover)] transition-colors duration-150">
+                    <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-white group-hover:text-slate-300 transition-colors duration-150">
                       Buka Modul
                       <ArrowRight className="h-3 w-3 transform group-hover:translate-x-0.5 transition-transform duration-150" />
                     </div>
@@ -466,14 +439,14 @@ export default function DashboardPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
                   <h3 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
-                    <Zap className="h-4 w-4 text-[var(--color-brand)] animate-pulse" />
+                    <Zap className="h-4 w-4 text-white animate-pulse" />
                     Panduan Cepat Mulai Balesin AI
                   </h3>
                   <p className="mt-0.5 text-[11px] text-[var(--color-muted)]">
                     Ikuti 5 langkah mudah berikut untuk mengaktifkan asisten AI pintar di bisnis Anda.
                   </p>
                 </div>
-                <Badge className="border-[var(--color-brand)]/20 bg-[var(--color-brand)]/5 text-[var(--color-brand)] font-bold px-2 py-0.5 text-[10px] shrink-0 self-start sm:self-center">
+                <Badge className="border border-white/20 bg-white/10 text-white font-bold px-2 py-0.5 text-[10px] shrink-0 self-start sm:self-center">
                   {completedChecklist} dari {setupChecklist.length} Siap
                 </Badge>
               </div>
@@ -486,7 +459,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="h-1.5 w-full bg-[var(--color-surface-strong)] rounded-full overflow-hidden border border-[var(--color-border)] p-[1px]">
                   <div
-                    className="h-full bg-gradient-to-r from-[var(--color-brand)] to-cyan-400 rounded-full transition-all duration-500 ease-out"
+                    className="h-full bg-gradient-to-r from-white to-slate-400 rounded-full transition-all duration-500 ease-out"
                     style={{ width: `${checklistPercentage}%` }}
                   />
                 </div>
@@ -508,7 +481,7 @@ export default function DashboardPage() {
                   step: 2,
                   title: "Hubungkan Media Sosial (Instagram/WhatsApp)",
                   desc: "Tautkan akun bisnis Instagram DM atau WhatsApp Anda agar AI dapat membalas chat secara otomatis.",
-                  complete: setupChecklist[3].complete,
+                  complete: setupChecklist[2].complete,
                   actionText: "Hubungkan Saluran Chat",
                   onClick: () => setActiveEditModal("channels"),
                 },
@@ -579,7 +552,7 @@ export default function DashboardPage() {
                           className={`inline-flex items-center justify-center h-7.5 px-3 rounded-lg text-[10px] font-bold tracking-tight transition-all shrink-0 ${
                             isStepComplete
                               ? "bg-white/5 border border-white/8 text-slate-300 hover:bg-white/10"
-                              : "bg-[var(--color-brand)] text-slate-950 hover:bg-[var(--color-brand-hover)] shadow-sm"
+                              : "bg-white text-black hover:bg-slate-200 shadow-sm"
                           }`}
                         >
                           {item.actionText}
@@ -591,7 +564,7 @@ export default function DashboardPage() {
                           className={`inline-flex items-center justify-center h-7.5 px-3 rounded-lg text-[10px] font-bold tracking-tight transition-all shrink-0 ${
                             isStepComplete
                               ? "bg-white/5 border border-white/8 text-slate-300 hover:bg-white/10"
-                              : "bg-[var(--color-brand)] text-slate-950 hover:bg-[var(--color-brand-hover)] shadow-sm"
+                              : "bg-white text-black hover:bg-slate-200 shadow-sm"
                           }`}
                         >
                           {item.actionText}
@@ -651,7 +624,7 @@ export default function DashboardPage() {
             </h3>
             <div className="space-y-2.5">
               <div className="flex items-start gap-2.5 text-xs">
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-[var(--color-brand)]">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-white">
                   WS
                 </div>
                 <div className="min-w-0 flex-1">
@@ -663,7 +636,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex items-start gap-2.5 text-xs">
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-[var(--color-brand)]">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-white">
                   AI
                 </div>
                 <div className="min-w-0 flex-1">
@@ -675,7 +648,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex items-start gap-2.5 text-xs">
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-[var(--color-brand)]">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-white">
                   TK
                 </div>
                 <div className="min-w-0 flex-1">
@@ -687,7 +660,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex items-start gap-2.5 text-xs">
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-[var(--color-brand)]">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[9px] font-bold text-white">
                   BC
                 </div>
                 <div className="min-w-0 flex-1">

@@ -250,21 +250,21 @@ export function DashboardAIAssistant() {
         {/* Floating Action Button */}
         <button
           onClick={() => setIsOpen(true)}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-brand)] text-slate-950 shadow-lg hover:shadow-[0_0_15px_rgba(0,210,255,0.5)] hover:scale-105 active:scale-95 transition-all duration-200"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-black border border-slate-200 shadow-2xl hover:bg-slate-200 hover:scale-105 active:scale-95 transition-all duration-200"
           title="Tanya AI Copilot"
         >
-          <Bot className="h-6 w-6 animate-pulse" />
+          <Bot className="h-6 w-6 text-black" />
         </button>
       </div>
     );
   }
 
   return (
-    <Card className="fixed top-0 right-0 h-screen w-full md:w-96 border-l border-white/10 bg-[var(--color-surface)] shadow-2xl flex flex-col z-50 animate-in slide-in-from-right duration-300 rounded-none overflow-hidden font-sans">
+    <Card className="fixed top-0 right-0 h-screen w-full md:w-96 border-l border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl flex flex-col z-50 animate-in slide-in-from-right duration-300 rounded-none overflow-hidden font-sans">
       {/* Header */}
-      <div className="bg-[var(--color-surface-strong)] border-b border-white/5 px-4 py-3 flex items-center justify-between shrink-0">
+      <div className="bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] px-4 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-brand)]/10 text-[var(--color-brand)] border border-[var(--color-brand)]/20">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-surface-hover)] text-white border border-[var(--color-border-hover)]">
             <Sparkles className="h-4.5 w-4.5" />
           </div>
           <div>
@@ -272,7 +272,7 @@ export function DashboardAIAssistant() {
               AI Copilot
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
             </div>
-            <div className="text-[10px] text-slate-500">Asisten data {config?.workspace?.name || "Workspace"}</div>
+            <div className="text-[10px] text-slate-400">Asisten data {config?.workspace?.name || "Workspace"}</div>
           </div>
         </div>
         <button
