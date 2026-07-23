@@ -246,7 +246,7 @@ export function DashboardAIAssistant() {
 
   if (!isOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-50 font-sans">
+      <div className="fixed bottom-6 right-6 z-30 font-sans">
         {/* Floating Action Button */}
         <button
           onClick={() => setIsOpen(true)}
