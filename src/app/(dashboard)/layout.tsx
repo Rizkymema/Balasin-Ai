@@ -775,7 +775,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               ? "flex min-h-0 flex-col overflow-hidden p-0"
               : isInboxRoute
               ? "flex min-h-0 flex-col overflow-y-auto p-4 lg:overflow-hidden lg:p-6"
-              : "overflow-y-auto custom-scrollbar p-5 sm:p-6 md:p-8"
+              : "overflow-y-auto custom-scrollbar p-4 sm:p-5 md:p-6"
           }`}
         >
           <div
@@ -784,7 +784,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 ? "flex h-full min-h-0 w-full flex-1 flex-col"
                 : isInboxRoute
                 ? "flex h-full min-h-0 w-full flex-1 flex-col"
-                : "w-full max-w-7xl mx-auto space-y-6"
+                : "w-full max-w-7xl mx-auto space-y-5"
             }
           >
             {children}

@@ -332,9 +332,9 @@ export default function DashboardPage() {
   const checklistPercentage = Math.round((completedSteps / totalSteps) * 100);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Welcome Banner */}
-      <Card className="p-6 md:p-8 bg-white border border-slate-200 shadow-2xs space-y-3">
+      <Card className="p-5 md:p-6 bg-white border border-slate-200 shadow-2xs space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="success" className="text-[10px] px-2 py-0.5 font-bold shadow-2xs flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -348,19 +348,19 @@ export default function DashboardPage() {
           <h1 className="text-xl font-extrabold text-slate-900 md:text-2xl tracking-tight leading-tight">
             Selamat datang di Workspace <span className="text-blue-600">{config.workspace.name}</span>
           </h1>
-          <p className="max-w-3xl text-xs md:text-sm leading-relaxed text-slate-600 font-normal mt-1.5">
+          <p className="max-w-3xl text-xs md:text-sm leading-relaxed text-slate-600 font-normal mt-1">
             Kelola interaksi pelanggan, automasi AI assistant, basis pengetahuan FAQ, booking slot, dan ticket eskalasi dalam satu panel kontrol terpusat yang aman dan andal.
           </p>
         </div>
       </Card>
 
       {/* Stats Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
 
           return (
-            <Card key={stat.label} className="p-5 md:p-6 bg-white border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-3">
+            <Card key={stat.label} className="p-4.5 bg-white border border-slate-200 hover:border-slate-300 hover:shadow-xs transition-all duration-200 flex flex-col justify-between space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                   {stat.label}
@@ -389,29 +389,29 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content Layout Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4 items-start">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-4 items-start">
         {/* Left Column: Control Center & Checklist */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-3 space-y-5">
           {/* Operational Control Center */}
-          <Card className="p-6 md:p-8 bg-white border border-slate-200 shadow-2xs">
-            <div className="border-b border-slate-100 pb-4 mb-5">
+          <Card className="p-5 md:p-6 bg-white border border-slate-200 shadow-2xs">
+            <div className="border-b border-slate-100 pb-3 mb-4">
               <h3 className="text-base font-extrabold tracking-tight text-slate-900">
                 Pusat Kendali Operasional
               </h3>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-0.5 text-xs text-slate-500">
                 Akses cepat ke 6 modul utama untuk mengelola respon dan layanan bisnis Anda secara efisien.
               </p>
             </div>
 
             {/* 6 Cards in a clean 3-column grid across 2 rows */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {controlCenterCards.map((card) => {
                 const Icon = card.icon;
                 return (
                   <Link
                     key={card.title}
                     href={card.href}
-                    className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/50 p-5 transition-all duration-150 hover:border-blue-300 hover:bg-blue-50/40 hover:-translate-y-0.5 hover:shadow-md group min-h-[160px]"
+                    className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/50 p-4.5 transition-all duration-150 hover:border-blue-300 hover:bg-blue-50/40 hover:-translate-y-0.5 hover:shadow-xs group min-h-[140px]"
                   >
                     <div>
                       <div className="flex items-center gap-2.5">
@@ -422,11 +422,11 @@ export default function DashboardPage() {
                           {card.title}
                         </h4>
                       </div>
-                      <p className="mt-2.5 text-xs leading-relaxed text-slate-500 font-medium">
+                      <p className="mt-2 text-xs leading-relaxed text-slate-500 font-medium">
                         {card.detail}
                       </p>
                     </div>
-                    <div className="mt-4 flex items-center gap-1 text-xs font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-150">
+                    <div className="mt-3 flex items-center gap-1 text-xs font-bold text-blue-600 group-hover:text-blue-700 transition-colors duration-150">
                       Buka Modul
                       <ArrowRight className="h-3.5 w-3.5 transform group-hover:translate-x-1 transition-transform duration-150" />
                     </div>
@@ -437,15 +437,15 @@ export default function DashboardPage() {
           </Card>
 
           {/* Setup Checklist Progress */}
-          <Card className="p-6 md:p-8 bg-white border border-slate-200 shadow-2xs">
-            <div className="border-b border-slate-100 pb-4 mb-5">
+          <Card className="p-5 md:p-6 bg-white border border-slate-200 shadow-2xs">
+            <div className="border-b border-slate-100 pb-3 mb-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
                   <h3 className="text-base font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
                     <Zap className="h-4.5 w-4.5 text-blue-600 animate-pulse" />
                     Panduan Cepat Mulai Balesin AI
                   </h3>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-slate-500">
                     Ikuti 5 langkah mudah berikut untuk mengaktifkan asisten AI pintar di bisnis Anda.
                   </p>
                 </div>
@@ -542,7 +542,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Right Column: API Credentials Info & Workspace Snapshot (Sticky Sidebar) */}
-        <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-4 h-fit">
+        <div className="lg:col-span-1 space-y-5 lg:sticky lg:top-4 h-fit">
           {/* Security & Env Configuration Card */}
           <Card className="p-5 bg-white border border-slate-200 shadow-2xs space-y-3">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">

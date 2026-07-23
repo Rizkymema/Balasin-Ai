@@ -151,16 +151,16 @@ export function ConversationListPanel({
           </div>
         </div>
 
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-2.5">
           <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-2.5">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-2xs">
                 <Smartphone className="h-3.5 w-3.5" />
               </span>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 space-y-0.5">
                 <label
                   htmlFor="inbox-whatsapp-account"
-                  className="mb-0.5 block text-[9px] font-extrabold uppercase tracking-wider text-emerald-800"
+                  className="block text-[9px] font-extrabold uppercase tracking-wider text-emerald-800"
                 >
                   Akun WhatsApp Inbox
                 </label>
@@ -172,7 +172,7 @@ export function ConversationListPanel({
                       event.target.value as InboxWhatsAppAccountFilter,
                     )
                   }
-                  className="h-7 w-full rounded-lg border-emerald-200 bg-white text-[11px] font-semibold text-slate-900"
+                  className="h-8.5 w-full rounded-lg border-emerald-200 bg-white px-2.5 py-0.5 pr-7 text-[11px] font-semibold text-slate-900 shadow-2xs"
                 >
                   {whatsappAccountOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -183,7 +183,7 @@ export function ConversationListPanel({
               </div>
               <Link
                 href="/channels"
-                className="shrink-0 rounded-lg px-2 py-1 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition"
+                className="shrink-0 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition"
               >
                 Kelola
               </Link>
